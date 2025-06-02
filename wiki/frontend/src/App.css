@@ -1,0 +1,125 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: row; /* Panes side-by-side */
+  height: 95vh; /* Full viewport height */
+  padding: 1rem;
+  box-sizing: border-box;
+  text-align: left; /* Override #root text-align for app content */
+  gap: 1rem; /* Space between panes */
+  align-items: stretch; /* Make panes full height */
+}
+
+.tree-pane {
+  flex: 0 0 350px; /* Fixed width for the tree pane, adjust as needed */
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #ddd;
+  padding: 0.5rem;
+  box-sizing: border-box;
+  background-color: #fdfdfd;
+}
+
+.tree-wrapper {
+  border: 1px solid #ccc;
+  overflow: auto; /* Important for scrollability */
+  height: 500px; /* Matches Tree component's height prop */
+  width: 100%; /* Take full width of its .tree-pane container */
+  /* margin-top: 1rem; Removed, gap in .app-container handles spacing */
+}
+
+.content-pane {
+  flex-grow: 1; /* Takes remaining space */
+  border: 1px solid #ddd;
+  padding: 1rem;
+  box-sizing: border-box;
+  overflow-y: auto; /* Allow content to scroll */
+  background-color: #ffffff;
+}
+
+.content-pane pre {
+  white-space: pre-wrap; /* Wrap long lines */
+  word-break: break-word; /* Break long words if necessary */
+  background-color: #f4f4f4;
+  padding: 1rem;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.9em;
+  color: #333;
+}
+
+.node {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 14px;
+  color: #333; /* Darker text for better legibility */
+}
+
+.node:hover {
+  background-color: #f0f0f0;
+}
+
+.node.selected {
+  background-color: #e0e0ff;
+  font-weight: bold;
+}
+
+.node-icon {
+  margin-right: 6px;
+}
+
+.status-message {
+  padding: 1rem;
+  text-align: center;
+  color: #555;
+}
+
+.error-message {
+  color: red;
+  font-weight: bold;
+}
