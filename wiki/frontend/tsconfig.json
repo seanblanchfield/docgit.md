@@ -2,6 +2,7 @@
   "extends": "@type-config/strict",
   "compilerOptions": {
     "target": "ES2020",
+    "module": "esnext",
     "noPropertyAccessFromIndexSignature": false,
     "moduleResolution": "bundler"
   }
