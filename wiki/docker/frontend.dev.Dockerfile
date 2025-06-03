@@ -2,10 +2,13 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copy package.json and package-lock.json
-COPY frontend/package.json frontend/package-lock.json* ./
+COPY frontend/package.json frontend/pnpm-lock.yaml* ./
 
-# Install dependencies
-RUN npm install # Use 'npm install' for dev to allow for potential package.json changes
+# Install pnpm
+RUN npm install -g pnpm
+
+# Install dependencies using pnpm, ensuring it adheres to the lockfile
+RUN pnpm install --frozen-lockfile
 
 # Copy the rest of the frontend application code (will be mostly overridden by volume mount)
 COPY frontend/ ./ 
@@ -15,4 +18,4 @@ EXPOSE 5173
 
 # Run the Vite development server
 # --host 0.0.0.0 makes it accessible from outside the container
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+CMD ["pnpm", "run", "start"]

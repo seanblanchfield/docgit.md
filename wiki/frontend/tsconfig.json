@@ -1,7 +1,8 @@
 {
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ]
+  "extends": "@type-config/strict",
+  "compilerOptions": {
+    "target": "ES2020",
+    "noPropertyAccessFromIndexSignature": false,
+    "moduleResolution": "bundler"
+  }
 }

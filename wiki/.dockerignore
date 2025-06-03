@@ -1,0 +1,7 @@
+# Ignore frontend node_modules to prevent conflicts during Docker build
+frontend/node_modules
+
+# Ignore other common files/directories if necessary
+.git
+.vscode
+*.env
