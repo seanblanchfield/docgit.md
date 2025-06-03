@@ -47,3 +47,15 @@ class MoveItemResponse(BaseModel):
     commit_sha: Optional[str]
     source_path: str
     destination_path: str
+
+
+# Schema for the directory tree structure expected by the frontend
+class TreeNode(BaseModel):
+    id: str  # Typically the full path relative to the repo root
+    name: str  # The file or folder name
+    children: Optional[List['TreeNode']] = None # Recursive definition for children
+
+# If you need to update models for self-referencing Pydantic models in older Pydantic versions
+# you might need `TreeNode.update_forward_refs()` after the class definition.
+# However, with Pydantic v1.8+ (FastAPI often uses this or newer), string type hints
+# for forward references usually work out of the box.

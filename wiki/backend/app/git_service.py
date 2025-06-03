@@ -7,6 +7,8 @@ import git
 from git import Repo, GitCommandError, Actor, DiffIndex
 from git.exc import NoSuchPathError, BadName
 
+from .schemas import TreeNode # Added for directory tree structure
+
 
 
 class GitService:
@@ -480,5 +482,65 @@ class GitService:
         except Exception as e: # Catch-all for other unexpected issues
             print(f"An unexpected error occurred during diff for '{file_path_relative_to_repo}': {e}")
             return None
+
+
+    def get_directory_tree(self, relative_path: str = ".") -> List[TreeNode]:
+        """
+        Builds a hierarchical tree of files and folders from the specified path in the repository.
+        Paths are relative to the repository root.
+        Excludes the .git directory.
+        Returns a list of TreeNode objects.
+        """
+        if not self.repo:
+            raise RuntimeError("Repository is not initialized.")
+
+        start_node_path_in_repo = Path() if relative_path == "." or not relative_path else Path(relative_path)
+        absolute_start_path = (self.repo_path / start_node_path_in_repo).resolve()
+
+        if not absolute_start_path.is_dir():
+            print(f"Path for directory tree is not a directory or does not exist: {absolute_start_path}")
+            return []
+
+        return self._build_tree_recursive(absolute_start_path, self.repo_path)
+
+    def _build_tree_recursive(self, current_absolute_path: Path, repo_root_path: Path) -> List[TreeNode]:
+        """
+        Helper method to recursively build the tree structure.
+        Returns a list of TreeNode objects for the contents of current_absolute_path.
+        """
+        tree_nodes: List[TreeNode] = []
+        
+        if not current_absolute_path.is_dir() or not str(current_absolute_path).startswith(str(repo_root_path)):
+            return []
+
+        # Sort items for consistent order: directories first, then files, then alphabetically by name
+        items_in_directory = sorted(
+            current_absolute_path.iterdir(),
+            key=lambda p: (not p.is_dir(), p.name.lower())
+        )
+
+        for item_path in items_in_directory:
+            if item_path.name == ".git":
+                continue
+
+            item_relative_path_to_repo = item_path.relative_to(repo_root_path)
+            
+            children_nodes: Optional[List[TreeNode]] = None
+            if item_path.is_dir():
+                children_nodes = self._build_tree_recursive(item_path, repo_root_path)
+                # If a folder is empty, children_nodes will be an empty list.
+                # For the TreeNode schema (Optional[List['TreeNode']] = None),
+                # an empty list is valid. If we want to explicitly use None for empty folders:
+                # if not children_nodes:
+                #     children_nodes = None
+
+            node = TreeNode(
+                id=str(item_relative_path_to_repo),
+                name=item_path.name,
+                children=children_nodes
+            )
+            tree_nodes.append(node)
+            
+        return tree_nodes
 
     # All core Git operations for Phase 2 backend API implemented.

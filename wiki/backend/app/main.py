@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from typing import List, Optional
 from . import schemas
+from .schemas import TreeNode # Added for the directory tree endpoint
 from .config import settings
 from .git_service import GitService
 
@@ -38,6 +39,26 @@ async def list_repository_files(
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
+
+
+@app.get("/api/files/tree", response_model=List[TreeNode])
+async def get_directory_tree_endpoint(
+    gs: GitService = Depends(get_git_service)
+):
+    """
+    Get the entire directory tree structure of the repository.
+    Returns a list of TreeNode objects, where each node can have children.
+    """
+    try:
+        tree_data = gs.get_directory_tree(relative_path=".") # Get tree from repo root
+        return tree_data
+    except RuntimeError as e:
+        # This might occur if the repo isn't initialized, though get_git_service should handle it.
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        # Catch any other unexpected errors from the tree building logic
+        print(f"Unexpected error in get_directory_tree_endpoint: {type(e).__name__} - {e}")
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred while building the directory tree: {str(e)}")
 
 @app.get("/api/files/{file_path:path}", response_model=schemas.FileContentResponse)
 async def get_file_contents(

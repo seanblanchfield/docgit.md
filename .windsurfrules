@@ -1,0 +1,26 @@
+## Project Execution Rules for Cascade AI Assistant
+
+### Frontend NPM Commands
+- All npm commands targeting the `wiki/frontend/` directory must be executed via the `wiki/run-node.sh` script.
+- This script wraps npm commands to run them inside a Docker container with the appropriate environment and volume mounts.
+- **Example:** To install a package: `cd wiki/ && ./run-node.sh install <package-name>`
+- **Example:** To run a script: `cd wiki/ && ./run-node.sh run <script-name>`
+
+## Project Execution Rules for Cascade AI Assistant
+
+### Frontend NPM Commands
+- All npm commands targeting the `wiki/frontend/` directory must be executed via the `wiki/run-node.sh` script.
+- This script wraps npm commands to run them inside a Docker container with the appropriate environment and volume mounts.
+- **Example:** To install a package: `cd wiki/ && ./run-node.sh install <package-name>`
+- **Example:** To run a script: `cd wiki/ && ./run-node.sh run <script-name>`
+
+### Docker Compose Services
+- To restart a specific service (e.g., `frontend` or `backend`):
+  `cd wiki/ && docker-compose restart <service-name>`
+- To stop all services:
+  `cd wiki/ && docker-compose down`
+- To start all services:
+  `cd wiki/ && docker-compose up -d`
+
+### Debugging
+- To debug the frontend, try to use puppeteer before asking the user to use the browser debugger.

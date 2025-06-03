@@ -7,9 +7,12 @@
     "start": "vite --host 0.0.0.0"
   },
   "dependencies": {
+    "@milkdown/core": "^7.12.1",
     "@milkdown/crepe": "7.12.1",
     "@type-config/strict": "^1.2.1",
     "@types/node": "^22.0.0",
+    "infinite-tree": "^1.18.0",
+    "prosemirror-model": "^1.25.1",
     "tslib": "^2.4.1",
     "typescript": "^5.0.0",
     "vite": "^5.2.6"
