@@ -1,0 +1,53 @@
+/* styles.css */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  height: 100vh; /* Establish full viewport height */
+}
+
+#main-container {
+  display: flex;
+  flex-direction: row; /* Arrange tree-drawer and app side-by-side */
+  height: 100%;    /* Take full height of parent (body) */
+}
+
+#tree-drawer {
+  width: 250px;
+  border-right: 1px solid #ccc;
+  padding: 10px;
+  font-family: 'Noto Sans', Arial, Helvetica, sans-serif;
+  font-size: 15px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box; /* Ensures padding is included in the width */
+}
+
+/* The main infinite-tree widget container */
+#tree-drawer .infinite-tree {
+  flex-grow: 1; /* Allows the tree widget to fill available vertical space in the drawer */
+  display: flex; /* To use flex properties for its children, like .infinite-tree-scroll */
+  flex-direction: column; /* Stack children vertically */
+  min-height: 0; /* Crucial for scrollable flex children to not overflow their parent */
+}
+
+/* The specific scrollable element within infinite-tree */
+#tree-drawer .infinite-tree-scroll {
+  flex-grow: 1; /* Allows this scrollable part to fill available space within .infinite-tree */
+  overflow-y: auto; /* Enables vertical scrolling */
+  max-height: 100%;
+}
+
+#app {
+  flex-grow: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Prevents the app container itself from scrolling due to editor content */
+}
+
+#editor {
+  flex-grow: 1; /* Editor takes remaining space in the app container */
+  border: 1px solid #ddd;
+  overflow-y: auto; /* If editor content itself needs to scroll */
+  min-height: 0; /* Crucial for scrollable flex children */
+}
