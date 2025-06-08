@@ -82,53 +82,11 @@ body {
 .infinite-tree-node {
   cursor: pointer;
   user-select: none;
+  font-size: 15px;
 }
 
-.node-content {
-  display: flex;
-  align-items: center;
-  padding: 4px 8px;
-  border-radius: 4px;
-  margin: 1px 0;
-}
-
-.node-content:hover {
-  background-color: var(--bg-hover);
-}
-
-.node-content.selected {
-  background-color: var(--primary-color);
-  color: white;
-}
-
-.toggler {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  margin-right: 4px;
-  font-size: 10px;
-  color: var(--text-secondary);
-}
-
-.node-icon {
-  margin-right: 6px;
-  display: inline-flex;
-  align-items: center;
-}
-
-.node-name {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 14px;
-}
-
-.loading {
-  margin-left: 8px;
-  animation: spin 1s linear infinite;
-  font-size: 12px;
+.infinite-tree-title {
+  font-size: 15px;
 }
 
 @keyframes spin {
@@ -202,88 +160,7 @@ body {
   font-weight: 500;
 }
 
-/* Section titles (folders) */
-#tree-drawer .section-title-custom {
-  font-weight: 500;
-  cursor: pointer;
-  display: block;
-  padding: 4px 12px;
-  color: var(--text-primary);
-  transition: all 0.15s ease;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Document titles (files) */
-#tree-drawer .document-title-custom {
-  font-weight: 400;
-  display: block;
-  padding: 4px 12px 4px 28px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Toggle arrow styling */
-.infinite-tree-toggler {
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  margin-right: 2px;
-  cursor: pointer;
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 14px;
-  text-align: center;
-  line-height: 20px;
-  padding: 0;
-  vertical-align: middle;
-}
-
-.infinite-tree-toggler {
-  position: relative;
-  width: 16px;
-  height: 16px;
-  margin-right: 4px;
-}
-
-.infinite-tree-toggler.infinite-tree-open::before {
-  transform: translate(-50%, -50%) rotate(90deg);
-}
-
-.infinite-tree-toggler:hover {
-  color: var(--primary-color);
-}
-
-/* Hide any text inside the toggler */
-.infinite-tree-toggler span {
-  display: none;
-}
-
-/* Debug styles */
-.infinite-tree-node-open {
-  outline: 2px solid red; /* Temporary debug outline */
-}
-
-/* Tree list structure */
-#tree-drawer .infinite-tree-node-wrapper {
-  display: flex;
-  align-items: center;
-  min-height: 24px;
-}
-
-#tree-drawer .infinite-tree-node-content {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  min-height: 24px;
-}
-
-#tree-drawer .node-name {
+#tree-drawer .infinite-tree-node {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -291,6 +168,7 @@ body {
   max-width: 100%;
   vertical-align: middle;
 }
+
 #tree-drawer .infinite-tree ul,
 #tree-drawer .infinite-tree li {
   list-style-type: none;
@@ -298,37 +176,15 @@ body {
   margin: 0;
 }
 
-/* Indentation for nested items */
-#tree-drawer .infinite-tree-children {
-  margin-left: 16px;
-  border-left: 1px dashed #e5e7eb;
-  padding-left: 8px;
-}
-
 /* Active and hover states */
-#tree-drawer .section-title-custom:hover,
-#tree-drawer .document-title-custom:hover {
+#tree-drawer .infinite-tree-node:hover {
   background-color: var(--bg-hover);
-  color: var(--primary-color);
 }
 
-#tree-drawer .section-title-custom:active,
-#tree-drawer .document-title-custom:active {
-  background-color: #e5e7eb;
-}
-
-/* Selected state */
-#tree-drawer .infinite-tree-node.selected .section-title-custom,
-#tree-drawer .infinite-tree-node.selected .document-title-custom {
+#tree-drawer .infinite-tree-node.selected {
   background-color: #e0e7ff;
   color: var(--primary-color);
   font-weight: 500;
-}
-
-/* Empty folder styling */
-#tree-drawer .infinite-tree-node-empty > .infinite-tree-node-wrapper > .section-title-custom {
-  opacity: 0.7;
-  font-style: italic;
 }
 
 /* Animation for expanding/collapsing */
