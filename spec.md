@@ -11,6 +11,10 @@ Bullet list containing work that has been performed:
 - [x] Removed all debug logging from main.ts after resolving event handling and data issues.
 - [x] Cleaned up tree-related CSS: removed unused toggler styles, removed debug outlines, and ensured only necessary styles remain.
 - [x] Confirmed correct event delegation and toggling for all folders/sections in the tree.
+- [x] Removed all usage of replaceAll.ts and deleted the file.
+- [x] Moved Milkdown editor update logic to InfiniteTree's selectNode event for reliable file selection handling.
+- [x] Renamed #app to #content throughout the frontend (index.html, styles.css, main.ts).
+- [x] Deleted unused tree-example.ts.
 - [ ] Integrate with backend API for lazy loading of directory contents
 - [ ] Ensure proper state management for open/selected nodes
 

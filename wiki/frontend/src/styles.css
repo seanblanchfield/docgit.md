@@ -39,7 +39,7 @@ body {
   overflow: hidden;
 }
 
-#app {
+#content {
   flex: 1 1 80%;
   min-width: 0;
   height: 100vh;
@@ -61,7 +61,7 @@ body {
     border-right: none;
     border-bottom: 1px solid var(--border-color);
   }
-  #app {
+  #content {
     flex: 1 1 auto;
     width: 100vw;
     height: calc(100vh - 200px);
@@ -165,7 +165,7 @@ body {
   background: #a8a8a8;
 }
 
-#app {
+#content {
   flex-grow: 1;
   padding: 20px;
   display: flex;

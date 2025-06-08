@@ -1,4 +1,6 @@
 import { Crepe } from '@milkdown/crepe';
+import { editorViewCtx, parserCtx } from '@milkdown/core';
+import { Slice } from 'prosemirror-model';
 import InfiniteTree from 'infinite-tree';
 import './styles.css';
 import 'infinite-tree/dist/infinite-tree.css';
@@ -74,8 +76,8 @@ async function loadDirectoryContents(node: TreeNode, tree: InfiniteTree): Promis
 
 async function main() {
   // Initialize Milkdown editor
-  await new Crepe({
-    root: '#app',
+  const editor = await new Crepe({
+    root: '#content',
     defaultValue: '# Welcome to Markdown Wiki\n\nSelect a file from the sidebar to edit.',
   }).create();
 
@@ -154,23 +156,27 @@ async function main() {
   });
 
 
-  // Event: Node select
-  tree.on('select', async (node: TreeNode) => {
-    console.log('[DEBUG] select event:', node);
-    if (node.isDirectory) {
-      console.log('[DEBUG] toggling directory:', node.id, node.name);
-      tree.toggleNode(node);
-      return;
-    }
-    // For files, load content
-    console.log('[DEBUG] file selected:', node.id, node.name);
+  // Event: Node selectNode (InfiniteTree standard)
+  tree.on('selectNode', async (node: TreeNode) => {
+    if (!node || node.isDirectory) return;
     const content = await fetchFileContent(node.id);
-    // Set content in Milkdown editor
-    // (Assume #app is the Milkdown root)
-    // This example assumes Milkdown API provides a way to set content
-    // You may need to adjust this depending on actual Milkdown usage
-    // Example:
-    // editor.setContent(content);
+    if (editor && typeof editor.action === 'function') {
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const parser = ctx.get(parserCtx);
+        const doc = parser(content);
+        if (!doc) return;
+        view.dispatch(
+          view.state.tr.replace(
+            0,
+            view.state.doc.content.size,
+            new Slice(doc.content, 0, 0)
+          )
+        );
+      });
+    } else {
+      console.error('[FATAL] Milkdown editor instance not available');
+    }
   });
 
   // Event: Node toggle (expand/collapse)
