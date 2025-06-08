@@ -1,4 +1,10 @@
-### Project Specification – “Git-Backed Markdown Wiki”
+# Project Specification – “Git-Backed Markdown Wiki”
+
+## Work in Progress
+Current step: 
+
+Bullet list containing work that has been performed:
+- [ ] 
 
 ---
 
@@ -6,9 +12,9 @@
 
 Build a lightweight self-hosted wiki where every page is a Markdown file stored and versioned in a Git repository.
 
-* **Frontend** : React + Vite, Tailwind CSS, and [shadcn/ui](https://ui.shadcn.com).
-* **Markdown editor** : \[Milkdown] WYSIWYG/react recipe for a first-class editing experience. ([milkdown.dev][1])
-* **Directory tree** : virtualised, drag-and-drop file-explorer built with **react-arborist** (see §5.4). ([GitHub][2], [npm][3])
+* **Frontend**: Vite + TypeScript with custom CSS
+* **Markdown Editor**: Milkdown with WYSIWYG editing
+* **Directory Tree**: Infinite-tree for file navigation
 * **Backend** : Python 3.12, FastAPI, GitPython for VCS, Uvicorn ASGI.
 * **Containerisation** : Docker & Compose for parity between local dev and prod. ([FastAPI][4])
 
@@ -52,7 +58,7 @@ wiki/
 └──────────────┘  assets  │                     │GitPython       │
         ▲                Nginx                 repo volume       │
         │                                         │              │
-   react-arborist                              commits           │
+   infinite-tree                              commits           │
    Milkdown editor                                              Git
         │                                                       │
 Mobile/desktop ▲                                        ┌──────────────┐
@@ -65,14 +71,12 @@ responsive drawer│                                        │ Remote git? │ 
 
 | Topic                        | Details                                                                                                                                                                                                                                                            |                                                        |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
-| **Bootstrapping**            | `npm create vite@latest wiki-frontend -- --template react-ts` → `tailwindcss init -p` → `npx shadcn-ui@latest init`                                                                                                                                                |                                                        |
-| **Styling**                  | Tailwind JIT; shadcn’s primitives for Sheet (drawer), Button, ScrollArea, etc.                                                                                                                                                                                     |                                                        |
-| **State/Data fetch**         | TanStack Query (`@tanstack/react-query`) with axios; optimistic updates on edits.                                                                                                                                                                                  |                                                        |
-| **Routing**                  | React Router v6—single route (`/:*path`) so pages render at their file path.                                                                                                                                                                                       |                                                        |
-| **5.1 Milkdown Integration** | Install `@milkdown/react`, `@milkdown/kit`, optionally `@milkdown/crepe` for rich toolbar. Follow recipe: wrap editor in `<MilkdownProvider>` and mount inside `EditorPage`. Expose `useInstance()` to capture `editor.getMarkdown()` on save. ([milkdown.dev][1]) |                                                        |
-| **5.2 Directory Drawer**     | Use shadcn **Sheet** component anchored left, width `w-64 md:w-72`, hidden on mobile via hamburger in top nav.                                                                                                                                                     |                                                        |
-| **5.3 Tree Data model**      | \`{ id\:string, parentId\:string                                                                                                                                                                                                                                   | null, name\:string, isDir\:boolean }`from`/api/tree\`. |
-| **5.4 Tree View Component**  | **react-arborist** (MIT, actively maintained, virtualised, keyboard-accessible, drag-and-drop). Stylistically neutral → apply Tailwind classes inside custom `NodeRenderer`. ([GitHub][2], [npm][3])                                                               |                                                        |
+| **Bootstrapping**            | `npm create vite@latest wiki-frontend -- --template vanilla-ts` |
+| **Styling**                  | Custom CSS with vanilla styling |
+| **State/Data fetch**         | Native `fetch` API for data fetching |
+| **5.1 Milkdown Integration** | Using `@milkdown/crepe` for WYSIWYG markdown editing |
+| **5.2 Directory Tree**       | Using `infinite-tree` for file navigation |
+| **5.3 Tree Data model**      | `{ id: string, name: string, children?: TreeNodeData[] }` from `/api/files/tree` |
 | **5.5 Creating files**       | “New Page” button in drawer footer → prompt path → POST `/api/file` → optimistic tree update → open editor with stub front-matter.                                                                                                                                 |                                                        |
 | **5.6 Responsive behaviour** | On xs screens, Sheet slides over content; on ≥md screens it docks (`md:static md:translate-x-0`).                                                                                                                                                                  |                                                        |
 
@@ -223,8 +227,6 @@ npm run dev --prefix frontend
 
 * Live-collaboration via Milkdown’s Y.js bridge.
 * Full-text search (use ripgrep + WASM on backend).
-* Auth0 / GitHub SSO.
-* Static export (`git checkout` → `astro build`).
 
 ---
 
@@ -232,15 +234,14 @@ npm run dev --prefix frontend
 
 | Need                | Library                                                                                                                                                                | Why it fits |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| **Tree view**       | **react-arborist** (3 kB gzip, MIT) – virtualised, drag-and-drop, headless-styling via render prop; plays nicely with Tailwind + shadcn Sheet. ([GitHub][2], [npm][3]) |             |
-| **Markdown editor** | **Milkdown** – React hooks, plugin-driven, CommonMark compliance, themable. ([milkdown.dev][1])                                                                        |             |
+| **Tree view**       | **infinite-tree** – Lightweight tree view component for file navigation. ([GitHub](https://github.com/cheton/infinite-tree))                                           |             |
+| **Markdown editor** | **Milkdown** – Plugin-driven, CommonMark compliance, themable. ([milkdown.dev](https://milkdown.dev/))                                                                 |             |
 
 ---
 
-This specification is intentionally exhaustive: a code-generation model with no internet access can wire every dependency, configure Milkdown, hook react-arborist into a drawer, talk to FastAPI, initialise/commit files with GitPython, and run everything through Docker/Compose using nothing beyond what’s written above.
+This specification is intentionally exhaustive: a code-generation model with no internet access can wire every dependency, configure Milkdown, implement file navigation with infinite-tree, talk to FastAPI, initialise/commit files with GitPython, and run everything through Docker/Compose using nothing beyond what's written above.
 
-[1]: https://milkdown.dev/docs/recipes/react?utm_source=chatgpt.com "React Integration - milkdown.dev"
-[2]: https://github.com/brimdata/react-arborist?utm_source=chatgpt.com "GitHub - brimdata/react-arborist: The complete tree view component for ..."
-[3]: https://www.npmjs.com/package/react-arborist?utm_source=chatgpt.com "react-arborist - npm"
+[1]: https://milkdown.dev/ "Milkdown - Markdown Editor"
+[2]: https://github.com/cheton/infinite-tree "GitHub - cheton/infinite-tree: Infinite Tree: A JavaScript library for efficiently rendering a tree view of HTML list elements that can handle large number of tree nodes."
 [4]: https://fastapi.tiangolo.com/deployment/docker/?utm_source=chatgpt.com "FastAPI in Containers - Docker - FastAPI - tiangolo"
 [5]: https://gitpython.readthedocs.io/en/stable/quickstart.html?utm_source=chatgpt.com "GitPython Quick Start Tutorial — GitPython 3.1.44 documentation"
