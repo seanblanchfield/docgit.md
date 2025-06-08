@@ -30,22 +30,7 @@ export class DirectoryTree {
       el,
       data: [],
       autoOpen: false,
-      childrenProperty: 'children',
-      renderNode: (node: TreeNode) => {
-        const { id, name, isDirectory, state = {} } = node;
-        const { depth = 0, open, selected, loading } = state;
-        const indent = depth * 16;
-        return `
-          <div class="infinite-tree-node" data-id="${id}">
-            <div class="node-content${selected ? ' selected' : ''}" style="padding-left: ${indent}px" ${isDirectory ? 'data-action="toggle"' : ''}>
-              <span class="toggler">${isDirectory ? (open ? '▼' : '▶') : ''}</span>
-              <span class="node-icon">${isDirectory ? '📁' : '📄'}</span>
-              <span class="node-name">${name}</span>
-              ${loading ? '<span class="loading">⟳</span>' : ''}
-            </div>
-          </div>
-        `;
-      }
+      childrenProperty: 'children'
     });
 
     this.tree.on('selectNode', (node: TreeNode) => {

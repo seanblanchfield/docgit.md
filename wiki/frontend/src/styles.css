@@ -85,8 +85,24 @@ body {
   font-size: 15px;
 }
 
+.infinite-tree-item[data-children] .infinite-tree-node,
+.infinite-tree-node[data-children] {
+  font-weight: 700;
+}
+
 .infinite-tree-title {
   font-size: 15px;
+}
+
+.infinite-tree-toggler {
+  display: inline-block;
+  width: 1em;
+  text-align: center;
+}
+
+
+.infinite-tree-title.directory {
+  font-weight: 700;
 }
 
 @keyframes spin {

@@ -9,12 +9,9 @@ Bullet list containing work that has been performed:
 - [x] Fixed InfiniteTree integration in frontend: ensured directory nodes are recognized and toggled open/closed when clicked (title or toggler).
 - [x] Added a recursive mapping to inject `isDirectory` property into tree data from backend.
 - [x] Removed all debug logging from main.ts after resolving event handling and data issues.
-- [x] Refactored all Milkdown/Crepe-related logic into a new `content.ts` module, exposing a clean API for editor initialization and content replacement.
-- [x] Updated `main.ts` to use the new `content.ts` abstraction, removing all direct Milkdown/Crepe usage.
-- [x] Audited and cleaned up `styles.css` to remove all unused or redundant tree-related CSS selectors, ensuring only classes present in the actual DOM (per `example-tree.html` and `tree.ts` render output) are styled.
-- [x] Set the font size of all tree text to 15px for consistency.
-- [x] Verified that only `.infinite-tree-node`, `.infinite-tree-title`, `.infinite-tree-toggler`, `.infinite-tree-scroll`, `.infinite-tree-content`, `.infinite-tree-item`, and `#tree-drawer` are targeted for tree styling.
-- [x] Cleaned up tree-related CSS: removed unused toggler styles, removed debug outlines, and ensured only necessary styles remain.
+- [x] Improved tree CSS:
+  - Directory nodes are now bold via `[data-children]` attribute selector.
+  - `.infinite-tree-toggler` is now fixed-width (1em, inline-block) to prevent layout shift when toggled.
 - [x] Confirmed correct event delegation and toggling for all folders/sections in the tree.
 - [x] Removed all usage of replaceAll.ts and deleted the file.
 - [x] Moved Milkdown editor update logic to InfiniteTree's selectNode event for reliable file selection handling.
