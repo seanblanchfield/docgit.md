@@ -1,40 +1,83 @@
 /* styles.css */
+:root {
+  --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
+  --text-primary: #1f2937;
+  --text-secondary: #4b5563;
+  --bg-hover: #f3f4f6;
+  --border-color: #e5e7eb;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-  height: 100vh; /* Establish full viewport height */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+  height: 100vh;
+  color: var(--text-primary);
+  line-height: 1.5;
 }
 
 #main-container {
   display: flex;
-  flex-direction: row; /* Arrange tree-drawer and app side-by-side */
-  height: 100%;    /* Take full height of parent (body) */
+  height: 100%;
+  background-color: #fff;
 }
 
 #tree-drawer {
-  width: 250px;
-  border-right: 1px solid #ccc;
-  padding: 10px;
-  font-family: 'Noto Sans', Arial, Helvetica, sans-serif;
-  font-size: 15px;
+  width: 280px;
+  border-right: 1px solid var(--border-color);
+  background-color: #f9fafb;
   display: flex;
   flex-direction: column;
-  box-sizing: border-box; /* Ensures padding is included in the width */
+  box-sizing: border-box;
+  overflow: hidden;
+  box-shadow: 1px 0 3px rgba(0, 0, 0, 0.05);
 }
 
-/* The main infinite-tree widget container */
+.tree-header {
+  padding: 16px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+  background-color: #fff;
+}
+
+/* Tree container */
 #tree-drawer .infinite-tree {
-  flex-grow: 1; /* Allows the tree widget to fill available vertical space in the drawer */
-  display: flex; /* To use flex properties for its children, like .infinite-tree-scroll */
-  flex-direction: column; /* Stack children vertically */
-  min-height: 0; /* Crucial for scrollable flex children to not overflow their parent */
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 8px 0;
 }
 
-/* The specific scrollable element within infinite-tree */
+/* Scrollable area */
 #tree-drawer .infinite-tree-scroll {
-  flex-grow: 1; /* Allows this scrollable part to fill available space within .infinite-tree */
-  overflow-y: auto; /* Enables vertical scrolling */
-  max-height: 100%;
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 0 4px;
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f1f1f1;
+  max-height: none !important;
+}
+
+/* Custom scrollbar for webkit browsers */
+#tree-drawer .infinite-tree-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+#tree-drawer .infinite-tree-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+#tree-drawer .infinite-tree-scroll::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+#tree-drawer .infinite-tree-scroll::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 #app {
@@ -52,67 +95,176 @@ body {
   min-height: 0; /* Crucial for scrollable flex children */
 }
 
-/* styles.css - Appended styles for TOC look */
+/* Tree Node Styling */
+#tree-drawer .infinite-tree-node {
+  position: relative;
+  margin: 1px 0;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.5;
+}
 
-/* Style for section titles (directories) */
+#tree-drawer .infinite-tree-node:hover {
+  background-color: var(--bg-hover);
+}
+
+#tree-drawer .infinite-tree-node.selected {
+  background-color: #e0e7ff;
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+/* Section titles (folders) */
 #tree-drawer .section-title-custom {
-  font-weight: bold; /* Heavier font face for sections */
-  cursor: pointer; /* Indicate it's clickable */
-  display: inline-block; /* Allows proper spacing for the toggle */
-  padding-left: 5px; /* Space between toggle and text */
+  font-weight: 500;
+  cursor: pointer;
+  display: block;
+  padding: 4px 12px;
+  color: var(--text-primary);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Style for document titles (files) */
+/* Document titles (files) */
 #tree-drawer .document-title-custom {
-  font-weight: normal; /* Normal font face for documents */
-  display: inline-block;
-  padding-left: 20px; /* Indent documents further than section toggle */
+  font-weight: 400;
+  display: block;
+  padding: 4px 12px 4px 28px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Styles for the default InfiniteTree toggler */
+/* Toggle arrow styling */
 .infinite-tree-toggler {
-    display: inline-flex; /* Use flex to center content easily */
-    align-items: center;
-    justify-content: center;
-    width: 20px; /* Increased size */
-    height: 20px; /* Increased size */
-    margin-right: 8px;
-    cursor: pointer;
-    border: 3px solid orange !important; /* Highly visible border */
-    background-color: yellow !important; /* Highly visible background */
-    font-size: 14px; /* Explicit font size for the icon */
-    font-weight: bold;
-    color: transparent; /* Hide the &nbsp; if it's there */
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 2px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  text-align: center;
+  line-height: 20px;
+  padding: 0;
+  vertical-align: middle;
 }
 
-/* Default state (closed) - using a pseudo-element for the icon */
+.infinite-tree-toggler {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+}
+
 .infinite-tree-toggler::before {
-    content: '►'; /* Right-pointing triangle for closed */
-    color: red !important;
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(0);
+  transform-origin: center;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 5px 0 5px 8px;
+  border-color: transparent transparent transparent var(--text-secondary);
+  transition: transform 0.2s ease;
 }
 
-/* Open state - InfiniteTree adds 'infinite-tree-open' class to the toggler element itself when the node is open. */
 .infinite-tree-toggler.infinite-tree-open::before {
-    content: '▼' !important; /* Down-pointing triangle for open */
-    color: darkgreen !important;
+  transform: translate(-50%, -50%) rotate(90deg);
 }
 
-/* Ensure any accidental text (like &nbsp;) in the toggler is not visible */
+.infinite-tree-toggler:hover {
+  color: var(--primary-color);
+}
+
+/* Hide any text inside the toggler */
 .infinite-tree-toggler span {
-    display: none;
+  display: none;
 }
 
-/* Remove default list styling if any is inherited */
+/* Tree list structure */
+#tree-drawer .infinite-tree-node-wrapper {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+}
+
+#tree-drawer .infinite-tree-node-content {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 24px;
+}
+
+#tree-drawer .node-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: middle;
+}
 #tree-drawer .infinite-tree ul,
 #tree-drawer .infinite-tree li {
   list-style-type: none;
-  padding-left: 0; /* Control indentation via node wrappers or specific classes */
+  padding: 0;
+  margin: 0;
 }
 
-/* Ensure proper indentation for nested items */
-/* infinite-tree usually handles this with padding-left on .infinite-tree-node */
-/* We can adjust if needed, but let's see the default first. */
-/* Example: #tree-drawer .infinite-tree-node { padding-left: 20px; } */
+/* Indentation for nested items */
+#tree-drawer .infinite-tree-children {
+  margin-left: 16px;
+  border-left: 1px dashed #e5e7eb;
+  padding-left: 8px;
+}
+
+/* Active and hover states */
+#tree-drawer .section-title-custom:hover,
+#tree-drawer .document-title-custom:hover {
+  background-color: var(--bg-hover);
+  color: var(--primary-color);
+}
+
+#tree-drawer .section-title-custom:active,
+#tree-drawer .document-title-custom:active {
+  background-color: #e5e7eb;
+}
+
+/* Selected state */
+#tree-drawer .infinite-tree-node.selected .section-title-custom,
+#tree-drawer .infinite-tree-node.selected .document-title-custom {
+  background-color: #e0e7ff;
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+/* Empty folder styling */
+#tree-drawer .infinite-tree-node-empty > .infinite-tree-node-wrapper > .section-title-custom {
+  opacity: 0.7;
+  font-style: italic;
+}
+
+/* Animation for expanding/collapsing */
+@keyframes fadeIn {
+  from { opacity: 0.5; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+#tree-drawer .infinite-tree-children {
+  animation: fadeIn 0.15s ease-out;
+}
 
 /* Collapsed state: RED SQUARE for visual debugging */
 #tree-drawer .infinite-tree-node-closed .custom-tree-toggle::before {

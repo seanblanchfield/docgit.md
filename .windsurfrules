@@ -1,24 +1,29 @@
-# Project Execution Rules for Cascade AI Assistant
+# Project Overview
 
-### Project Overview
+- The project is implemented in a docker stack. `compose.yaml` is the main docker compose file.
+- The project spec and plan is maintained in `spec.md`. Refer to the Project Specification rules below.
+- ALWAYS: Whenever asked to do a task, you should first update the "Work in Progress" section of the spec.
 
-The project is implemented in a docker stack. `compose.yaml` is the main docker compose file.
-This is now your project. No one else is working on it. If something breaks, you are probably responsible for it and should inspect your recent actions for the cause.
+Remember: This is your project. No one else is working on it. If something breaks, you are probably responsible for it and should inspect your recent actions for the cause.  
 
-### Project Plan
+## Project Specification
 
-The `plan.md` file contains the project plan. Update this whenever you make changes to the project. If you do not fully understand what section of the plan you are working on, ask the user. The plan should be sufficient for a new developer to understand the project. It is your job to ensure the plan is kept up to date.
+The `spec.md` file contains the project specification and project spec. 
+- Update this before you make changes to the project. 
+- If you do not fully understand what section of the spec you are working on, ask the user. 
+- The spec should be sufficient for a new developer to understand the project.
+- It is your job to ensure the spec is kept up to date.
 
-Whenever something significant changes (including removal of a dependency), update the plan.  
-The top of the plan includes a section called "Work in Progress".  You should update this section as you perform work. Ensure that the current step accurately refers to the part of the plan that you are working on. Update the bullet list with each step of work you perform.  Refer to this list if you need to work backwards, e.g., to trace the cause of a recently-introduced problem.
+- Whenever something significant changes (including removal of a dependency), update the spec.  
+- The start of the spec.md file includes a section called "Work in Progress".  You should update this section as you perform work. Ensure that the current step accurately refers to the part of the spec that you are working on. Update the bullet list with each step of work you perform.  Refer to this list if you need to work backwards, e.g., to trace the cause of a recently-introduced problem.
 
-As each section of the plan is done, update it by annotating the corresponding header with "[DONE]". 
+As each section of the spec is done, update it by annotating the corresponding header with "[DONE]". 
 
-### Slash commands:
-* `/plan` - summarise the current step of the project plan and what you are working on. Refer to the "Work in Progress" section of the plan. 
-* `/commit` - Refer to the "Work in Progress" section of the plan. Check the project plan reflects the most recent piece of work, compact the work-in-progress section into a commit message, and commit the current changes to the git repository.
+## Slash commands:
+* `/plan` - summarise the current step of the project spec and what you are working on. Refer to the "Work in Progress" section of the plan. 
+* `/commit` - Refer to the "Work in Progress" section of the spec. Check the project spec reflects the most recent piece of work, compact the work-in-progress section into a commit message, and commit the current changes to the git repository.
 
-### Testing
+## Testing
 You should do whatever you can to test your own work, and don't ask the user to do something you can just as easily do yourself.
 - Use `curl` to test that an endpoint is working as expected.
 - Use the puppeteer tool to test that a frontend feature looks correct.

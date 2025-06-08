@@ -1,5 +1,3 @@
-# Project Specification – “Git-Backed Markdown Wiki”
-
 ## Work in Progress
 Current step: 
 
@@ -7,6 +5,8 @@ Bullet list containing work that has been performed:
 - [ ] 
 
 ---
+
+# Project Specification – “Git-Backed Markdown Wiki”
 
 #### 1  Overview
 
