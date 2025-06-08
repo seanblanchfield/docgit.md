@@ -33,6 +33,28 @@ export class DirectoryTree {
       childrenProperty: 'children'
     });
 
+    // Add manual toggle handler for directory toggler or name clicks
+    el.addEventListener('click', (event) => {
+      const target = event.target as HTMLElement;
+      // Accept clicks on toggler or on directory title
+      if (
+        (target.classList.contains('infinite-tree-toggler')) ||
+        (target.classList.contains('infinite-tree-title') && target.closest('.infinite-tree-item[data-children]'))
+      ) {
+        const item = target.closest('.infinite-tree-item');
+        if (item) {
+          const nodeId = item.getAttribute('data-id');
+          if (nodeId) {
+            const node = this.tree.getNodeById(nodeId);
+            if (node && node.isDirectory) {
+              console.log('[DirectoryTree] Manually toggling node:', nodeId, 'from click on', target.className);
+              this.tree.toggleNode(node);
+            }
+          }
+        }
+      }
+    });
+
     this.tree.on('selectNode', (node: TreeNode) => {
       if (!node || node.isDirectory) return;
       this.onFileSelect(node);
