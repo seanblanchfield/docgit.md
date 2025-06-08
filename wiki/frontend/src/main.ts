@@ -95,10 +95,13 @@ async function main() {
       const indent = depth * 16; // 16px per level for better visual hierarchy
       const isSelected = window.location.hash === `#${encodeURIComponent(node.id)}`;
       
+      // Get the open state from node.state if available
+      const isOpen = (node as any).state?.open || false;
+      
       // Create node wrapper with appropriate classes and data attributes
       let nodeHTML = `
         <div 
-          class="infinite-tree-node ${isSelected ? 'selected' : ''} ${isFolder ? 'folder' : 'file'}" 
+          class="infinite-tree-node ${isSelected ? 'selected' : ''} ${isFolder ? 'folder' : 'file'} ${isOpen ? 'infinite-tree-open' : ''}" 
           data-id="${node.id}" 
           data-depth="${depth}"
           style="padding-left: ${indent}px;"
@@ -224,8 +227,9 @@ if (treeDrawer) {
     
     // If it's a folder, toggle it when clicking anywhere on the node
     if (isFolder) {
-      // Toggle the folder open/closed
+      // Toggle the folder open/closed in the tree
       tree.toggleNode(nodeObject);
+      
       // Also select the folder
       handleNodeSelect(nodeObject);
       return;

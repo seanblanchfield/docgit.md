@@ -194,6 +194,11 @@ body {
   display: none;
 }
 
+/* Debug styles */
+.infinite-tree-node-open {
+  outline: 2px solid red; /* Temporary debug outline */
+}
+
 /* Tree list structure */
 #tree-drawer .infinite-tree-node-wrapper {
   display: flex;
