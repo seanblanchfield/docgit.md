@@ -51,3 +51,119 @@ body {
   overflow-y: auto; /* If editor content itself needs to scroll */
   min-height: 0; /* Crucial for scrollable flex children */
 }
+
+/* styles.css - Appended styles for TOC look */
+
+/* Style for section titles (directories) */
+#tree-drawer .section-title-custom {
+  font-weight: bold; /* Heavier font face for sections */
+  cursor: pointer; /* Indicate it's clickable */
+  display: inline-block; /* Allows proper spacing for the toggle */
+  padding-left: 5px; /* Space between toggle and text */
+}
+
+/* Style for document titles (files) */
+#tree-drawer .document-title-custom {
+  font-weight: normal; /* Normal font face for documents */
+  display: inline-block;
+  padding-left: 20px; /* Indent documents further than section toggle */
+}
+
+/* Styles for the default InfiniteTree toggler */
+.infinite-tree-toggler {
+    display: inline-flex; /* Use flex to center content easily */
+    align-items: center;
+    justify-content: center;
+    width: 20px; /* Increased size */
+    height: 20px; /* Increased size */
+    margin-right: 8px;
+    cursor: pointer;
+    border: 3px solid orange !important; /* Highly visible border */
+    background-color: yellow !important; /* Highly visible background */
+    font-size: 14px; /* Explicit font size for the icon */
+    font-weight: bold;
+    color: transparent; /* Hide the &nbsp; if it's there */
+}
+
+/* Default state (closed) - using a pseudo-element for the icon */
+.infinite-tree-toggler::before {
+    content: '►'; /* Right-pointing triangle for closed */
+    color: red !important;
+}
+
+/* Open state - InfiniteTree adds 'infinite-tree-open' class to the toggler element itself when the node is open. */
+.infinite-tree-toggler.infinite-tree-open::before {
+    content: '▼' !important; /* Down-pointing triangle for open */
+    color: darkgreen !important;
+}
+
+/* Ensure any accidental text (like &nbsp;) in the toggler is not visible */
+.infinite-tree-toggler span {
+    display: none;
+}
+
+/* Remove default list styling if any is inherited */
+#tree-drawer .infinite-tree ul,
+#tree-drawer .infinite-tree li {
+  list-style-type: none;
+  padding-left: 0; /* Control indentation via node wrappers or specific classes */
+}
+
+/* Ensure proper indentation for nested items */
+/* infinite-tree usually handles this with padding-left on .infinite-tree-node */
+/* We can adjust if needed, but let's see the default first. */
+/* Example: #tree-drawer .infinite-tree-node { padding-left: 20px; } */
+
+/* Collapsed state: RED SQUARE for visual debugging */
+#tree-drawer .infinite-tree-node-closed .custom-tree-toggle::before {
+  content: ''; /* Clear text content */
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border: 2px solid red;
+  vertical-align: middle; /* Align with text */
+}
+
+/* Expanded state: BLUE SQUARE for visual debugging */
+#tree-drawer .infinite-tree-node-open .custom-tree-toggle::before {
+  content: ''; /* Clear text content */
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border: 2px solid blue;
+  vertical-align: middle; /* Align with text */
+}
+
+/* Comment out or remove old styles for library's default toggle if no longer needed
+#tree-drawer .infinite-tree-toggle {
+  cursor: pointer;
+  display: inline-block;
+  width: 1em; 
+  text-align: center;
+  margin-right: 5px; 
+}
+
+#tree-drawer .infinite-tree-node-closed > .infinite-tree-node-wrapper .infinite-tree-toggle::before {
+  content: '▶'; 
+  font-size: 0.8em;
+  color: #333;
+}
+
+#tree-drawer .infinite-tree-node-open > .infinite-tree-node-wrapper .infinite-tree-toggle::before {
+  content: '▼'; 
+  font-size: 0.8em;
+  color: #333;
+}
+*/
+
+/* Ensure proper indentation for nested items */
+/* infinite-tree usually handles this with padding-left on .infinite-tree-node */
+/* We can adjust if needed, but let's see the default first. */
+/* Example: #tree-drawer .infinite-tree-node { padding-left: 20px; } */
+
+/* Remove default list styling if any is inherited */
+#tree-drawer .infinite-tree ul,
+#tree-drawer .infinite-tree li {
+  list-style-type: none;
+  padding-left: 0; /* Control indentation via node wrappers or specific classes */
+}
