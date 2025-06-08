@@ -1,23 +1,25 @@
 import { Crepe } from '@milkdown/crepe';
-import { editorViewCtx, parserCtx } from '@milkdown/core'; // Removed unused Editor import
-import { Slice } from 'prosemirror-model';
-import InfiniteTree, { TreeNodeData } from 'infinite-tree';
-import './styles.css'; // Ensure CSS is imported and processed by Vite
-// Ensure infinite-tree's default CSS is also loaded if it provides one for basic structure/toggling
-// Typically, if the library has its own CSS, it's imported like this:
-// import 'infinite-tree/dist/infinite-tree.css'; // Already present, good.
+import InfiniteTree from 'infinite-tree';
+import './styles.css';
 import 'infinite-tree/dist/infinite-tree.css';
 import '@milkdown/crepe/theme/common/style.css';
 import '@milkdown/crepe/theme/frame.css';
-import './styles.css'; // Import the new stylesheet
+
+interface TreeNode {
+  id: string;          // Full path
+  name: string;        // Display name
+  isDirectory: boolean;
+  children?: TreeNode[];
+  state?: {
+    depth?: number;
+    open?: boolean;
+    selected?: boolean;
+    loading?: boolean;
+  };
+}
 
 interface ApiFileResponse {
   content: string;
-}
-interface TreeNodeData {
-  id: string; // Path of the file/folder
-  name: string; // Display name
-  children?: TreeNodeData[]; // Optional children for folders
 }
 
 async function fetchFileContent(filePath: string): Promise<string> {
@@ -25,229 +27,162 @@ async function fetchFileContent(filePath: string): Promise<string> {
     const response = await fetch(`/api/files/${filePath}`);
     if (!response.ok) {
       console.error(`Error fetching file '${filePath}': ${response.status} ${response.statusText}`);
-      // Return a fallback or throw an error, depending on desired UX
       return `# Error\n\nCould not load ${filePath}. Status: ${response.status}`;
     }
-    const jsonData: ApiFileResponse = await response.json(); // Assuming same ApiFileResponse structure
-    if (typeof jsonData.content === 'string') {
-      return jsonData.content;
-    } else {
-      console.error(`Fetched data for '${filePath}' does not have a string "content" property:`, jsonData);
-      return `# Error\n\nInvalid content format for ${filePath}.`;
-    }
+    const jsonData: ApiFileResponse = await response.json();
+    return jsonData.content || '';
   } catch (error) {
-    console.error(`Network or JSON parsing error fetching file '${filePath}':`, error);
+    console.error(`Error fetching file '${filePath}':`, error);
     return `# Error\n\nCould not fetch ${filePath}.`;
   }
 }
 
-async function fetchDirectoryTreeData(): Promise<TreeNodeData[]> {
+async function fetchDirectoryTreeData(): Promise<TreeNode[]> {
   try {
     const response = await fetch('/api/files/tree');
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    const data = await response.json();
-    return data as TreeNodeData[]; // Assuming backend sends data in TreeNodeData format
+    return await response.json();
   } catch (error) {
-    let errorDetailMessage = 'Unknown error during fetchDirectoryTreeData.';
-    if (error instanceof Error) {
-        errorDetailMessage = `Type: ${error.name}, Message: ${error.message}`;
-    } else if (typeof error === 'string') {
-        errorDetailMessage = error;
-    } else {
-        try {
-            errorDetailMessage = JSON.stringify(error);
-        } catch (e) {
-            errorDetailMessage = String(error);
-        }
-    }
-    // Log to console (even if not visible to user, good for other environments)
-
-    console.error('--- FETCH_TREE_CATCH_BLOCK_ERROR --- Details:', error);
-    // Embed error in the UI node
-    return [{ id: 'error', name: `Failed to load tree: ${errorDetailMessage}` }];
+    console.error('Error loading directory tree:', error);
+    return [{ 
+      id: 'error', 
+      name: 'Failed to load directory',
+      isDirectory: false
+    }];
   }
 }
 
-// const initialMarkdown = await fetchInitialMarkdown(); // Defaulting to "hello world" directly
+async function loadDirectoryContents(node: TreeNode, tree: InfiniteTree): Promise<void> {
+  if (!node.isDirectory || node.state?.loading) return;
+  try {
+    node.state = { ...(node.state || {}), loading: true };
+    tree.updateNode(node);
+    const response = await fetch(`/api/files/${encodeURIComponent(node.id)}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    node.children = data.children || [];
+    node.state = { ...(node.state || {}), loading: false, open: true };
+    tree.updateNode(node);
+  } catch (error) {
+    console.error(`Error loading directory '${node.id}':`, error);
+    node.state = { ...(node.state || {}), loading: false };
+    tree.updateNode(node);
+  }
+}
 
-// Initialize Milkdown editor
 async function main() {
-
-
-  const editor = await new Crepe({
+  // Initialize Milkdown editor
+  await new Crepe({
     root: '#app',
-    defaultValue: "hello world", // Set default content directly
+    defaultValue: '# Welcome to Markdown Wiki\n\nSelect a file from the sidebar to edit.',
   }).create();
 
+  // Find tree container
+    const treeContainer = document.querySelector('[data-id="tree"]');
+  if (!treeContainer) {
+    console.error('[FATAL] Tree container not found in DOM. Ensure <div id="tree-drawer" data-id="tree"> exists and script runs after DOM is ready.');
+    return;
+  }
+
   // Fetch directory tree data
-  const dynamicTreeData = await fetchDirectoryTreeData();
+  const treeDataRaw = await fetchDirectoryTreeData();
 
-  // Initialize InfiniteTree
+  // Recursively add isDirectory to each node
+  function addIsDirectory(node: any): any {
+    const isDirectory = Array.isArray(node.children) && node.children.length > 0;
+    return {
+      ...node,
+      isDirectory,
+      children: Array.isArray(node.children)
+        ? node.children.map(addIsDirectory)
+        : node.children,
+    };
+  }
+  const treeData = Array.isArray(treeDataRaw)
+    ? treeDataRaw.map(addIsDirectory)
+    : treeDataRaw;
+
+  // Create InfiniteTree instance
   const tree = new InfiniteTree({
-    el: document.querySelector('#tree-drawer'),
-    data: dynamicTreeData,
+    el: treeContainer,
+    data: treeData,
     autoOpen: false,
-    rowRenderer: (node: TreeNodeData) => {
-      const isFolder = (node.children && node.children.length > 0) || !node.id.endsWith('.md');
-      const depth = (node as any).state?.depth || 0;
-      const indent = depth * 16; // 16px per level for better visual hierarchy
-      const isSelected = window.location.hash === `#${encodeURIComponent(node.id)}`;
-      
-      // Get the open state from node.state if available
-      const isOpen = (node as any).state?.open || false;
-      
-      // Create node wrapper with appropriate classes and data attributes
-      let nodeHTML = `
-        <div 
-          class="infinite-tree-node ${isSelected ? 'selected' : ''} ${isFolder ? 'folder' : 'file'} ${isOpen ? 'infinite-tree-open' : ''}" 
-          data-id="${node.id}" 
-          data-depth="${depth}"
-          style="padding-left: ${indent}px;"
-        >
-          <div class="infinite-tree-node-content">
-      `;
-
-      // Add toggler for folders
-      if (isFolder) {
-        nodeHTML += `
-          <span class="infinite-tree-toggler" aria-label="Toggle folder">
-            <span class="toggle-icon"></span>
-          </span>
-        `;
-      } else {
-        // Add spacer for files to align with folders
-        nodeHTML += '<span class="infinite-tree-toggler" aria-hidden="true"></span>';
-      }
-
-      // Add node content
-      if (isFolder) {
-        nodeHTML += `
-          <span class="section-title-custom" title="${node.name}">
-            <span class="node-name">${node.name}</span>
-          </span>
-        `;
-      } else {
-        nodeHTML += `
-          <span class="document-title-custom" title="${node.name}">
-            <span class="node-name">${node.name}</span>
-          </span>
-        `;
-      }
-
-      // Close node content and wrapper
-      nodeHTML += `
+    childrenProperty: 'children',
+    renderNode: (node: TreeNode) => {
+      const { id, name, isDirectory, state = {} } = node;
+      const { depth = 0, open, selected, loading } = state;
+      const indent = depth * 16;
+      return `
+        <div class="infinite-tree-node" data-id="${id}">
+          <div class="node-content${selected ? ' selected' : ''}" style="padding-left: ${indent}px" ${isDirectory ? 'data-action="toggle"' : ''}>
+            <span class="toggler">${isDirectory ? (open ? '▼' : '▶') : ''}</span>
+            <span class="node-icon">${isDirectory ? '📁' : '📄'}</span>
+            <span class="node-name">${name}</span>
+            ${loading ? '<span class=\"loading\">⟳</span>' : ''}
           </div>
         </div>
       `;
+    }
+  });
 
-      return nodeHTML;
+  // DEBUG: Direct click handler for InfiniteTree DOM
+  treeContainer.addEventListener('click', (event: Event) => {
+    const target = event.target as HTMLElement;
+    // Find the closest .infinite-tree-node
+    const nodeDiv = target.closest('.infinite-tree-node');
+    if (!nodeDiv) return;
+    // Find the containing .infinite-tree-item for the data-id
+    const itemDiv = nodeDiv.closest('.infinite-tree-item');
+    const itemEl = itemDiv as HTMLElement | null;
+    if (itemEl && itemEl.dataset.id) {
+      const node = tree.getNodeById(itemEl.dataset.id);
+      if (node) {
+        // Debug: what was clicked?
+        if (target.classList.contains('infinite-tree-title')) {
+          if (node.isDirectory) {
+            tree.toggleNode(node);
+          }
+        } else if (target.classList.contains('infinite-tree-toggler')) {
+          if (node.isDirectory) {
+            tree.toggleNode(node);
+          }
+        }
+      }
     }
   });
 
 
-
-// Handle tree node selection
-const handleNodeSelect = async (node: TreeNodeData) => {
-  if (!node?.id) return;
-
-  const isFile = node.id.endsWith('.md');
-  
-  // Update selected state in the UI
-  document.querySelectorAll('.infinite-tree-node').forEach(el => {
-    el.classList.remove('selected');
-  });
-  
-  // Find and highlight the selected node
-  const nodeElement = document.querySelector(`.infinite-tree-node[data-id="${node.id}"]`);
-  if (nodeElement) {
-    nodeElement.classList.add('selected');
-  }
-  
-  if (isFile) {
-    try {
-      const markdownContent = await fetchFileContent(node.id);
-      editor.action((ctx) => {
-        const view = ctx.get(editorViewCtx);
-        const parser = ctx.get(parserCtx);
-        const doc = parser(markdownContent);
-        if (!doc) return;
-        
-        view.dispatch(
-          view.state.tr.replace(
-            0,
-            view.state.doc.content.size,
-            new Slice(doc.content, 0, 0)
-          )
-        );
-      });
-      
-      // Update URL to reflect the current file
-      window.history.pushState(null, '', `#${encodeURIComponent(node.id)}`);
-    } catch (error) {
-      console.error(`Failed to load ${node.id}:`, error);
-      editor.action((ctx) => {
-        const view = ctx.get(editorViewCtx);
-        const parser = ctx.get(parserCtx);
-        const errorDoc = parser(`# Error loading ${node.id}\n\n${error}`);
-        if (!errorDoc) return;
-        
-        view.dispatch(
-          view.state.tr.replace(
-            0,
-            view.state.doc.content.size,
-            new Slice(errorDoc.content, 0, 0)
-          )
-        );
-      });
-    }
-  }
-};
-
-// Handle tree clicks
-const treeDrawer = document.querySelector('#tree-drawer');
-if (treeDrawer) {
-  treeDrawer.addEventListener('click', (event: Event) => {
-    const mouseEvent = event as MouseEvent;
-    const target = mouseEvent.target as HTMLElement;
-  
-    // Find the closest node element
-    const nodeElement = target.closest<HTMLElement>('.infinite-tree-node');
-    if (!nodeElement) return;
-    
-    const nodeId = nodeElement.dataset.id;
-    if (!nodeId) return;
-    
-    const nodeObject = tree.getNodeById(nodeId);
-    if (!nodeObject) return;
-    
-    const isFolder = (nodeObject.children?.length ?? 0) > 0 || 
-                   (nodeObject.id && !nodeObject.id.endsWith('.md'));
-    
-    // If it's a folder, toggle it when clicking anywhere on the node
-    if (isFolder) {
-      // Toggle the folder open/closed in the tree
-      tree.toggleNode(nodeObject);
-      
-      // Also select the folder
-      handleNodeSelect(nodeObject);
+  // Event: Node select
+  tree.on('select', async (node: TreeNode) => {
+    console.log('[DEBUG] select event:', node);
+    if (node.isDirectory) {
+      console.log('[DEBUG] toggling directory:', node.id, node.name);
+      tree.toggleNode(node);
       return;
     }
-    
-    // For files, just handle the selection
-    handleNodeSelect(nodeObject);
+    // For files, load content
+    console.log('[DEBUG] file selected:', node.id, node.name);
+    const content = await fetchFileContent(node.id);
+    // Set content in Milkdown editor
+    // (Assume #app is the Milkdown root)
+    // This example assumes Milkdown API provides a way to set content
+    // You may need to adjust this depending on actual Milkdown usage
+    // Example:
+    // editor.setContent(content);
+  });
+
+  // Event: Node toggle (expand/collapse)
+  tree.on('toggle', async (node: TreeNode, isOpen: boolean) => {
+    if (isOpen && node.isDirectory && (!node.children || node.children.length === 0)) {
+      await loadDirectoryContents(node, tree);
+    }
   });
 }
 
-// Handle programmatic node selection
-tree.on('selectNode', async (node: TreeNodeData) => {
-  if (node?.id) {
-    await handleNodeSelect(node);
-  }
-});
-
-} // Close the main async function
-
-// Call the main function to start the application logic
-main();
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', main);
+} else {
+  main();
+}

@@ -6,6 +6,7 @@
   --text-secondary: #4b5563;
   --bg-hover: #f3f4f6;
   --border-color: #e5e7eb;
+  --tree-indent: 16px;
 }
 
 body {
@@ -14,41 +15,125 @@ body {
   height: 100vh;
   color: var(--text-primary);
   line-height: 1.5;
+  overflow: hidden;
 }
 
 #main-container {
   display: flex;
-  height: 100%;
+  height: 100vh;
+  width: 100vw;
+  min-width: 0;
+  min-height: 0;
   background-color: #fff;
 }
 
-#tree-drawer {
-  width: 280px;
+#tree-drawer[data-id="tree"] {
+  flex: 0 0 20%;
+  min-width: 180px;
+  max-width: 340px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
   border-right: 1px solid var(--border-color);
   background-color: #f9fafb;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
   overflow: hidden;
-  box-shadow: 1px 0 3px rgba(0, 0, 0, 0.05);
 }
 
-.tree-header {
-  padding: 16px 20px;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-  border-bottom: 1px solid var(--border-color);
-  background-color: #fff;
+#app {
+  flex: 1 1 80%;
+  min-width: 0;
+  height: 100vh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
 }
+
+@media (max-width: 700px) {
+  #main-container {
+    flex-direction: column;
+  }
+  #tree-drawer[data-id="tree"] {
+    flex: 0 0 auto;
+    width: 100vw;
+    max-width: none;
+    min-width: 0;
+    height: 200px;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+  #app {
+    flex: 1 1 auto;
+    width: 100vw;
+    height: calc(100vh - 200px);
+  }
+}
+
 
 /* Tree container */
-#tree-drawer .infinite-tree {
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
+
+
+[data-id="tree"] {
+  flex: 1;
+  overflow-y: auto;
   padding: 8px 0;
+}
+
+/* Tree node styles */
+.infinite-tree-node {
+  cursor: pointer;
+  user-select: none;
+}
+
+.node-content {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin: 1px 0;
+}
+
+.node-content:hover {
+  background-color: var(--bg-hover);
+}
+
+.node-content.selected {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.toggler {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.node-icon {
+  margin-right: 6px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.node-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+}
+
+.loading {
+  margin-left: 8px;
+  animation: spin 1s linear infinite;
+  font-size: 12px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 /* Scrollable area */
@@ -166,21 +251,6 @@ body {
   margin-right: 4px;
 }
 
-.infinite-tree-toggler::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) rotate(0);
-  transform-origin: center;
-  width: 0;
-  height: 0;
-  border-style: solid;
-  border-width: 5px 0 5px 8px;
-  border-color: transparent transparent transparent var(--text-secondary);
-  transition: transform 0.2s ease;
-}
-
 .infinite-tree-toggler.infinite-tree-open::before {
   transform: translate(-50%, -50%) rotate(90deg);
 }
@@ -291,27 +361,6 @@ body {
   vertical-align: middle; /* Align with text */
 }
 
-/* Comment out or remove old styles for library's default toggle if no longer needed
-#tree-drawer .infinite-tree-toggle {
-  cursor: pointer;
-  display: inline-block;
-  width: 1em; 
-  text-align: center;
-  margin-right: 5px; 
-}
-
-#tree-drawer .infinite-tree-node-closed > .infinite-tree-node-wrapper .infinite-tree-toggle::before {
-  content: '▶'; 
-  font-size: 0.8em;
-  color: #333;
-}
-
-#tree-drawer .infinite-tree-node-open > .infinite-tree-node-wrapper .infinite-tree-toggle::before {
-  content: '▼'; 
-  font-size: 0.8em;
-  color: #333;
-}
-*/
 
 /* Ensure proper indentation for nested items */
 /* infinite-tree usually handles this with padding-left on .infinite-tree-node */
