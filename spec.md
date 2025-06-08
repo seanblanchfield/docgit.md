@@ -1,8 +1,43 @@
-## Work in Progress
-Current step: 
+## WIP
+Current step: Implementing simplified file tree navigation using infinite-tree
 
 Bullet list containing work that has been performed:
-- [ ] 
+- [x] Analyzed current infinite-tree implementation against documentation
+- [x] Designed simplified node data structure with only essential fields
+- [ ] Implement simplified tree renderer with minimal styling
+- [ ] Add event handlers for node selection and toggling
+- [ ] Integrate with backend API for lazy loading of directory contents
+- [ ] Ensure proper state management for open/selected nodes
+
+### Simplified Tree Implementation Details
+
+#### Data Structure
+```typescript
+interface TreeNode {
+  id: string;          // Full path
+  name: string;        // Display name
+  isDirectory: boolean;
+  children?: TreeNode[];
+  state?: {
+    depth?: number;
+    open?: boolean;
+    selected?: boolean;
+    loading?: boolean;
+  };
+}
+```
+
+#### Key Features
+- Simplified to show only folder/file names
+- Lazy loading of directory contents
+- Basic expand/collapse functionality
+- Visual indicators for directories and files
+- Loading states for async operations
+
+#### Backend Integration
+- GET `/api/files/tree` - Initial tree structure
+- GET `/api/files/{path}` - Lazy load directory contents
+- Uses standard HTTP status codes for error handling
 
 ---
 
