@@ -120,48 +120,81 @@ body {
 
 #tree-drawer[data-id="tree"] {
   position: relative;
+  display: flex;
+  flex-direction: row;
   transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), width 0.3s cubic-bezier(0.4,0,0.2,1);
   z-index: 1002; /* ensure above all tree content */
-  overflow: visible !important; /* allow toggle button to overflow */
-  padding-top: 64px;
+  overflow: visible !important;
+  padding-top: 0;
+  padding-right: 16px; /* Add padding to prevent content from flowing under border */
 }
 
-/* Collapsed drawer: hide to the left */
-#tree-drawer.drawer-collapsed {
-  transform: translateX(-100%);
-  width: 0 !important;
-  min-width: 0 !important;
-  box-shadow: none;
-}
 
-/* Toggle button for drawer */
-.drawer-toggle {
+.drawer-border {
   position: absolute;
-  top: 16px;
-  left: 0;
-  width: 48px;
-  height: 48px;
-  min-width: 0;
-  min-height: 0;
-  padding: 0;
+  top: 0;
+  right: 0;
+  width: 16px;
+  height: 100%;
+  background-color: var(--border-color);
+  z-index: 1003;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Removed .drawer-toggle-container as toggle is now inside border */
+
+.drawer-toggle {
+  width: 16px;
+  height: 100px;
   background: #fff;
-  border-radius: 0;
   border: 1px solid var(--border-color, #bbb);
+  border-radius: 0;
   box-shadow: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: color 0.2s, left 0.3s;
+  padding: 0;
+  margin: 0;
+  transition: background 0.2s, border-color 0.2s;
+  position: relative;
+  z-index: 1005;
+}
+
+.drawer-toggle:focus {
   outline: none;
-  color: #444;
-  margin-bottom: 0;
+}
+
+.drawer-toggle .drawer-chevron {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+  transition: transform 0.3s;
+}
+
+.drawer-toggle.drawer-open .drawer-chevron {
+  transform: scaleX(-1);
+}
+
+.drawer-toggle.drawer-collapsed .drawer-chevron {
+  transform: scaleX(1);
+}
+
+/* Collapsed drawer: hide to the left but keep toggle button visible */
+#tree-drawer.drawer-collapsed {
+  transform: translateX(calc(-100% + 16px));
+  width: 16px !important;
+  min-width: 16px !important;
+  box-shadow: none;
+  overflow: visible;
+}
+
+/* Toggle button for drawer - now inside drawer-toggle-container */
+.drawer-toggle {
   font-size: 1rem;
   z-index: 3000;
-}
-.drawer-toggle:hover,
-.drawer-toggle.drawer-open {
-  background: #f3f4f6;
   color: #222;
 }
 .drawer-toggle .drawer-chevron {
@@ -262,17 +295,6 @@ body {
     width: 44px;
     height: 44px;
   }
-}
-
-  flex: 0 0 20%;
-  min-width: 180px;
-  max-width: 340px;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid var(--border-color);
-  background-color: #f9fafb;
-  overflow: hidden;
 }
 
 #content {

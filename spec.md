@@ -1,5 +1,5 @@
 ## WIP
-Current step: Implementing simplified file tree navigation using infinite-tree
+Current step: Enhancing the collapsible drawer layout with a right border and vertically-centered toggle button [DONE]
 
 Bullet list containing work that has been performed:
 - [x] Analyzed current infinite-tree implementation against documentation
@@ -15,13 +15,20 @@ Bullet list containing work that has been performed:
 - [x] Moved Milkdown editor update logic to InfiniteTree's selectNode event for reliable file selection handling.
 - [x] Renamed #app to #content throughout the frontend (index.html, styles.css, main.ts).
 - [x] Deleted unused tree-example.ts.
-- [x] Cleaned up tree-related CSS: - Removed all drop shadow, border-radius, highlight, and focus/outline effects from the drawer toggle button.
-- Drawer toggle button is now flush against the left edge (left: 0) with no spacing.
-- Chevron is always visible and rotates for open/collapsed state.
-- Removed duplicate/conflicting CSS for toggle button focus/hover.
-- No visual effect on focus for the drawer toggle button.
-- Cleaned up legacy/unused chevron CSS.
-- Renamed `Drawer.ts` to `drawer.ts` for file naming consistency (all module files lowercase).
+- [x] Enhanced drawer layout with a visible right border and vertically-centered toggle button:
+  - [x] Refactored drawer HTML structure to include separate divs for content, toggle container, and border
+  - [x] Updated drawer CSS to use flex layout with proper spacing and positioning
+  - [x] Added a dedicated drawer-border div as a separate element inside the drawer
+  - [x] Positioned toggle button (16x100px) inside a 16px right margin of the drawer
+  - [x] Ensured toggle button remains visible and functional with proper z-index
+  - [x] Chevron is always visible and rotates for open/collapsed state
+  - [x] Removed duplicate/conflicting CSS for toggle button focus/hover
+  - [x] No visual effect on focus for the drawer toggle button
+  - [x] Cleaned up legacy/unused chevron CSS
+  - [x] Renamed `Drawer.ts` to `drawer.ts` for file naming consistency (all module files lowercase)
+  - [x] Modified collapsed drawer CSS to keep toggle button visible when drawer is collapsed
+  - [x] Removed unused `.drawer-content` element from HTML and CSS for cleaner structure
+  - [x] Fixed TypeScript lint errors in drawer.ts by adding non-null assertions
 - [ ] Integrate with backend API for lazy loading of directory contents
 - [ ] Ensure proper state management for open/selected nodes
 
