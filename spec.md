@@ -15,6 +15,13 @@ Bullet list containing work that has been performed:
 - [x] Moved Milkdown editor update logic to InfiniteTree's selectNode event for reliable file selection handling.
 - [x] Renamed #app to #content throughout the frontend (index.html, styles.css, main.ts).
 - [x] Deleted unused tree-example.ts.
+- [x] Cleaned up tree-related CSS: - Removed all drop shadow, border-radius, highlight, and focus/outline effects from the drawer toggle button.
+- Drawer toggle button is now flush against the left edge (left: 0) with no spacing.
+- Chevron is always visible and rotates for open/collapsed state.
+- Removed duplicate/conflicting CSS for toggle button focus/hover.
+- No visual effect on focus for the drawer toggle button.
+- Cleaned up legacy/unused chevron CSS.
+- Renamed `Drawer.ts` to `drawer.ts` for file naming consistency (all module files lowercase).
 - [ ] Integrate with backend API for lazy loading of directory contents
 - [ ] Ensure proper state management for open/selected nodes
 
