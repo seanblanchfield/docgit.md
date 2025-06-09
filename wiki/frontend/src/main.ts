@@ -53,7 +53,7 @@ async function main() {
   await directoryTree.load();
 
   // Initialize drawer toggle
-  setupDrawer('#tree-drawer', '#drawer-toggle');
+  setupDrawer('#tree-drawer');
 }
 
 if (document.readyState === 'loading') {
