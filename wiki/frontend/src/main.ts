@@ -1,5 +1,6 @@
 import { initContentEditor } from './content';
 import { DirectoryTree, TreeNode } from './tree';
+import { setupDrawer } from './Drawer';
 import './styles.css';
 import 'infinite-tree/dist/infinite-tree.css';
 import '@milkdown/crepe/theme/common/style.css';
@@ -50,6 +51,9 @@ async function main() {
     }
   });
   await directoryTree.load();
+
+  // Initialize drawer toggle
+  setupDrawer('#tree-drawer', '#drawer-toggle');
 }
 
 if (document.readyState === 'loading') {
