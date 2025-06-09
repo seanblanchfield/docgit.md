@@ -25,9 +25,245 @@ body {
   min-width: 0;
   min-height: 0;
   background-color: #fff;
+  position: relative;
 }
 
+/* Drawer and editor layout for desktop */
 #tree-drawer[data-id="tree"] {
+  flex: 0 0 25%;
+  min-width: 180px;
+  max-width: 340px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border-color);
+  background-color: #f9fafb;
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), width 0.3s cubic-bezier(0.4,0,0.2,1), min-width 0.3s cubic-bezier(0.4,0,0.2,1), max-width 0.3s cubic-bezier(0.4,0,0.2,1);
+  z-index: 1002;
+  overflow: visible !important;
+}
+#tree-drawer.drawer-collapsed {
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  border-right: none;
+  transform: translateX(-100%);
+}
+#content {
+  flex: 1 1 75%;
+  min-width: 0;
+  height: 100vh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 700px) {
+  #content {
+    width: 100vw;
+    height: 100vh;
+    display: block;
+    min-width: 0;
+    overflow: auto;
+  }
+}
+
+
+/* Overlay drawer on mobile */
+@media (max-width: 700px) {
+  #main-container {
+    display: block;
+    position: relative;
+  }
+  #tree-drawer[data-id="tree"] {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100vw !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 100vh;
+    z-index: 2001;
+    box-shadow: 2px 0 16px rgba(0,0,0,0.12);
+    border-right: none;
+    background: #fff;
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), width 0.3s cubic-bezier(0.4,0,0.2,1);
+  }
+  #tree-drawer.drawer-collapsed {
+    transform: translateX(-100%);
+    width: 0 !important;
+    min-width: 0 !important;
+    box-shadow: none;
+  }
+  #content {
+    height: 100vh;
+    width: 100vw;
+    min-width: 0;
+    overflow: auto;
+    display: block;
+  }
+  /* Backdrop for overlay */
+  #main-container.drawer-overlay::after {
+    content: "";
+    position: fixed;
+    left: 0; top: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.15);
+    z-index: 1999;
+    pointer-events: auto;
+    transition: opacity 0.3s;
+  }
+  #main-container:not(.drawer-overlay)::after {
+    display: none;
+  }
+}
+
+
+#tree-drawer[data-id="tree"] {
+  position: relative;
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), width 0.3s cubic-bezier(0.4,0,0.2,1);
+  z-index: 1002; /* ensure above all tree content */
+  overflow: visible !important; /* allow toggle button to overflow */
+  padding-top: 64px;
+}
+
+/* Collapsed drawer: hide to the left */
+#tree-drawer.drawer-collapsed {
+  transform: translateX(-100%);
+  width: 0 !important;
+  min-width: 0 !important;
+  box-shadow: none;
+}
+
+/* Toggle button for drawer */
+.drawer-toggle {
+  position: absolute;
+  top: 16px;
+  left: 0;
+  width: 48px;
+  height: 48px;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  background: #fff;
+  border-radius: 0;
+  border: 1px solid var(--border-color, #bbb);
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.2s, left 0.3s;
+  outline: none;
+  color: #444;
+  margin-bottom: 0;
+  font-size: 1rem;
+  z-index: 3000;
+}
+.drawer-toggle:hover,
+.drawer-toggle.drawer-open {
+  background: #f3f4f6;
+  color: #222;
+}
+.drawer-toggle .drawer-chevron {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+  transition: transform 0.3s;
+  display: inline;
+  transform: rotate(180deg);
+}
+.drawer-toggle.drawer-collapsed .drawer-chevron {
+  transform: rotate(0deg);
+}
+
+/* Remove unused chevron-left/right CSS */
+
+.drawer-toggle svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+  transition: transform 0.3s;
+  margin-right: 8px;
+}
+.drawer-toggle .chevron-left {
+  display: inline;
+}
+.drawer-collapsed .drawer-toggle .chevron-left {
+  display: none;
+}
+.drawer-collapsed .drawer-toggle .chevron-right {
+  display: inline;
+}
+.drawer-toggle .chevron-right {
+  display: none;
+}
+
+.drawer-toggle svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+  transition: transform 0.3s;
+}
+
+.drawer-toggle:hover,
+.drawer-toggle.drawer-open {
+  background: #f3f4f6;
+  color: #222;
+}
+.drawer-toggle svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+  transition: transform 0.3s;
+}
+.drawer-toggle:hover,
+.drawer-toggle.drawer-open {
+  background: #f3f4f6;
+}
+.drawer-toggle svg {
+  width: 22px;
+  height: 22px;
+  fill: #666;
+  transition: transform 0.3s;
+}
+.drawer-toggle:hover,
+.drawer-toggle.drawer-open {
+  background: #f3f4f6;
+}
+.drawer-toggle svg {
+  width: 20px;
+  height: 20px;
+  fill: #666;
+  transition: transform 0.3s;
+}
+@media (max-width: 700px) {
+  #tree-drawer[data-id="tree"] {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    width: 100vw !important;
+    max-width: none;
+    min-width: 0;
+    background: #fff;
+    box-shadow: 2px 0 16px rgba(0,0,0,0.08);
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), width 0.3s cubic-bezier(0.4,0,0.2,1);
+  }
+  #tree-drawer.drawer-collapsed {
+    transform: translateX(-100%);
+    width: 0 !important;
+    min-width: 0 !important;
+  }
+  .drawer-toggle {
+    right: 0;
+    top: 16px;
+    transform: none;
+    border-radius: 0 6px 6px 0;
+    width: 44px;
+    height: 44px;
+  }
+}
+
   flex: 0 0 20%;
   min-width: 180px;
   max-width: 340px;
@@ -48,24 +284,15 @@ body {
   flex-direction: column;
 }
 
-@media (max-width: 700px) {
-  #main-container {
-    flex-direction: column;
-  }
-  #tree-drawer[data-id="tree"] {
-    flex: 0 0 auto;
-    width: 100vw;
-    max-width: none;
-    min-width: 0;
-    height: 200px;
-    border-right: none;
-    border-bottom: 1px solid var(--border-color);
-  }
-  #content {
-    flex: 1 1 auto;
-    width: 100vw;
-    height: calc(100vh - 200px);
-  }
+/* Always keep tree view on the left, editor on the right. No vertical stacking on small screens. */
+/* (Responsiveness will be handled by a collapsible drawer in the future.) */
+#content {
+  flex: 1 1 75%;
+  min-width: 0;
+  height: 100vh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 
@@ -140,11 +367,13 @@ body {
 }
 
 #content {
-  flex-grow: 1;
-  padding: 20px;
+  flex: 1 1 75%;
+  min-width: 0;
+  height: 100vh;
+  overflow: auto;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* Prevents the app container itself from scrolling due to editor content */
+  padding: 20px;
 }
 
 #editor {

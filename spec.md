@@ -6,7 +6,6 @@ Bullet list containing work that has been performed:
 - [x] Designed simplified node data structure with only essential fields
 - [x] Implement simplified tree renderer with minimal styling
 - [x] Add event handlers for node selection and toggling
-- [x] Improved directory toggling UX: Both the directory name and toggler icon now expand/collapse directories in the tree view, via a unified click handler in DirectoryTree.
 - [x] Fixed InfiniteTree integration in frontend: ensured directory nodes are recognized and toggled open/closed when clicked (title or toggler).
 - [x] Added a recursive mapping to inject `isDirectory` property into tree data from backend.
 - [x] Removed all debug logging from main.ts after resolving event handling and data issues.
