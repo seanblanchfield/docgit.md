@@ -79,14 +79,7 @@ additional_instructions = """
 - **Example:** To install a package: `cd wiki/ && ./run-node.sh install <package-name>`
 - **Example:** To run a script: `cd wiki/ && ./run-node.sh run <script-name>`
 
-## Project Execution Rules for Cascade AI Assistant
-
-### Frontend NPM Commands
-- All npm commands targeting the `wiki/frontend/` directory must be executed via the `wiki/run-node.sh` script.
-- This script wraps npm commands to run them inside a Docker container with the appropriate environment and volume mounts.
-- **Example:** To install a package: `cd wiki/ && ./run-node.sh install <package-name>`
-- **Example:** To run a script: `cd wiki/ && ./run-node.sh run <script-name>`
-
+You do not need to restart the frontend all the time. Remember to rely on HMR in the first instance, and only restart the frontend container if you have modified the environment or typescript configuration.
 
 ### Debugging
 - To debug the frontend, try to use puppeteer before asking the user to use the browser debugger.

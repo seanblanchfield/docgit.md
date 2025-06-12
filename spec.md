@@ -21,7 +21,12 @@ Bullet list containing work that has been performed:
   - [x] Added a dedicated drawer-border div as a separate element inside the drawer
   - [x] Positioned toggle button (16x100px) inside a 16px right margin of the drawer
   - [x] Ensured toggle button remains visible and functional with proper z-index
-  - [x] Chevron is always visible and rotates for open/collapsed state
+  - [x] Replaced SVG chevron with Unicode arrow character (➧) for better visibility
+  - [x] Increased size of toggle button arrow and centered it with flexbox
+  - [x] Fixed arrow rotation animation for smooth transitions between states
+  - [x] Improved toggle button styling with permanent background color and lighter hover effect
+  - [x] Set toggle button to always have the bg-hover color for better visibility
+  - [x] Added a lighter background color when hovering over the toggle button
   - [x] Removed duplicate/conflicting CSS for toggle button focus/hover
   - [x] No visual effect on focus for the drawer toggle button
   - [x] Cleaned up legacy/unused chevron CSS
