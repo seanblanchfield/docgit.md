@@ -1,4 +1,5 @@
 import InfiniteTree from 'infinite-tree';
+import { humanizeFileName } from './humanize';
 
 export interface TreeNode {
   id: string;
@@ -112,8 +113,10 @@ export class DirectoryTree {
 
   private addIsDirectory = (node: any): any => {
     const isDirectory = Array.isArray(node.children) && node.children.length > 0;
+    const displayName = humanizeFileName(node.name ?? '');
     return {
       ...node,
+      name: displayName,
       isDirectory,
       children: Array.isArray(node.children)
         ? node.children.map(this.addIsDirectory)

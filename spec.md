@@ -1,9 +1,5 @@
 ## WIP
-Current step: Integrate tree view with backend lazy-loading API
-
-Bullet list of upcoming work:
-- [ ] Integrate with backend API for lazy loading of directory contents
-- [ ] Ensure proper state management for open/selected nodes
+_(No active work in progress – last completed: Humanise directory tree display names)_
 
 ### Simplified Tree Implementation Details
 
