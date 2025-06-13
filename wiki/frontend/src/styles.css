@@ -336,12 +336,6 @@ body {
   line-height: 1.5;
 }
 
-#tree-drawer .infinite-tree-node.selected {
-  background-color: #e0e7ff;
-  color: var(--primary-color);
-  font-weight: 500;
-}
-
 #tree-drawer .infinite-tree-node {
   white-space: nowrap;
   overflow: hidden;
@@ -374,27 +368,6 @@ body {
   animation: fadeIn 0.15s ease-out;
 }
 
-/* Collapsed state: RED SQUARE for visual debugging */
-#tree-drawer .infinite-tree-node-closed .custom-tree-toggle::before {
-  content: ''; /* Clear text content */
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border: 2px solid red;
-  vertical-align: middle; /* Align with text */
-}
-
-/* Expanded state: BLUE SQUARE for visual debugging */
-#tree-drawer .infinite-tree-node-open .custom-tree-toggle::before {
-  content: ''; /* Clear text content */
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border: 2px solid blue;
-  vertical-align: middle; /* Align with text */
-}
-
-
 /* Ensure proper indentation for nested items */
 /* infinite-tree usually handles this with padding-left on .infinite-tree-node */
 /* We can adjust if needed, but let's see the default first. */
@@ -406,3 +379,55 @@ body {
   list-style-type: none;
   padding-left: 0; /* Control indentation via node wrappers or specific classes */
 }
+
+/* Override InfiniteTree default hover item style */
+.infinite-tree-content .infinite-tree-item:hover {
+  background: #88ccff26 !important;
+}
+
+/* --- Base InfiniteTree styles (inlined) --- */
+.infinite-tree-scroll {
+  overflow: auto;
+  max-height: 400px; /* Adjust as needed */
+}
+.infinite-tree-table {
+  width: 100%;
+}
+.infinite-tree-content {
+  outline: 0;
+  position: relative;
+}
+.infinite-tree-content .infinite-tree-selected.infinite-tree-item,
+.infinite-tree-content .infinite-tree-selected.infinite-tree-item:hover {
+  background: #88ccff75 !important; /* our override already above */
+  border: none;
+}
+.infinite-tree-content .infinite-tree-item {
+  border: 0px solid transparent;
+  cursor: default;
+}
+/* hover override already above */
+.infinite-tree-content .infinite-tree-item:disabled,
+.infinite-tree-content .infinite-tree-item[disabled] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.infinite-tree-content .infinite-tree-node {
+  position: relative;
+}
+.infinite-tree-content .infinite-tree-toggler {
+  color: #666;
+  user-select: none;
+}
+.infinite-tree-content .infinite-tree-toggler:hover {
+  color: #333;
+  text-decoration: none;
+}
+.infinite-tree-content .infinite-tree-title {
+  cursor: pointer;
+  user-select: none;
+}
+.infinite-tree-no-data {
+  text-align: center;
+}
+/* --- End InfiniteTree base styles --- */

@@ -1,9 +1,10 @@
 ## WIP
-Current step: Humanise directory tree display names
+Current step: Directory tree selection & toggle UX fixes
 
 Bullet list of upcoming work:
 - [ ] Integrate with backend API for lazy loading of directory contents
-- [ ] Ensure proper state management for open/selected nodes
+- [x] Ensure proper state management for open/selected nodes (keep selection highlighted, clicking background toggles directory)
+- [ ] Integrate with backend API for lazy loading of directory contents
 
 ### Simplified Tree Implementation Details
 

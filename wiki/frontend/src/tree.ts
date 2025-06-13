@@ -36,23 +36,48 @@ export class DirectoryTree {
     });
 
     // Add manual toggle handler for directory toggler or name clicks
+    // Prevent InfiniteTree from deselecting already-selected file rows
+    el.addEventListener('mousedown', (event) => {
+      const itemEl = (event.target as HTMLElement).closest('.infinite-tree-item');
+      if (!itemEl) return;
+      if (!itemEl.classList.contains('infinite-tree-selected')) return;
+      // only for files (no children)
+      if (itemEl.hasAttribute('data-children')) return;
+      event.stopImmediatePropagation();
+      event.preventDefault();
+      
+    }, true);
+
+    // Capture phase guard to keep selection
     el.addEventListener('click', (event) => {
-      const target = event.target as HTMLElement;
-      // Accept clicks on toggler or on directory title
-      if (
-        (target.classList.contains('infinite-tree-toggler')) ||
-        (target.classList.contains('infinite-tree-title') && target.closest('.infinite-tree-item[data-children]'))
-      ) {
-        const item = target.closest('.infinite-tree-item');
-        if (item) {
-          const nodeId = item.getAttribute('data-id');
-          if (nodeId) {
-            const node = this.tree.getNodeById(nodeId);
-            if (node && node.isDirectory) {
-              console.log('[DirectoryTree] Manually toggling node:', nodeId, 'from click on', target.className);
-              this.tree.toggleNode(node);
-            }
-          }
+      const itemEl = (event.target as HTMLElement).closest('.infinite-tree-item');
+      if (!itemEl) return;
+      if (!itemEl.classList.contains('infinite-tree-selected')) return;
+      if (itemEl.hasAttribute('data-children')) return;
+      event.stopImmediatePropagation();
+      
+    }, true);
+
+    el.addEventListener('click', (event) => {
+      const itemEl = (event.target as HTMLElement).closest('.infinite-tree-item');
+      if (!itemEl) return;
+      const nodeId = itemEl.getAttribute('data-id');
+      if (!nodeId) return;
+      const node: TreeNode | undefined = this.tree.getNodeById(nodeId);
+      if (!node) return;
+
+      if (node.isDirectory) {
+        // Toggle directories
+        this.tree.toggleNode(node);
+      } else {
+        // If this file is already selected, prevent InfiniteTree from deselecting it
+        const alreadySelected = itemEl.classList.contains('infinite-tree-selected');
+        if (alreadySelected) {
+          
+          event.preventDefault();
+          event.stopPropagation();
+          // Re-select explicitly to ensure class stays
+          this.tree.selectNode(node);
         }
       }
     });
@@ -61,6 +86,20 @@ export class DirectoryTree {
       if (!node || node.isDirectory) return;
       this.lastSelectedId = node.id;
       this.onFileSelect(node);
+    });
+
+    // Prevent deselecting the currently selected file by reselecting if deselect would leave none selected
+    this.tree.on('deselectNode', (node: TreeNode) => {
+      
+      const selected = this.tree.getSelectedNodes();
+      
+      if (selected.length === 0 && node) {
+        
+        // re-select after microtask so internal deselect finishes
+        setTimeout(() => {
+          this.tree.selectNode(node);
+        }, 0);
+      }
     });
 
     this.tree.on('toggle', async (node: TreeNode, isOpen: boolean) => {
