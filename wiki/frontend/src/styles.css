@@ -336,10 +336,6 @@ body {
   line-height: 1.5;
 }
 
-#tree-drawer .infinite-tree-node:hover {
-  background-color: var(--bg-hover);
-}
-
 #tree-drawer .infinite-tree-node.selected {
   background-color: #e0e7ff;
   color: var(--primary-color);
@@ -360,11 +356,6 @@ body {
   list-style-type: none;
   padding: 0;
   margin: 0;
-}
-
-/* Active and hover states */
-#tree-drawer .infinite-tree-node:hover {
-  background-color: var(--bg-hover);
 }
 
 #tree-drawer .infinite-tree-node.selected {

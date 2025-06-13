@@ -23,6 +23,7 @@ export class DirectoryTree {
   private tree: any;
   private onFileSelect: (file: TreeNode) => void;
   private el: HTMLElement;
+  private lastSelectedId: string | null = null;
 
   constructor({ el, onFileSelect }: DirectoryTreeOptions) {
     this.onFileSelect = onFileSelect;
@@ -58,12 +59,17 @@ export class DirectoryTree {
 
     this.tree.on('selectNode', (node: TreeNode) => {
       if (!node || node.isDirectory) return;
+      this.lastSelectedId = node.id;
       this.onFileSelect(node);
     });
 
     this.tree.on('toggle', async (node: TreeNode, isOpen: boolean) => {
       if (isOpen && node.isDirectory && (!node.children || node.children.length === 0)) {
         await this.loadDirectoryContents(node);
+      }
+      if (isOpen && this.lastSelectedId && this.lastSelectedId.startsWith(node.id + '/')) {
+        const tgt = this.tree.getNodeById(this.lastSelectedId);
+        if (tgt) this.tree.selectNode(tgt);
       }
     });
   }

@@ -1,5 +1,9 @@
 ## WIP
-_(No active work in progress – last completed: Humanise directory tree display names)_
+Current step: Humanise directory tree display names
+
+Bullet list of upcoming work:
+- [ ] Integrate with backend API for lazy loading of directory contents
+- [ ] Ensure proper state management for open/selected nodes
 
 ### Simplified Tree Implementation Details
 

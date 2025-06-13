@@ -1,15 +1,17 @@
-// Utility to convert raw file/directory names into a more human-readable form
-// e.g. "01_getting_started.md" -> "Getting started"
+// Utility to humanise file and directory names for display in the tree
+// Examples: "01_getting_started.md" => "Getting started", "README.md" => "README"
 export function humanizeFileName(raw: string): string {
-  // Remove leading digits + separators (e.g. "01_" or "10-")
-  let name = raw.replace(/^\d+[\-_ ]+/, '');
+  if (!raw) return '';
+  let name = raw;
+  // Remove leading digits with separators
+  name = name.replace(/^\d+[\-_ ]+/, '');
   // Strip common markdown/text extensions
   name = name.replace(/\.(md|markdown|txt)$/i, '');
-  // Replace underscores & hyphens with space
+  // Replace separators with spaces
   name = name.replace(/[\-_]+/g, ' ');
-  // Collapse duplicate whitespace and trim
+  // Collapse multiple spaces
   name = name.replace(/\s+/g, ' ').trim();
-  // Capitalise first letter only (preserve acronyms)
+  // Capitalise first letter
   if (name.length) {
     name = name.charAt(0).toUpperCase() + name.slice(1);
   }
