@@ -32,7 +32,7 @@ body {
 #tree-drawer[data-id="tree"] {
   flex: 0 0 25%;
   min-width: 180px;
-  max-width: 340px;
+  max-width: 50vw;
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -69,54 +69,6 @@ body {
 }
 
 
-/* Overlay drawer on mobile */
-@media (max-width: 700px) {
-  #main-container {
-    display: block;
-    position: relative;
-  }
-  #tree-drawer[data-id="tree"] {
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 100vw !important;
-    min-width: 0 !important;
-    max-width: none !important;
-    height: 100vh;
-    z-index: 2001;
-    box-shadow: 2px 0 16px rgba(0,0,0,0.12);
-    border-right: none;
-    background: #fff;
-    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), width 0.3s cubic-bezier(0.4,0,0.2,1);
-  }
-  #tree-drawer.drawer-collapsed {
-    transform: translateX(-100%);
-    width: 0 !important;
-    min-width: 0 !important;
-    box-shadow: none;
-  }
-  #content {
-    height: 100vh;
-    width: 100vw;
-    min-width: 0;
-    overflow: auto;
-    display: block;
-  }
-  /* Backdrop for overlay */
-  #main-container.drawer-overlay::after {
-    content: "";
-    position: fixed;
-    left: 0; top: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.15);
-    z-index: 1999;
-    pointer-events: auto;
-    transition: opacity 0.3s;
-  }
-  #main-container:not(.drawer-overlay)::after {
-    display: none;
-  }
-}
-
 
 #tree-drawer[data-id="tree"] {
   position: relative;
@@ -130,7 +82,6 @@ body {
   width: 250px; /* Set explicit width for non-collapsed state */
 }
 
-
 .drawer-border {
   position: absolute;
   top: 0;
@@ -142,6 +93,46 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: default;
+}
+
+.drawer-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -10px;
+  width: 12px;
+  cursor: default;
+}
+.drawer-resizer::after {
+  content: "";
+  position: absolute;
+  bottom: 24px;
+  left: 0;
+  width: 100%;
+  height: 40px;
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(0,0,0,.2) 0 3px,
+    transparent 3px 6px
+  );
+  opacity: .6;
+  border: 0;
+  box-shadow: 0 0 0 1px var(--border-color);
+  border-radius: 6px;
+}
+
+#tree-drawer:not(.drawer-collapsed) .drawer-border,
+#tree-drawer:not(.drawer-collapsed) .drawer-resizer {
+  cursor: ew-resize;
+}
+
+#tree-drawer.drawer-collapsed .drawer-resizer {
+  display: none;
+}
+
+#tree-drawer[data-id="tree"] {
+  transition: width 0.12s ease;
 }
 
 /* Removed .drawer-toggle-container as toggle is now inside border */
@@ -195,13 +186,13 @@ body {
 .drawer-toggle {
   font-size: 1rem;
   z-index: 3000;
-  color: #222;
+  color: rgba(0,0,0,0.35);
   background: var(--bg-hover); /* Always have the hover background color */
 }
 .drawer-toggle:hover,
 .drawer-toggle.drawer-open {
   background: #fefefec7; /* Lighter color when hovered */
-  color: #222;
+  color: rgba(0,0,0,0.35);
 }
 /* Removed duplicate hover styles */
 @media (max-width: 700px) {
@@ -210,7 +201,7 @@ body {
     left: 0;
     top: 0;
     height: 100vh;
-    width: 100vw !important;
+    width: calc(100vw - 16px) !important;
     max-width: none;
     min-width: 0;
     background: #fff;
@@ -218,18 +209,11 @@ body {
     transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), width 0.3s cubic-bezier(0.4,0,0.2,1);
   }
   #tree-drawer.drawer-collapsed {
-    transform: translateX(-100%);
-    width: 0 !important;
-    min-width: 0 !important;
+    transform: translateX(calc(-100% + 16px));
+    width: 16px !important;
+    min-width: 16px !important;
   }
-  .drawer-toggle {
-    right: 0;
-    top: 16px;
-    transform: none;
-    border-radius: 0 6px 6px 0;
-    width: 44px;
-    height: 44px;
-  }
+
 }
 
 #content {

@@ -1,39 +1,7 @@
 ## WIP
-Current step: Enhancing the collapsible drawer layout with a right border and vertically-centered toggle button [DONE]
+Current step: Integrate tree view with backend lazy-loading API
 
-Bullet list containing work that has been performed:
-- [x] Analyzed current infinite-tree implementation against documentation
-- [x] Designed simplified node data structure with only essential fields
-- [x] Implement simplified tree renderer with minimal styling
-- [x] Add event handlers for node selection and toggling
-- [x] Fixed InfiniteTree integration in frontend: ensured directory nodes are recognized and toggled open/closed when clicked (title or toggler).
-- [x] Added a recursive mapping to inject `isDirectory` property into tree data from backend.
-- [x] Removed all debug logging from main.ts after resolving event handling and data issues.
-- [x] Cleaned up tree-related CSS: removed unused toggler styles, removed debug outlines, and ensured only necessary styles remain.
-- [x] Confirmed correct event delegation and toggling for all folders/sections in the tree.
-- [x] Removed all usage of replaceAll.ts and deleted the file.
-- [x] Moved Milkdown editor update logic to InfiniteTree's selectNode event for reliable file selection handling.
-- [x] Renamed #app to #content throughout the frontend (index.html, styles.css, main.ts).
-- [x] Deleted unused tree-example.ts.
-- [x] Enhanced drawer layout with a visible right border and vertically-centered toggle button:
-  - [x] Refactored drawer HTML structure to include separate divs for content, toggle container, and border
-  - [x] Updated drawer CSS to use flex layout with proper spacing and positioning
-  - [x] Added a dedicated drawer-border div as a separate element inside the drawer
-  - [x] Positioned toggle button (16x100px) inside a 16px right margin of the drawer
-  - [x] Ensured toggle button remains visible and functional with proper z-index
-  - [x] Replaced SVG chevron with Unicode arrow character (➧) for better visibility
-  - [x] Increased size of toggle button arrow and centered it with flexbox
-  - [x] Fixed arrow rotation animation for smooth transitions between states
-  - [x] Improved toggle button styling with permanent background color and lighter hover effect
-  - [x] Set toggle button to always have the bg-hover color for better visibility
-  - [x] Added a lighter background color when hovering over the toggle button
-  - [x] Removed duplicate/conflicting CSS for toggle button focus/hover
-  - [x] No visual effect on focus for the drawer toggle button
-  - [x] Cleaned up legacy/unused chevron CSS
-  - [x] Renamed `Drawer.ts` to `drawer.ts` for file naming consistency (all module files lowercase)
-  - [x] Modified collapsed drawer CSS to keep toggle button visible when drawer is collapsed
-  - [x] Removed unused `.drawer-content` element from HTML and CSS for cleaner structure
-  - [x] Fixed TypeScript lint errors in drawer.ts by adding non-null assertions
+Bullet list of upcoming work:
 - [ ] Integrate with backend API for lazy loading of directory contents
 - [ ] Ensure proper state management for open/selected nodes
 
@@ -116,7 +84,7 @@ wiki/
 
 ```
 ┌──────────────┐           HTTPS            ┌────────────────┐
-│   React UI   │  ───────→ /api/*  ───────→ │  FastAPI app   │──┐
+│      UI      │  ───────→ /api/*  ───────→ │  FastAPI app   │──┐
 │ (Vite build) │  Static  │                 └────────────────┘  │
 └──────────────┘  assets  │                     │GitPython       │
         ▲                Nginx                 repo volume       │
@@ -131,6 +99,20 @@ responsive drawer│                                        │ Remote git? │ 
 ---
 
 #### 5  Frontend Specification
+
+##### 5.1  Tree Drawer UX  [DONE]
+
+A collapsible left-hand drawer hosts the directory tree.
+
+* **Collapsed / Expanded** – Single-click on the chevron toggle collapses or expands the drawer.
+* **Manual Resize** – On screens wider than 700 px users can drag the right border or the textured 12 px `drawer-resizer` strip to resize width between 200 px and 50 % of viewport.
+* **Width Persistence** – Chosen width is stored in `localStorage.drawerWidth` and restored on page reload / when re-expanded.
+* **Double-Click Snap** – Double-click anywhere in the drawer (background, border, resizer, or toggle) toggles between:
+  * the initial *default* width (captured on first load) and
+  * the *maximum* width (≈50 vw).
+* **Mobile Behaviour** – At ≤700&nbsp;px dragging is disabled. When expanded the drawer slides over the content; when collapsed it shifts left by `calc(-100% + 16px)` leaving a 16&nbsp;px border strip (with chevron) visible so the user can reopen it. No overlay scrim is used.
+* **Cursor & Handle** – `ew-resize` cursor on resizer/border; resizer has matching border & diagonal texture.
+* **Accessibility** – Resizer marked with `aria-hidden="true"`; toggle button has `aria-label` "Toggle drawer".
 
 | Topic                        | Details                                                                                                                                                                                                                                                            |                                                        |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
