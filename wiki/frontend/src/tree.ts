@@ -67,8 +67,31 @@ export class DirectoryTree {
       if (!node) return;
 
       if (node.isDirectory) {
+        const currentlyOpen = !!node.state?.open;
+        
+
+        // If collapsing and selected leaf is inside, move highlight to this directory
+        if (currentlyOpen && this.lastSelectedId && this.lastSelectedId.startsWith(node.id + '/')) {
+          
+          this.tree.selectNode(node);
+        }
+
         // Toggle directories
         this.tree.toggleNode(node);
+
+        // If expanding and we have a stored leaf inside, select the nearest visible ancestor (next path segment)
+        if (!currentlyOpen && this.lastSelectedId && this.lastSelectedId.startsWith(node.id + '/')) {
+          const rel = this.lastSelectedId.slice(node.id.length + 1);
+          const firstSeg = rel.split('/')[0];
+          const nextId = node.id + '/' + firstSeg;
+          
+          setTimeout(() => {
+            const n = this.tree.getNodeById(nextId);
+            if (n) {
+              this.tree.selectNode(n);
+            }
+          }, 0);
+        }
       } else {
         // If this file is already selected, prevent InfiniteTree from deselecting it
         const alreadySelected = itemEl.classList.contains('infinite-tree-selected');
@@ -103,12 +126,33 @@ export class DirectoryTree {
     });
 
     this.tree.on('toggle', async (node: TreeNode, isOpen: boolean) => {
+      console.log('[DirectoryTree] toggle', node.id, 'isOpen', isOpen, 'lastSelectedId', this.lastSelectedId);
+
+      // Lazy-load children on first expand
       if (isOpen && node.isDirectory && (!node.children || node.children.length === 0)) {
         await this.loadDirectoryContents(node);
       }
-      if (isOpen && this.lastSelectedId && this.lastSelectedId.startsWith(node.id + '/')) {
-        const tgt = this.tree.getNodeById(this.lastSelectedId);
-        if (tgt) this.tree.selectNode(tgt);
+
+      if (isOpen) {
+        
+
+        // Section was expanded – if previously selected leaf lies inside, restore highlight to it
+        if (this.lastSelectedId && this.lastSelectedId.startsWith(node.id + '/')) {
+          const tgt = this.tree.getNodeById(this.lastSelectedId);
+          if (tgt) {
+            
+            setTimeout(() => {
+              
+              this.tree.selectNode(tgt);
+            }, 0);
+          }
+        }
+      } else {
+        // Section being collapsed – if current leaf selection will be hidden, shift highlight to this visible parent
+        if (this.lastSelectedId && this.lastSelectedId.startsWith(node.id + '/') && this.lastSelectedId !== node.id) {
+          
+          this.tree.selectNode(node); // directory selection does not overwrite lastSelectedId
+        }
       }
     });
   }
