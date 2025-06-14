@@ -1,11 +1,24 @@
 ## WIP
-Current step: Directory tree selection & toggle UX fixes
+Current phase: Editor status bar, modes & auto-save/locking
 
-Bullet list of upcoming work:
-- [x] Consolidate and regroup drawer, tree view, and editor styles in `styles.css`
-- [ ] Integrate with backend API for lazy loading of directory contents
-- [x] Ensure proper state management for open/selected nodes (keep selection highlighted, clicking background toggles directory)
-- [ ] Integrate with backend API for lazy loading of directory contents
+Implementation roadmap (✅ = done, 🔄 = in progress). *Stop after each **Checkpoint** and ask the user for approval before moving on.*
+
+| # | Work Item | Description / Deliverables | Checkpoint |
+|---|-----------|----------------------------|------------|
+| 1 | **Status-Bar Skeleton** | • Add fixed container (flex, 40 px) in `Editor.tsx`.<br>• Add placeholder slots for mode control, unsaved pill, commit meta, history & revert buttons.<br>• Basic styling in `styles.css`. | UI screenshot + a11y audit. |
+| 2 | **Mode Switch Control** | • Segmented control `View | WYSIWYG | Raw`.<br>• Wire to Milkdown `readOnly` and raw `<textarea>` views.<br>• Persist choice in `localStorage.editorMode`.<br>• Shortcut `Ctrl+E` cycles modes. | Demo switching between modes with sample doc. |
+| 3 | **Unsaved Indicator & Local Drafts** | • Compute dirty flag via baseline SHA diff.<br>• Auto-save buffer to `localStorage.draft:<path>` every 10 s.<br>• Show orange "Unsaved" pill when dirty. | Refresh page → pill persists; user confirmation. |
+| 4 | **Last-Commit Meta Display** | • Call `/api/history/{path}?limit=1`.<br>• Show "Author — relative time" text.<br>• Tooltip with full SHA + message. | Demo with file having recent commit. |
+| 5 | **Revert Local Draft** | • "Revert" icon clears draft key & reloads from backend.<br>• Confirmation dialog. | Confirm that dirty pill disappears after revert. |
+| 6 | **History Drawer** | • Side panel listing commits (reuse `/api/history`).<br>• Clicking entry opens diff (`/api/diff`). | Walkthrough diff view. |
+| 7 | **Edit-Lock Backend** | • Endpoint `POST /api/lock/{path}` (lock_id, TTL 5 min).<br>• Middleware to enforce lock for PUT/auto-save.<br>• Auto-refresh lock ping every 60 s. | Unit tests + curl demo acquiring/denying lock. |
+| 8 | **Lock UI Integration** | • On 423 response show red banner "Sean is editing…".<br>• Disable editing; allow View mode. | Simulate double-tab scenario; banner appears. |
+| 9 | **Backend Auto-Save Commit (+amend)** | • PUT `/api/file/{path}` accepts `lock_id` & `base_sha`.<br>• If `base_sha==HEAD` and author matches, `git commit --amend` else new commit.<br>• Release lock on success. | Run auto-save; inspect git log (single commit). |
+|10 | **Client Auto-Save Trigger** | • 5-min inactivity or manual save button.<br>• Payload includes `lock_id` & `base_sha`.<br>• On success clear draft, refresh baseline SHA. | Demo end-to-end save cycle. |
+|11 | **Preference Persistence** | • Store collapsed state, drawer widths, etc. | UX persists across reload. |
+|12 | **User Acceptance Regression** | • Run full E2E test script (Puppeteer).<br>• Collect feedback, adjust UI polish. | Green-light from user. |
+
+---
 
 ### Simplified Tree Implementation Details
 
@@ -126,6 +139,35 @@ A collapsible left-hand drawer hosts the directory tree.
 | **5.3 Tree Data model**      | `{ id: string, name: string, children?: TreeNodeData[] }` from `/api/files/tree` |
 | **5.5 Creating files**       | “New Page” button in drawer footer → prompt path → POST `/api/file` → optimistic tree update → open editor with stub front-matter.                                                                                                                                 |                                                        |
 | **5.6 Responsive behaviour** | On xs screens, Sheet slides over content; on ≥md screens it docks (`md:static md:translate-x-0`).                                                                                                                                                                  |                                                        |
+
+---
+
+##### 5.7 Editor Modes (View / WYSIWYG / Raw)
+
+* **Modes**
+  * **View** – Rendered HTML (read-only) via `markdown-it` (lightweight) or Milkdown in readOnly.
+  * **WYSIWYG** – Milkdown in full editing mode.
+  * **Raw** – Plain textarea (or CodeMirror later) for direct Markdown editing.
+* **Switch UI** – Segmented control in status bar (`View | WYSIWYG | Raw`). Active mode is highlighted; preference stored in `localStorage.editorMode`.
+* **Sync Rules**
+  * Switching *to Raw* loads current markdown string (from Milkdown `getMarkdown()` or cached draft).
+  * Switching *to WYSIWYG* parses Raw textarea value into Milkdown; caret resets to start.
+  * Switching *to View* renders markdown string; no editing events fired.
+* **Unsaved Detection** – Common store (currentMarkdown) updated on change events from either editor; diff vs baseline to compute "unsaved" flag.
+* **Keyboard Shortcut** – `Ctrl+E` cycles modes.
+
+##### 5.8 Auto-Save & Concurrency (Turn-Based Editing)
+
+* **Local Drafts** – Editor serializes markdown to `localStorage.draft:<file>` every 10 s along with `base_sha`.
+* **Edit Lock API** – `POST /api/lock/{path}` obtains a lock (returns `lock_id`, TTL 5 min, refreshed on activity). If lock exists, server returns `423 Locked` with lock owner info; client enters read-only mode and displays banner.
+* **Auto-Save Commit Flow**
+  1. Client triggers save (manual or 5-min idle timer) with payload `{ content, base_sha, lock_id, message:"Auto-save" }`.
+  2. Server verifies `lock_id`.
+  3. If `base_sha == HEAD`, run `git commit --amend --author <user>` to squash autosaves from same author.
+  4. On success, server releases lock and returns new `sha`.
+* **Conflict Handling** – Because locks enforce turn-based editing, true merge conflicts should be rare. If client somehow loses lock (expired) and HEAD moved, server returns `409`; client refreshes view and discards unsaved buffer (future AI merge assistance planned).
+* **History Hygiene** – `--amend` keeps one commit per editing turn. Long idle gaps naturally create new commits, giving meaningful snapshots.
+* **Future Enhancements** – Replace locking with real-time CRDT + AI-assisted merge & commit-message generation.
 
 ---
 

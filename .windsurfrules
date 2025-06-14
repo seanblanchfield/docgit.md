@@ -20,8 +20,8 @@ The `spec.md` file contains the project specification and project spec.
 As each section of the spec is done, update it by annotating the corresponding header with "[DONE]". 
 
 ## Slash commands:
-* `/plan` - summarise the current step of the project spec and what you are working on. Refer to the "Work in Progress" section of the plan. 
-* `/commit` - Refer to the "Work in Progress" section of the spec. Check the project spec reflects the most recent piece of work, compact the work-in-progress section into a commit message, and commit the current changes to the git repository.
+* `plan` - summarise the current step of the project spec and what you are working on. Refer to the "Work in Progress" section of the plan. 
+* `commit` - Refer to the "Work in Progress" section of the spec and that the most recent piece of work is appropriately marked as 'DONE', then compact the relevant sections of the work-in-progress into a semantic commit message, and commit all the changes to any files in the project to the git repository.
 
 ## Testing
 You should do whatever you can to test your own work, and don't ask the user to do something you can just as easily do yourself.
