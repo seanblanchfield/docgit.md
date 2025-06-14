@@ -27,7 +27,6 @@ export function setupDrawer(drawerSelector: string) {
   }
 
   toggle.addEventListener('click', () => {
-    console.log('[drawer] toggle clicked', { mobile: window.matchMedia('(max-width: 700px)').matches, collapsed: drawer.classList.contains('drawer-collapsed') });
     const collapsed = drawer.classList.toggle('drawer-collapsed');
     toggle.classList.toggle('drawer-collapsed', collapsed);
     toggle.classList.toggle('drawer-open', !collapsed);

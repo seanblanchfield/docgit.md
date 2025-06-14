@@ -68,6 +68,9 @@ body {
   }
 }
 
+.milkdown .ProseMirror {
+  padding: 40px 60px;
+}
 
 
 #tree-drawer[data-id="tree"] {

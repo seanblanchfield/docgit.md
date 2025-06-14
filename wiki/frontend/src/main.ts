@@ -1,9 +1,9 @@
 import { initContentEditor } from './content';
 import { DirectoryTree, TreeNode } from './tree';
 import { setupDrawer } from './drawer';
-import './styles.css';
 import '@milkdown/crepe/theme/common/style.css';
 import '@milkdown/crepe/theme/frame.css';
+import './styles.css';
 
 
 
