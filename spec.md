@@ -2,6 +2,7 @@
 Current step: Directory tree selection & toggle UX fixes
 
 Bullet list of upcoming work:
+- [x] Consolidate and regroup drawer, tree view, and editor styles in `styles.css`
 - [ ] Integrate with backend API for lazy loading of directory contents
 - [x] Ensure proper state management for open/selected nodes (keep selection highlighted, clicking background toggles directory)
 - [ ] Integrate with backend API for lazy loading of directory contents

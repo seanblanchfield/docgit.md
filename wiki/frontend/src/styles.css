@@ -38,25 +38,18 @@ body {
   flex-direction: column;
   border-right: 1px solid var(--border-color);
   background-color: #f9fafb;
-  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), width 0.3s cubic-bezier(0.4,0,0.2,1), min-width 0.3s cubic-bezier(0.4,0,0.2,1), max-width 0.3s cubic-bezier(0.4,0,0.2,1);
+  /* unified transitions */
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1),
+              width 0.3s cubic-bezier(0.4,0,0.2,1),
+              min-width 0.3s cubic-bezier(0.4,0,0.2,1),
+              max-width 0.3s cubic-bezier(0.4,0,0.2,1);
+  position: relative;          /* from duplicate block */
+  padding-right: 16px;         /* prevent content under border */
   z-index: 1002;
   overflow: visible !important;
 }
-#tree-drawer.drawer-collapsed {
-  width: 0 !important;
-  min-width: 0 !important;
-  max-width: 0 !important;
-  border-right: none;
-  transform: translateX(-100%);
-}
-#content {
-  flex: 1 1 75%;
-  min-width: 0;
-  height: 100vh;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-}
+
+
 
 @media (max-width: 700px) {
   #content {
@@ -73,17 +66,7 @@ body {
 }
 
 
-#tree-drawer[data-id="tree"] {
-  position: relative;
-  display: flex;
-  flex-direction: row;
-  transition: all 0.3s ease;
-  z-index: 1002; /* ensure above all tree content */
-  overflow: visible !important;
-  padding-top: 0;
-  padding-right: 16px; /* Add padding to prevent content from flowing under border */
-  width: 250px; /* Set explicit width for non-collapsed state */
-}
+
 
 .drawer-border {
   position: absolute;
@@ -134,16 +117,14 @@ body {
   display: none;
 }
 
-#tree-drawer[data-id="tree"] {
-  transition: width 0.12s ease;
-}
+
 
 /* Removed .drawer-toggle-container as toggle is now inside border */
 
 .drawer-toggle {
   width: 16px;
   height: 100%;
-  background: #fff;
+  background: var(--bg-hover);
   border: 1px solid var(--border-color, #bbb);
   border-radius: 0;
   box-shadow: none;
@@ -155,7 +136,9 @@ body {
   margin: 0;
   overflow: visible; /* Allow chevron to overflow container */
   position: relative;
-  z-index: 1005;
+  font-size: 1rem;
+  color: rgba(0,0,0,0.35);
+  z-index: 3000;
 }
 
 .drawer-toggle:focus {
@@ -186,12 +169,7 @@ body {
 }
 
 /* Toggle button for drawer - now inside drawer-toggle-container */
-.drawer-toggle {
-  font-size: 1rem;
-  z-index: 3000;
-  color: rgba(0,0,0,0.35);
-  background: var(--bg-hover); /* Always have the hover background color */
-}
+
 .drawer-toggle:hover,
 .drawer-toggle.drawer-open {
   background: #fefefec7; /* Lighter color when hovered */
@@ -219,25 +197,11 @@ body {
 
 }
 
-#content {
-  flex: 1 1 80%;
-  min-width: 0;
-  height: 100vh;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-}
+
 
 /* Always keep tree view on the left, editor on the right. No vertical stacking on small screens. */
 /* (Responsiveness will be handled by a collapsible drawer in the future.) */
-#content {
-  flex: 1 1 75%;
-  min-width: 0;
-  height: 100vh;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-}
+
 
 
 /* Tree container */
@@ -320,13 +284,6 @@ body {
   padding: 20px;
 }
 
-#editor {
-  flex-grow: 1; /* Editor takes remaining space in the app container */
-  border: 1px solid #ddd;
-  overflow-y: auto; /* If editor content itself needs to scroll */
-  min-height: 0; /* Crucial for scrollable flex children */
-}
-
 /* Tree Node Styling */
 #tree-drawer .infinite-tree-node {
   position: relative;
@@ -339,14 +296,7 @@ body {
   line-height: 1.5;
 }
 
-#tree-drawer .infinite-tree-node {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: inline-block;
-  max-width: 100%;
-  vertical-align: middle;
-}
+
 
 #tree-drawer .infinite-tree ul,
 #tree-drawer .infinite-tree li {
@@ -377,11 +327,7 @@ body {
 /* Example: #tree-drawer .infinite-tree-node { padding-left: 20px; } */
 
 /* Remove default list styling if any is inherited */
-#tree-drawer .infinite-tree ul,
-#tree-drawer .infinite-tree li {
-  list-style-type: none;
-  padding-left: 0; /* Control indentation via node wrappers or specific classes */
-}
+
 
 /* Override InfiniteTree default hover item style */
 .infinite-tree-content .infinite-tree-item:hover {
@@ -434,3 +380,11 @@ body {
   text-align: center;
 }
 /* --- End InfiniteTree base styles --- */
+
+/* Editor pane styles (moved below Tree View for logical grouping) */
+#editor {
+  flex-grow: 1; /* Editor takes remaining space in the app container */
+  border: 1px solid #ddd;
+  overflow-y: auto; /* If editor content itself needs to scroll */
+  min-height: 0; /* Crucial for scrollable flex children */
+}
