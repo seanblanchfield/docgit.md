@@ -21,7 +21,19 @@
   <div class="drawer-resizer" aria-hidden="true"></div>
 </div>
     <div id="content">
-      <!-- Milkdown editor will be rendered here -->
+      <div id="editor-status-bar" class="editor-status-bar" role="toolbar">
+        <button class="history-btn" data-id="history-btn" aria-label="History">🕑</button>
+        <button class="revert-btn" data-id="revert-btn" aria-label="Revert changes">⟲</button>
+        <span class="commit-meta" data-id="commit-meta">—</span>
+        <span class="unsaved-pill hidden" data-id="unsaved-pill">Unsaved</span>
+        <div class="flex-spacer"></div>
+        <div class="mode-control" data-id="mode-control">
+          <button class="mode-btn selected" data-mode="read" aria-label="Read mode">👁</button>
+          <button class="mode-btn" data-mode="wysiwyg" aria-label="WYSIWYG mode">✏️</button>
+          <button class="mode-btn" data-mode="raw" aria-label="Raw markdown mode">MD</button>
+        </div>
+      </div>
+      <div id="editor-root"></div>
     </div>
   </div>
   <script type="module" src="/src/main.ts"></script>

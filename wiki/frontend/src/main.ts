@@ -29,7 +29,7 @@ async function fetchFileContent(filePath: string): Promise<string> {
 
 async function main() {
   // Initialize content editor
-  const contentEditor = await initContentEditor('#content', '# Welcome to Markdown Wiki\n\nSelect a file from the sidebar to edit.');
+  const contentEditor = await initContentEditor('#editor-root', '# Welcome to Markdown Wiki\n\nSelect a file from the sidebar to edit.');
 
   // Find tree container
     const treeContainer = document.querySelector('[data-id="tree"]');
