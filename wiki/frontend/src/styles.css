@@ -65,8 +65,26 @@ body {
   padding: 40px 60px;
 }
 
+#raw-editor {
+  padding: 70px 50px 40px 50px;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.6;
+  border: none;
+  outline: none;
+  resize: none;
+  width: 100%;
+  height: auto;
+  min-height: 60vh;
+  overflow: hidden;
+}
 
-
+/* Hide interactive Milkdown handles in read-only */
+.milkdown.readonly .milkdown-block-handle,
+.milkdown.readonly .crepe-placeholder {
+  display: none !important;
+}
 
 .drawer-border {
   position: absolute;
@@ -165,6 +183,7 @@ body {
   overflow: visible;
   width: 16px;
   min-width: 16px;
+  flex: 0 0 16px; /* shrink flex-basis so editor expands */
   transition: all 0.3s ease;
 }
 
@@ -389,7 +408,6 @@ body {
   height: 40px;
   padding: 0 12px;
   border-bottom: 1px solid var(--border-color);
-  background: #fafafa;
   font-size: 14px;
   flex-shrink: 0;
 }

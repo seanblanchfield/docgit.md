@@ -12,6 +12,7 @@
     "@type-config/strict": "^1.2.1",
     "@types/node": "^22.0.0",
     "infinite-tree": "^1.18.0",
+    "markdown-it": "^14.1.0",
     "prosemirror-model": "^1.25.1",
     "tslib": "^2.4.1",
     "typescript": "^5.0.0",
