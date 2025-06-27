@@ -1,12 +1,20 @@
 ## WIP
-Current phase: Editor status bar, modes & auto-save/locking
+Current phase: Editor status bar – Unsaved indicator & local drafts  
+🔄 **Exploration:** Live syntax-highlighting for Raw markdown mode.
+
+_Work in progress tasks:_
+- Compute dirty flag via baseline SHA diff and render Unsaved pill
+- Auto-save buffer to `localStorage.draft:<path>` every 10 s
+- Persist draft between reloads and clear when saved
+- Shortcut `Ctrl+S` triggers manual save action
+
 
 Implementation roadmap (✅ = done, 🔄 = in progress). *Stop after each **Checkpoint** and ask the user for approval before moving on.*
 
 | # | Work Item | Description / Deliverables | Checkpoint |
 |---|-----------|----------------------------|------------|
 | 1 | **Status-Bar Skeleton** [DONE] | • Add fixed container (flex, 40 px) in `Editor.tsx`.<br>• Add placeholder slots for mode control, unsaved pill, commit meta, history & revert buttons.<br>• Basic styling in `styles.css`. | UI screenshot + a11y audit. |
-| 2 | **Mode Switch Control** | • Segmented control `View | WYSIWYG | Raw`.<br>• Wire to Milkdown `readOnly` and raw `<textarea>` views.<br>• Persist choice in `localStorage.editorMode`.<br>• Shortcut `Ctrl+E` cycles modes. | Demo switching between modes with sample doc. |
+| 2 | **Mode Switch Control** [DONE] | • Segmented control `View | WYSIWYG | Raw`.<br>• Wire to Milkdown `readOnly` and raw `<textarea>` views.<br>• Persist choice in `localStorage.editorMode`.<br>• Shortcut `Ctrl+E` cycles modes. | Demo switching between modes with sample doc. |
 | 3 | **Unsaved Indicator & Local Drafts** | • Compute dirty flag via baseline SHA diff.<br>• Auto-save buffer to `localStorage.draft:<path>` every 10 s.<br>• Show orange "Unsaved" pill when dirty. | Refresh page → pill persists; user confirmation. |
 | 4 | **Last-Commit Meta Display** | • Call `/api/history/{path}?limit=1`.<br>• Show "Author — relative time" text.<br>• Tooltip with full SHA + message. | Demo with file having recent commit. |
 | 5 | **Revert Local Draft** | • "Revert" icon clears draft key & reloads from backend.<br>• Confirmation dialog. | Confirm that dirty pill disappears after revert. |
