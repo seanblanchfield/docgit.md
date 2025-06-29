@@ -34,6 +34,74 @@ async function main() {
   let currentMarkdown = '# Welcome to Markdown Wiki\n\nSelect a file from the sidebar to edit.';
   const contentEditor = await initContentEditor('#editor-root', currentMarkdown);
 
+  // --- Unsaved indicator & local draft handling ---
+  const unsavedPill = document.querySelector('[data-id="unsaved-pill"]') as HTMLElement | null;
+  const revertBtn = document.querySelector('[data-id="revert-btn"]') as HTMLButtonElement | null;
+
+  let baselineMarkdown = currentMarkdown;
+  let currentFilePath = '';
+  const draftPrefix = 'draft:';
+  let dirty = false;
+
+  function showUnsaved(show: boolean) {
+    if (!unsavedPill) return;
+    unsavedPill.classList.toggle('hidden', !show);
+  }
+
+  function getCurrentContent(): string {
+    if (currentMode === 'raw') {
+      return rawTextarea.value;
+    }
+    return contentEditor.getMarkdown() || '';
+  }
+
+  // Check dirty flag every 2 s and update UI
+  setInterval(() => {
+    const content = getCurrentContent();
+    dirty = content !== baselineMarkdown;
+    showUnsaved(dirty);
+  }, 2000);
+
+  // Auto-save draft every 10 s
+  setInterval(() => {
+    if (!dirty || !currentFilePath) return;
+    const key = `${draftPrefix}${currentFilePath}`;
+    try {
+      localStorage.setItem(key, getCurrentContent());
+    } catch (err) {
+      console.warn('Failed to store draft:', err);
+    }
+  }, 10000);
+
+  // Revert handler
+  revertBtn?.addEventListener('click', () => {
+    if (!dirty) return;
+    if (confirm('Discard local changes and revert to last saved version?')) {
+      contentEditor.replaceContent(baselineMarkdown);
+      rawTextarea.value = baselineMarkdown;
+      dirty = false;
+      showUnsaved(false);
+      if (currentFilePath) {
+        localStorage.removeItem(`${draftPrefix}${currentFilePath}`);
+      }
+    }
+  });
+
+  // Ctrl+S manual save placeholder (updates baseline locally for now)
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      if (!dirty) return;
+      baselineMarkdown = getCurrentContent();
+      if (currentFilePath) {
+        localStorage.removeItem(`${draftPrefix}${currentFilePath}`);
+      }
+      dirty = false;
+      showUnsaved(false);
+      // TODO: POST to backend once save endpoint is ready.
+    }
+  });
+
   // Create raw textarea for Raw mode
   const rawTextarea = document.createElement('textarea');
   rawTextarea.id = 'raw-editor';
@@ -142,9 +210,17 @@ async function main() {
   const directoryTree = new DirectoryTree({
     el: treeContainer,
     onFileSelect: async (node: TreeNode) => {
-      const content = await fetchFileContent(node.id);
-      currentMarkdown = content;
-      contentEditor.replaceContent(content);
+      currentFilePath = node.id;
+      const draftKey = `${draftPrefix}${currentFilePath}`;
+      const serverContent = await fetchFileContent(node.id);
+      baselineMarkdown = serverContent;
+      const draftContent = localStorage.getItem(draftKey);
+      const contentToLoad = draftContent ?? serverContent;
+      currentMarkdown = contentToLoad;
+      contentEditor.replaceContent(contentToLoad);
+      rawTextarea.value = contentToLoad; // keep RAW view in sync
+      dirty = draftContent !== null && draftContent !== serverContent;
+      showUnsaved(dirty);
     }
   });
   await directoryTree.load();
