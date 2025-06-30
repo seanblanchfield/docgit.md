@@ -31,7 +31,8 @@ async function fetchFileContent(filePath: string): Promise<string> {
 
 async function main() {
   // Initialize content editor
-  const unsavedPill = document.querySelector('[data-id="unsaved-pill"]') as HTMLElement | null;
+  const draftPill = document.querySelector('[data-id="draft-pill"]') as HTMLElement | null;
+  const saveBtn = document.querySelector('[data-id="save-btn"]') as HTMLButtonElement | null;
   const revertBtn = document.querySelector('[data-id="revert-btn"]') as HTMLButtonElement | null;
 
   let currentMarkdown = '# Welcome to Markdown Wiki\n\nSelect a file from the sidebar to edit.';
@@ -55,7 +56,7 @@ async function main() {
 
   // After editor is ready, set accurate baseline to avoid false dirty state
   baselineMarkdown = contentEditor.getMarkdown() || currentMarkdown;
-  showUnsaved(false);
+  showDraft(false);
 
   // --- Unsaved indicator & local draft handling ---
   
@@ -63,10 +64,10 @@ async function main() {
   
   
 
-  function showUnsaved(show: boolean) {
+  function showDraft(show: boolean) {
     // Toggle pill
-    if (unsavedPill) {
-      unsavedPill.classList.toggle('hidden', !show);
+    if (draftPill) {
+      draftPill.classList.toggle('hidden', !show);
     }
     // Update modified files set and class
     if (currentFilePath) {
@@ -95,7 +96,7 @@ async function main() {
   setInterval(() => {
     const content = getCurrentContent();
     dirty = content !== baselineMarkdown;
-    showUnsaved(dirty);
+    showDraft(dirty);
   }, 2000);
 
   // Auto-save draft every 10 s
@@ -116,7 +117,7 @@ async function main() {
       contentEditor.replaceContent(baselineMarkdown);
       rawTextarea.value = baselineMarkdown;
       dirty = false;
-      showUnsaved(false);
+      showDraft(false);
       if (currentFilePath) {
         localStorage.removeItem(`${draftPrefix}${currentFilePath}`);
         modifiedFiles.delete(currentFilePath);
@@ -126,22 +127,32 @@ async function main() {
     }
   });
 
-  // Ctrl+S manual save placeholder (updates baseline locally for now)
+  // --- Save handling ---
+  function handleSave() {
+    if (!dirty) return;
+    baselineMarkdown = getCurrentContent();
+    if (currentFilePath) {
+      localStorage.removeItem(`${draftPrefix}${currentFilePath}`);
+    }
+    dirty = false;
+    showDraft(false);
+    modifiedFiles.delete(currentFilePath);
+    persistModified();
+    const itemEl = document.querySelector(`.infinite-tree-item[data-id="${CSS.escape(currentFilePath)}"]`);
+    if (itemEl) itemEl.classList.remove('modified');
+    // TODO: POST to backend save endpoint
+  }
+
+  // Save button click
+  saveBtn?.addEventListener('click', () => {
+    handleSave();
+  });
+
+  // Ctrl+S manual save shortcut
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
       e.preventDefault();
-      if (!dirty) return;
-      baselineMarkdown = getCurrentContent();
-      if (currentFilePath) {
-        localStorage.removeItem(`${draftPrefix}${currentFilePath}`);
-      }
-      dirty = false;
-      showUnsaved(false);
-      modifiedFiles.delete(currentFilePath);
-      persistModified();
-      const itemEl = document.querySelector(`.infinite-tree-item[data-id="${CSS.escape(currentFilePath)}"]`);
-      if (itemEl) itemEl.classList.remove('modified');
-      // TODO: POST to backend once save endpoint is ready.
+      handleSave();
     }
   });
 
@@ -272,7 +283,7 @@ async function main() {
       contentEditor.replaceContent(contentToLoad);
       rawTextarea.value = contentToLoad; // keep RAW view in sync
       dirty = draftContent !== null && draftContent !== serverContent;
-      showUnsaved(dirty);
+      showDraft(dirty);
       // If this file was previously marked modified, ensure class persists
       if (modifiedFiles.has(currentFilePath)) {
         const itemEl = document.querySelector(`.infinite-tree-item[data-id="${CSS.escape(currentFilePath)}"]`);
