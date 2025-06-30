@@ -31,9 +31,14 @@ async function fetchFileContent(filePath: string): Promise<string> {
 
 async function main() {
   // Initialize content editor
-  const draftPill = document.querySelector('[data-id="draft-pill"]') as HTMLElement | null;
+  const draftText = document.querySelector('[data-id="draft-text"]') as HTMLElement | null;
   const saveBtn = document.querySelector('[data-id="save-btn"]') as HTMLButtonElement | null;
-  const revertBtn = document.querySelector('[data-id="revert-btn"]') as HTMLButtonElement | null;
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.classList.add('hidden');
+  }
+  const discardBtn = document.querySelector('[data-id="discard-btn"]') as HTMLButtonElement | null;
+  if (discardBtn) discardBtn.classList.add('hidden');
 
   let currentMarkdown = '# Welcome to Markdown Wiki\n\nSelect a file from the sidebar to edit.';
   let baselineMarkdown = '';
@@ -65,10 +70,19 @@ async function main() {
   
 
   function showDraft(show: boolean) {
+    if (saveBtn) {
+    saveBtn.disabled = !show;
+    saveBtn.classList.toggle('hidden', !show);
+  }
     // Toggle pill
-    if (draftPill) {
-      draftPill.classList.toggle('hidden', !show);
+    if (draftText) {
+      draftText.classList.toggle('hidden', !show);
     }
+    // Toggle discard visibility
+    if (discardBtn) {
+      discardBtn.classList.toggle('hidden', !show);
+    }
+
     // Update modified files set and class
     if (currentFilePath) {
       if (show) {
@@ -110,22 +124,7 @@ async function main() {
     }
   }, 10000);
 
-  // Revert handler
-  revertBtn?.addEventListener('click', () => {
-    if (!dirty) return;
-    if (confirm('Discard local changes and revert to last saved version?')) {
-      contentEditor.replaceContent(baselineMarkdown);
-      rawTextarea.value = baselineMarkdown;
-      dirty = false;
-      showDraft(false);
-      if (currentFilePath) {
-        localStorage.removeItem(`${draftPrefix}${currentFilePath}`);
-        modifiedFiles.delete(currentFilePath);
-        const itemEl = document.querySelector(`.infinite-tree-item[data-id="${CSS.escape(currentFilePath)}"]`);
-        if (itemEl) itemEl.classList.remove('modified');
-      }
-    }
-  });
+
 
   // --- Save handling ---
   function handleSave() {
@@ -146,6 +145,24 @@ async function main() {
   // Save button click
   saveBtn?.addEventListener('click', () => {
     handleSave();
+  });
+
+  // Discard changes handler
+  discardBtn?.addEventListener('click', () => {
+    if (!dirty) return;
+    if (!confirm('Discard local changes?')) return;
+    // Revert to baseline
+    contentEditor.replaceContent(baselineMarkdown);
+    rawTextarea.value = baselineMarkdown;
+    dirty = false;
+    if (currentFilePath) {
+      localStorage.removeItem(`${draftPrefix}${currentFilePath}`);
+    }
+    showDraft(false);
+    modifiedFiles.delete(currentFilePath);
+    persistModified();
+    const itemEl = document.querySelector(`.infinite-tree-item[data-id="${CSS.escape(currentFilePath)}"]`);
+    if (itemEl) itemEl.classList.remove('modified');
   });
 
   // Ctrl+S manual save shortcut
