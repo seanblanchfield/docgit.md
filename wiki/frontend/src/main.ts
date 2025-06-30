@@ -31,14 +31,19 @@ async function fetchFileContent(filePath: string): Promise<string> {
 
 async function main() {
   // Initialize content editor
-  let currentMarkdown = '# Welcome to Markdown Wiki\n\nSelect a file from the sidebar to edit.';
-  const contentEditor = await initContentEditor('#editor-root', currentMarkdown);
-
-  // --- Unsaved indicator & local draft handling ---
   const unsavedPill = document.querySelector('[data-id="unsaved-pill"]') as HTMLElement | null;
   const revertBtn = document.querySelector('[data-id="revert-btn"]') as HTMLButtonElement | null;
 
-  let baselineMarkdown = currentMarkdown;
+  let currentMarkdown = '# Welcome to Markdown Wiki\n\nSelect a file from the sidebar to edit.';
+  let baselineMarkdown = '';
+  const contentEditor = await initContentEditor('#editor-root', currentMarkdown);
+
+  // After editor is ready, set accurate baseline to avoid false dirty state
+  baselineMarkdown = contentEditor.getMarkdown() || currentMarkdown;
+  showUnsaved(false);
+
+  // --- Unsaved indicator & local draft handling ---
+  
   let currentFilePath = '';
   const draftPrefix = 'draft:';
   let dirty = false;
