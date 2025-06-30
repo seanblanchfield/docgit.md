@@ -125,6 +125,78 @@ export class DirectoryTree {
       }
     });
 
+    // --- Keyboard navigation ---
+    // Ensure container focusable
+    if (!el.hasAttribute('tabindex')) {
+      el.setAttribute('tabindex', '0');
+    }
+    const treeInstance = this.tree;
+    el.addEventListener('keydown', (ev) => {
+      const key = ev.key;
+      const selected: TreeNode | undefined = (this.tree.getSelectedNodes ? this.tree.getSelectedNodes()[0] : (this.tree.getSelectedNode ? this.tree.getSelectedNode() : undefined));
+      if (!selected) return;
+      switch (key) {
+        case 'ArrowUp': {
+          ev.preventDefault();
+          const selEl = el.querySelector('.infinite-tree-selected') as HTMLElement | null;
+          if (!selEl) break;
+          let target = selEl.previousElementSibling as HTMLElement | null;
+          while (target && target.offsetParent === null) target = target.previousElementSibling as HTMLElement | null; // skip hidden
+          if (target) {
+            const id = target.getAttribute('data-id');
+            if (id) {
+              const node = this.tree.getNodeById(id);
+              if (node) this.tree.selectNode(node);
+            }
+          }
+          break;
+        }
+        case 'ArrowDown': {
+          ev.preventDefault();
+          const selEl = el.querySelector('.infinite-tree-selected') as HTMLElement | null;
+          if (!selEl) break;
+          let target = selEl.nextElementSibling as HTMLElement | null;
+          while (target && target.offsetParent === null) target = target.nextElementSibling as HTMLElement | null;
+          if (target) {
+            const id = target.getAttribute('data-id');
+            if (id) {
+              const node = this.tree.getNodeById(id);
+              if (node) this.tree.selectNode(node);
+            }
+          }
+          break;
+        }
+        case 'ArrowRight': {
+          ev.preventDefault();
+          if (selected.isDirectory) {
+            if (!selected.state?.open) {
+              treeInstance.openNode(selected);
+            } else {
+              // move to first child if exists
+              const firstChild = selected.children && selected.children[0];
+              if (firstChild) treeInstance.selectNode(firstChild);
+            }
+          }
+          break;
+        }
+        case 'ArrowLeft': {
+          ev.preventDefault();
+          if (selected.isDirectory && selected.state?.open) {
+            treeInstance.closeNode(selected);
+          } else {
+            const parentId = selected.id.substring(0, selected.id.lastIndexOf('/'));
+            if (parentId) {
+              const parent = treeInstance.getNodeById(parentId);
+              if (parent) this.tree.selectNode(parent);
+            }
+          }
+          break;
+        }
+        default:
+          break;
+      }
+    });
+
     this.tree.on('toggle', async (node: TreeNode, isOpen: boolean) => {
       console.log('[DirectoryTree] toggle', node.id, 'isOpen', isOpen, 'lastSelectedId', this.lastSelectedId);
 
