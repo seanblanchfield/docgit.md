@@ -36,6 +36,21 @@ async function main() {
 
   let currentMarkdown = '# Welcome to Markdown Wiki\n\nSelect a file from the sidebar to edit.';
   let baselineMarkdown = '';
+  // Draft/dirty tracking vars declared early to avoid hoisting issues
+  let currentFilePath = '';
+  const draftPrefix = 'draft:';
+  const modifiedKey = 'modifiedFiles';
+  const modifiedFiles = new Set<string>(JSON.parse(localStorage.getItem(modifiedKey) || '[]'));
+
+  function persistModified() {
+    try {
+      localStorage.setItem(modifiedKey, JSON.stringify([...modifiedFiles]));
+    } catch (err) {
+      console.warn('Failed to persist modified files set', err);
+    }
+  }
+  let dirty = false;
+  
   const contentEditor = await initContentEditor('#editor-root', currentMarkdown);
 
   // After editor is ready, set accurate baseline to avoid false dirty state
@@ -44,13 +59,29 @@ async function main() {
 
   // --- Unsaved indicator & local draft handling ---
   
-  let currentFilePath = '';
-  const draftPrefix = 'draft:';
-  let dirty = false;
+  
+  
+  
 
   function showUnsaved(show: boolean) {
-    if (!unsavedPill) return;
-    unsavedPill.classList.toggle('hidden', !show);
+    // Toggle pill
+    if (unsavedPill) {
+      unsavedPill.classList.toggle('hidden', !show);
+    }
+    // Update modified files set and class
+    if (currentFilePath) {
+      if (show) {
+        modifiedFiles.add(currentFilePath);
+      } else {
+        modifiedFiles.delete(currentFilePath);
+      }
+      persistModified();
+      const itemEl = document.querySelector(`.infinite-tree-item[data-id="${CSS.escape(currentFilePath)}"]`);
+      if (itemEl) {
+        itemEl.classList.toggle('modified', show);
+      }
+    }
+
   }
 
   function getCurrentContent(): string {
@@ -88,6 +119,9 @@ async function main() {
       showUnsaved(false);
       if (currentFilePath) {
         localStorage.removeItem(`${draftPrefix}${currentFilePath}`);
+        modifiedFiles.delete(currentFilePath);
+        const itemEl = document.querySelector(`.infinite-tree-item[data-id="${CSS.escape(currentFilePath)}"]`);
+        if (itemEl) itemEl.classList.remove('modified');
       }
     }
   });
@@ -103,6 +137,10 @@ async function main() {
       }
       dirty = false;
       showUnsaved(false);
+      modifiedFiles.delete(currentFilePath);
+      persistModified();
+      const itemEl = document.querySelector(`.infinite-tree-item[data-id="${CSS.escape(currentFilePath)}"]`);
+      if (itemEl) itemEl.classList.remove('modified');
       // TODO: POST to backend once save endpoint is ready.
     }
   });
@@ -235,9 +273,26 @@ async function main() {
       rawTextarea.value = contentToLoad; // keep RAW view in sync
       dirty = draftContent !== null && draftContent !== serverContent;
       showUnsaved(dirty);
+      // If this file was previously marked modified, ensure class persists
+      if (modifiedFiles.has(currentFilePath)) {
+        const itemEl = document.querySelector(`.infinite-tree-item[data-id="${CSS.escape(currentFilePath)}"]`);
+        if (itemEl) itemEl.classList.add('modified');
+      }
     }
   });
   await directoryTree.load();
+
+  // Apply highlight to any already-known modified files present in the DOM
+  function highlightModified() {
+    modifiedFiles.forEach((path) => {
+      const el = document.querySelector(`.infinite-tree-item[data-id="${CSS.escape(path)}"]`);
+      if (el) el.classList.add('modified');
+    });
+  }
+  highlightModified();
+  // Observe mutations in the tree to re-apply highlights when directories are expanded
+  const mo = new MutationObserver(() => highlightModified());
+  mo.observe(treeContainer, { subtree: true, childList: true });
 
   // Initialize drawer toggle
   setupDrawer('#tree-drawer');

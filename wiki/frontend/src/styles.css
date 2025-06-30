@@ -232,6 +232,12 @@ body {
   padding: 8px 0;
 }
 
+/* Modified file highlight */
+.infinite-tree-item.modified .infinite-tree-title,
+.infinite-tree-item.infinite-tree-selected.modified .infinite-tree-title {
+  color: #c27e00;
+}
+
 /* Tree node styles */
 .infinite-tree-node {
   cursor: pointer;
