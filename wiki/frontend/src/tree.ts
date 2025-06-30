@@ -229,12 +229,21 @@ export class DirectoryTree {
     });
   }
 
+  private sortNodes(nodes: any[]): any[] {
+    return nodes
+      .sort((a: any, b: any) => (a.rawName || a.name).localeCompare(b.rawName || b.name, undefined, { sensitivity: 'base' }))
+      .map((n: any) => ({
+        ...n,
+        children: Array.isArray(n.children) ? this.sortNodes(n.children) : n.children,
+      }));
+  }
+
   async load() {
     const treeDataRaw = await this.fetchDirectoryTreeData();
     const treeData = Array.isArray(treeDataRaw)
       ? treeDataRaw.map(this.addIsDirectory)
       : treeDataRaw;
-    this.tree.loadData(treeData);
+    this.tree.loadData(this.sortNodes(treeData));
   }
 
   private async fetchDirectoryTreeData(): Promise<TreeNode[]> {
@@ -262,7 +271,7 @@ export class DirectoryTree {
       const response = await fetch(`/api/files/${encodeURIComponent(node.id)}`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
-      node.children = data.children || [];
+      node.children = this.sortNodes(data.children || []);
       node.state = { ...(node.state || {}), loading: false, open: true };
       this.tree.updateNode(node);
     } catch (error) {
@@ -274,10 +283,12 @@ export class DirectoryTree {
 
   private addIsDirectory = (node: any): any => {
     const isDirectory = Array.isArray(node.children) && node.children.length > 0;
-    const displayName = humanizeFileName(node.name ?? '');
+    const rawName = node.name ?? '';
+    const displayName = humanizeFileName(rawName);
     return {
       ...node,
       name: displayName,
+      rawName,
       isDirectory,
       children: Array.isArray(node.children)
         ? node.children.map(this.addIsDirectory)
