@@ -37,7 +37,17 @@
       </div>
       <div id="editor-root"></div>
     </div>
-  </div>
+    
+  <dialog id="discard-dialog" class="confirm-dialog" data-id="discard-dialog">
+    <form method="dialog" class="confirm-dialog-form">
+      <p>Discard local changes?</p>
+      <div class="confirm-actions">
+        <button value="cancel" data-id="discard-cancel" class="btn-secondary">Cancel</button>
+        <button value="confirm" data-id="discard-confirm" class="btn-danger">Discard</button>
+      </div>
+    </form>
+  </dialog>
+  
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

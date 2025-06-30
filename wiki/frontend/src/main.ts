@@ -148,9 +148,16 @@ async function main() {
   });
 
   // Discard changes handler
+  const discardDialog = document.querySelector('[data-id="discard-dialog"]') as HTMLDialogElement | null;
+  const discardConfirmBtn = document.querySelector('[data-id="discard-confirm"]') as HTMLButtonElement | null;
+  const discardCancelBtn = document.querySelector('[data-id="discard-cancel"]') as HTMLButtonElement | null;
+
   discardBtn?.addEventListener('click', () => {
-    if (!dirty) return;
-    if (!confirm('Discard local changes?')) return;
+    if (!dirty || !discardDialog) return;
+    discardDialog.showModal();
+  });
+
+  discardConfirmBtn?.addEventListener('click', () => {
     // Revert to baseline
     contentEditor.replaceContent(baselineMarkdown);
     rawTextarea.value = baselineMarkdown;
@@ -163,6 +170,10 @@ async function main() {
     persistModified();
     const itemEl = document.querySelector(`.infinite-tree-item[data-id="${CSS.escape(currentFilePath)}"]`);
     if (itemEl) itemEl.classList.remove('modified');
+  });
+
+  discardCancelBtn?.addEventListener('click', () => {
+    discardDialog?.close();
   });
 
   // Ctrl+S manual save shortcut
