@@ -243,7 +243,18 @@ export class DirectoryTree {
     const treeData = Array.isArray(treeDataRaw)
       ? treeDataRaw.map(this.addIsDirectory)
       : treeDataRaw;
-    this.tree.loadData(this.sortNodes(treeData));
+    const sorted = this.sortNodes(treeData);
+    this.tree.loadData(sorted);
+
+    // Auto-select default file if any
+    const defaultPath = this.findDefaultFile(sorted);
+    if (defaultPath) {
+      const node = this.tree.getNodeById(defaultPath);
+      if (node) {
+        // Delay to ensure DOM rendered
+        setTimeout(() => this.tree.selectNode(node), 0);
+      }
+    }
   }
 
   private async fetchDirectoryTreeData(): Promise<TreeNode[]> {
@@ -279,6 +290,26 @@ export class DirectoryTree {
       node.state = { ...(node.state || {}), loading: false };
       this.tree.updateNode(node);
     }
+  }
+
+  // Determine default landing file based on rules
+  private findDefaultFile(nodes: any[]): string | undefined {
+    const clean = (s: string) => s.replace(/^\d+[_-]*/, '').toLowerCase();
+    // 1. root index/start/home
+    const preferred = ['index', 'start', 'home'];
+    for (const name of preferred) {
+      const match = nodes.find((n) => !n.isDirectory && clean(n.rawName || n.name).startsWith(name));
+      if (match) return match.id;
+    }
+    // 3. first other file in root
+    const firstFile = nodes.find((n) => !n.isDirectory);
+    if (firstFile) return firstFile.id;
+    // 4. first file of first directory that contains files (depth-first)
+    for (const dir of nodes.filter((n) => n.isDirectory)) {
+      const childFile = this.findDefaultFile(dir.children || []);
+      if (childFile) return childFile;
+    }
+    return undefined;
   }
 
   private addIsDirectory = (node: any): any => {
