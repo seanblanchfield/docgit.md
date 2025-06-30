@@ -21,7 +21,7 @@ async function fetchFileContent(filePath: string): Promise<string> {
       return `# Error\n\nCould not load ${filePath}. Status: ${response.status}`;
     }
     const jsonData: ApiFileResponse = await response.json();
-    return jsonData.content || '';
+    return jsonData.content || '';``
   } catch (error) {
     console.error(`Error fetching file '${filePath}':`, error);
     return `# Error\n\nCould not fetch ${filePath}.`;
@@ -210,6 +210,15 @@ async function main() {
   const directoryTree = new DirectoryTree({
     el: treeContainer,
     onFileSelect: async (node: TreeNode) => {
+      // Persist current draft before navigation
+      if (dirty && currentFilePath) {
+        try {
+          localStorage.setItem(`${draftPrefix}${currentFilePath}`, getCurrentContent());
+        } catch (err) {
+          console.warn('Failed to store draft before navigation:', err);
+        }
+      }
+
       currentFilePath = node.id;
       const draftKey = `${draftPrefix}${currentFilePath}`;
       const serverContent = await fetchFileContent(node.id);
