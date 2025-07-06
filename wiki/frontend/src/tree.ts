@@ -16,7 +16,8 @@ export interface TreeNode {
 
 interface DirectoryTreeOptions {
   el: HTMLElement;
-  onFileSelect: (file: TreeNode) => void;
+  onFileSelect: (node: TreeNode) => void;
+  selectDefault?: boolean; // true by default
 }
 
 export class DirectoryTree {
@@ -25,9 +26,10 @@ export class DirectoryTree {
   private el: HTMLElement;
   private lastSelectedId: string | null = null;
 
-  constructor({ el, onFileSelect }: DirectoryTreeOptions) {
-    this.onFileSelect = onFileSelect;
-    this.el = el;
+  constructor(private options: DirectoryTreeOptions) {
+    this.onFileSelect = options.onFileSelect;
+    this.el = options.el;
+    const el = this.el;
     this.tree = new InfiniteTree({
       el,
       data: [],
@@ -247,12 +249,11 @@ export class DirectoryTree {
     this.tree.loadData(sorted);
 
     // Auto-select default file if any
-    const defaultPath = this.findDefaultFile(sorted);
-    if (defaultPath) {
-      const node = this.tree.getNodeById(defaultPath);
-      if (node) {
-        // Delay to ensure DOM rendered
-        setTimeout(() => this.tree.selectNode(node), 0);
+    if (this.options.selectDefault !== false) {
+      const defaultPath = this.findDefaultFile(sorted);
+      if (defaultPath) {
+        const node = this.tree.getNodeById(defaultPath);
+        if (node) setTimeout(() => this.tree.selectNode(node), 0);
       }
     }
   }
@@ -310,6 +311,22 @@ export class DirectoryTree {
       if (childFile) return childFile;
     }
     return undefined;
+  }
+
+  public selectPath(id: string) {
+    const node = this.tree.getNodeById(id);
+    if (!node) return;
+    // open ancestors
+    const parts = id.split('/');
+    let curr = '';
+    for (let i = 0; i < parts.length - 1; i++) {
+      curr = curr ? curr + '/' + parts[i] : parts[i];
+      const ancestor = this.tree.getNodeById(curr);
+      if (ancestor && ancestor.isDirectory && !ancestor.state?.open) {
+        this.tree.openNode(ancestor);
+      }
+    }
+    this.tree.selectNode(node);
   }
 
   private addIsDirectory = (node: any): any => {

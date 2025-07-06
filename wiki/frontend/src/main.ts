@@ -288,9 +288,15 @@ async function main() {
 
 
 
+  // Determine initial path from URL (deep link)
+  const rawPath = window.location.pathname.slice(1);
+  const initialPath = rawPath ? decodeURIComponent(rawPath) : undefined;
+
   // Create DirectoryTree instance
   const directoryTree = new DirectoryTree({
     el: treeContainer,
+    selectDefault: initialPath ? false : true,
+    
     onFileSelect: async (node: TreeNode) => {
       // Persist current draft before navigation
       if (dirty && currentFilePath) {
@@ -302,6 +308,14 @@ async function main() {
       }
 
       currentFilePath = node.id;
+      // Update browser path to current file (SPA deep link)
+      try {
+        const encoded = currentFilePath.split('/').map(encodeURIComponent).join('/');
+        history.replaceState(null, '', `/${encoded}`);
+      } catch (err) {
+        console.warn('Failed to update URL', err);
+      }
+
       const draftKey = `${draftPrefix}${currentFilePath}`;
       const serverContent = await fetchFileContent(node.id);
       baselineMarkdown = serverContent;
@@ -320,6 +334,11 @@ async function main() {
     }
   });
   await directoryTree.load();
+
+  // After tree loaded, apply deep link if any
+  if (initialPath) {
+    directoryTree.selectPath(initialPath);
+  }
 
   // Apply highlight to any already-known modified files present in the DOM
   function highlightModified() {

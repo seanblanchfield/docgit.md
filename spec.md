@@ -1,12 +1,12 @@
 ## WIP
-Current phase: Editor status bar – Unsaved indicator & local drafts  
+Current phase: Backend Save Endpoint & Autosave Integration  
 🔄 **Exploration:** Live syntax-highlighting for Raw markdown mode.
 
 _Work in progress tasks:_
-- Compute dirty flag via baseline SHA diff and render Unsaved pill
-- Auto-save buffer to `localStorage.draft:<path>` every 10 s
-- Persist draft between reloads and clear when saved
-- Shortcut `Ctrl+S` triggers manual save action
+- Implement `PUT /api/file/{path}` accepting `lock_id` & `base_sha`.
+- On the client, wire Save button & autosave timer to call backend.
+- Clear local draft and dirty flag on 200 response.
+- Handle 423 lock errors gracefully.
 
 
 Implementation roadmap (✅ = done, 🔄 = in progress). *Stop after each **Checkpoint** and ask the user for approval before moving on.*
@@ -15,9 +15,9 @@ Implementation roadmap (✅ = done, 🔄 = in progress). *Stop after each **Chec
 |---|-----------|----------------------------|------------|
 | 1 | **Status-Bar Skeleton** [DONE] | • Add fixed container (flex, 40 px) in `Editor.tsx`.<br>• Add placeholder slots for mode control, unsaved pill, commit meta, history & revert buttons.<br>• Basic styling in `styles.css`. | UI screenshot + a11y audit. |
 | 2 | **Mode Switch Control** [DONE] | • Segmented control `View | WYSIWYG | Raw`.<br>• Wire to Milkdown `readOnly` and raw `<textarea>` views.<br>• Persist choice in `localStorage.editorMode`.<br>• Shortcut `Ctrl+E` cycles modes. | Demo switching between modes with sample doc. |
-| 3 | **Unsaved Indicator & Local Drafts** | • Compute dirty flag via baseline SHA diff.<br>• Auto-save buffer to `localStorage.draft:<path>` every 10 s.<br>• Show orange "Unsaved" pill when dirty. | Refresh page → pill persists; user confirmation. |
+| 3 | **Unsaved Indicator & Local Drafts** [DONE] | • Compute dirty flag via baseline SHA diff.<br>• Auto-save buffer to `localStorage.draft:<path>` every 10 s.<br>• Show orange "Unsaved" pill when dirty. | Refresh page → pill persists; user confirmation. |
 | 4 | **Last-Commit Meta Display** | • Call `/api/history/{path}?limit=1`.<br>• Show "Author — relative time" text.<br>• Tooltip with full SHA + message. | Demo with file having recent commit. |
-| 5 | **Revert Local Draft** | • "Revert" icon clears draft key & reloads from backend.<br>• Confirmation dialog. | Confirm that dirty pill disappears after revert. |
+| 5 | **Revert/Discard Local Draft** [DONE] | • "Revert" icon clears draft key & reloads from backend.<br>• Confirmation dialog. | Confirm that dirty pill disappears after revert. |
 | 6 | **History Drawer** | • Side panel listing commits (reuse `/api/history`).<br>• Clicking entry opens diff (`/api/diff`). | Walkthrough diff view. |
 | 7 | **Edit-Lock Backend** | • Endpoint `POST /api/lock/{path}` (lock_id, TTL 5 min).<br>• Middleware to enforce lock for PUT/auto-save.<br>• Auto-refresh lock ping every 60 s. | Unit tests + curl demo acquiring/denying lock. |
 | 8 | **Lock UI Integration** | • On 423 response show red banner "Sean is editing…".<br>• Disable editing; allow View mode. | Simulate double-tab scenario; banner appears. |
