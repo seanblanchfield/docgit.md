@@ -1,12 +1,15 @@
 ## WIP
-Current phase: Backend Save Endpoint & Autosave Integration  
-🔄 **Exploration:** Live syntax-highlighting for Raw markdown mode.
+Current phase: Status Bar Last-Commit Meta Display  
+✅ **Completed Task:** Item 4 - Last-Commit Meta Display
 
-_Work in progress tasks:_
-- Implement `PUT /api/file/{path}` accepting `lock_id` & `base_sha`.
-- On the client, wire Save button & autosave timer to call backend.
-- Clear local draft and dirty flag on 200 response.
-- Handle 423 lock errors gracefully.
+_Completed tasks:_
+- ✅ Backend `/api/history/{path}` endpoint exists and returns CommitDetail schema
+- ✅ Implement frontend logic to fetch latest commit for current file
+- ✅ Display "Author — relative time" text in status bar
+- ✅ Add tooltip with full SHA + commit message
+- ✅ Handle cases where file has no commit history
+
+🔄 **Next Task:** Item 6 - History Drawer
 
 
 Implementation roadmap (✅ = done, 🔄 = in progress). *Stop after each **Checkpoint** and ask the user for approval before moving on.*

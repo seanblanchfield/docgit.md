@@ -1,6 +1,7 @@
 import { initContentEditor } from './content';
 import { DirectoryTree, TreeNode } from './tree';
 import { setupDrawer } from './drawer';
+import { humanizeTime } from './humanize';
 
 
 import '@milkdown/crepe/theme/common/style.css';
@@ -11,6 +12,14 @@ import './styles.css';
 
 interface ApiFileResponse {
   content: string;
+}
+
+interface CommitDetail {
+  sha: string;
+  author_name: string;
+  author_email: string;
+  date: string; // ISO format string
+  message: string;
 }
 
 async function fetchFileContent(filePath: string): Promise<string> {
@@ -25,6 +34,21 @@ async function fetchFileContent(filePath: string): Promise<string> {
   } catch (error) {
     console.error(`Error fetching file '${filePath}':`, error);
     return `# Error\n\nCould not fetch ${filePath}.`;
+  }
+}
+
+async function fetchLatestCommit(filePath: string): Promise<CommitDetail | null> {
+  try {
+    const response = await fetch(`/api/history/${filePath}?limit=1`);
+    if (!response.ok) {
+      console.warn(`Could not fetch commit history for '${filePath}': ${response.status} ${response.statusText}`);
+      return null;
+    }
+    const commits: CommitDetail[] = await response.json();
+    return commits.length > 0 ? commits[0]! : null;
+  } catch (error) {
+    console.warn(`Error fetching commit history for '${filePath}':`, error);
+    return null;
   }
 }
 
@@ -47,6 +71,31 @@ async function main() {
   const draftPrefix = 'draft:';
   const modifiedKey = 'modifiedFiles';
   const modifiedFiles = new Set<string>(JSON.parse(localStorage.getItem(modifiedKey) || '[]'));
+
+  // Get commit meta display element
+  const commitMetaEl = document.querySelector('[data-id="commit-meta"]') as HTMLElement | null;
+
+  // Function to update commit meta display
+  async function updateCommitMeta(filePath: string) {
+    if (!commitMetaEl) return;
+    
+    const commit = await fetchLatestCommit(filePath);
+    if (!commit) {
+      commitMetaEl.classList.add('hidden');
+      commitMetaEl.textContent = '';
+      commitMetaEl.title = '';
+      return;
+    }
+
+    // Display "Author — relative time" format
+    const relativeTime = humanizeTime(commit.date);
+    commitMetaEl.textContent = `${commit.author_name} — ${relativeTime}`;
+    
+    // Set tooltip with commit message
+    commitMetaEl.title = commit.message;
+    
+    commitMetaEl.classList.remove('hidden');
+  }
 
   function persistModified() {
     try {
@@ -331,6 +380,8 @@ async function main() {
         const itemEl = document.querySelector(`.infinite-tree-item[data-id="${CSS.escape(currentFilePath)}"]`);
         if (itemEl) itemEl.classList.add('modified');
       }
+      // Update commit meta display for the selected file
+      updateCommitMeta(currentFilePath);
     }
   });
   await directoryTree.load();

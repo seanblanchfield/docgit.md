@@ -17,3 +17,30 @@ export function humanizeFileName(raw: string): string {
   }
   return name;
 }
+
+// Utility to format relative time for commit dates
+// Examples: "2 minutes ago", "3 hours ago", "yesterday", "2 days ago"
+export function humanizeTime(isoDateString: string): string {
+  const date = new Date(isoDateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSeconds = Math.floor(diffMs / 1000);
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffSeconds < 60) {
+    return 'just now';
+  } else if (diffMinutes < 60) {
+    return `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
+  } else if (diffHours < 24) {
+    return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+  } else if (diffDays === 1) {
+    return 'yesterday';
+  } else if (diffDays < 7) {
+    return `${diffDays} days ago`;
+  } else {
+    // For older dates, show the actual date
+    return date.toLocaleDateString();
+  }
+}
