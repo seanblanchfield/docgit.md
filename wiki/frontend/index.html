@@ -22,13 +22,18 @@
 </div>
     <div id="content">
       <div id="editor-status-bar" class="editor-status-bar" role="toolbar">
-        <button class="history-btn" data-id="history-btn" aria-label="History">🕑</button>
-        
-        <span class="commit-meta draft-text hidden" data-id="commit-meta"></span>
         <div class="flex-spacer"></div>
-         <span class="draft-text hidden" data-id="draft-text">Draft</span>
-         <button class="save-btn" data-id="save-btn" aria-label="Save changes">Save</button>
-         <button class="discard-btn" data-id="discard-btn" aria-label="Discard changes">Discard</button>
+        <div class="status-right">
+          <div class="status-meta">
+            <span class="commit-meta draft-text hidden" data-id="commit-meta"></span>
+            <a href="#" class="history-link" data-id="history-btn">history</a>
+          </div>
+          <div class="status-actions">
+            <span class="draft-text hidden" data-id="draft-text">Draft</span>
+            <button class="save-btn" data-id="save-btn" aria-label="Save changes">Save</button>
+            <button class="discard-btn" data-id="discard-btn" aria-label="Discard changes">Discard</button>
+          </div>
+        </div>
         <div class="mode-control" data-id="mode-control">
           <button class="mode-btn selected" data-mode="read" aria-label="Read mode">👁</button>
           <button class="mode-btn" data-mode="wysiwyg" aria-label="WYSIWYG mode">✏️</button>
@@ -36,6 +41,28 @@
         </div>
       </div>
       <div id="editor-root"></div>
+    </div>
+    
+    <!-- History Drawer -->
+    <div id="history-drawer" class="history-drawer hidden" data-id="history-drawer">
+      <div class="drawer-header">
+        <h3>History</h3>
+        <button class="drawer-close" data-id="history-close" aria-label="Close history">&times;</button>
+      </div>
+      <div class="drawer-content">
+        <div class="history-list" data-id="history-list">
+          <!-- Commit history will be rendered here -->
+        </div>
+        <div class="diff-view hidden" data-id="diff-view">
+          <div class="diff-header">
+            <button class="back-btn" data-id="diff-back" aria-label="Back to history">&larr; Back</button>
+            <div class="diff-title" data-id="diff-title">Commit Diff</div>
+          </div>
+          <div class="diff-content" data-id="diff-content">
+            <!-- Diff content will be rendered here -->
+          </div>
+        </div>
+      </div>
     </div>
     
   <dialog id="discard-dialog" class="confirm-dialog" data-id="discard-dialog">

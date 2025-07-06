@@ -64,6 +64,16 @@ async function main() {
   const discardBtn = document.querySelector('[data-id="discard-btn"]') as HTMLButtonElement | null;
   if (discardBtn) discardBtn.classList.add('hidden');
 
+  const commitMetaEl = document.querySelector('[data-id="commit-meta"]') as HTMLElement | null;
+  const historyBtn = document.querySelector('[data-id="history-btn"]') as HTMLAnchorElement | null;
+  const historyDrawer = document.querySelector('[data-id="history-drawer"]') as HTMLElement | null;
+  const historyCloseBtn = document.querySelector('[data-id="history-close"]') as HTMLButtonElement | null;
+  const historyList = document.querySelector('[data-id="history-list"]') as HTMLElement | null;
+  const diffView = document.querySelector('[data-id="diff-view"]') as HTMLElement | null;
+  const diffBackBtn = document.querySelector('[data-id="diff-back"]') as HTMLButtonElement | null;
+  const diffTitle = document.querySelector('[data-id="diff-title"]') as HTMLElement | null;
+  const diffContent = document.querySelector('[data-id="diff-content"]') as HTMLElement | null;
+
   let currentMarkdown = '# Welcome to Markdown Wiki\n\nSelect a file from the sidebar to edit.';
   let baselineMarkdown = '';
   // Draft/dirty tracking vars declared early to avoid hoisting issues
@@ -72,8 +82,7 @@ async function main() {
   const modifiedKey = 'modifiedFiles';
   const modifiedFiles = new Set<string>(JSON.parse(localStorage.getItem(modifiedKey) || '[]'));
 
-  // Get commit meta display element
-  const commitMetaEl = document.querySelector('[data-id="commit-meta"]') as HTMLElement | null;
+
 
   // Function to update commit meta display
   async function updateCommitMeta(filePath: string) {
@@ -90,11 +99,201 @@ async function main() {
     // Display "Author — relative time" format
     const relativeTime = humanizeTime(commit.date);
     commitMetaEl.textContent = `${commit.author_name} — ${relativeTime}`;
-    
+
     // Set tooltip with commit message
     commitMetaEl.title = commit.message;
-    
+
     commitMetaEl.classList.remove('hidden');
+  }
+
+  // Function to fetch full commit history for a file
+  async function fetchCommitHistory(filePath: string): Promise<CommitDetail[]> {
+    try {
+      const response = await fetch(`/api/history/${encodeURIComponent(filePath)}`);
+      if (!response.ok) {
+        console.error('Failed to fetch commit history:', response.statusText);
+        return [];
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching commit history:', error);
+      return [];
+    }
+  }
+
+  // Function to render commit history in the drawer
+  function renderCommitHistory(commits: CommitDetail[]) {
+    if (!historyList) return;
+
+    if (commits.length === 0) {
+      historyList.innerHTML = '<div class="history-empty">No commit history available</div>';
+      return;
+    }
+
+    const historyHTML = commits.map(commit => {
+      const relativeTime = humanizeTime(commit.date);
+      const shortSha = commit.sha.substring(0, 7);
+
+      return `
+        <div class="history-item" data-sha="${commit.sha}">
+          <div class="commit-info">
+            <div class="commit-meta">
+              <span class="commit-author">${commit.author_name}</span>
+              <span class="commit-time">${relativeTime}</span>
+              <span class="commit-sha">${shortSha}</span>
+            </div>
+            <div class="commit-message">${commit.message}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    historyList.innerHTML = historyHTML;
+
+    // Add click handlers for commit items
+    const historyItems = historyList.querySelectorAll('.history-item');
+    historyItems.forEach(item => {
+      item.addEventListener('click', () => {
+        const sha = item.getAttribute('data-sha');
+        if (sha && currentFilePath) {
+          openCommitDiff(currentFilePath, sha);
+        }
+      });
+    });
+  }
+
+  // Function to fetch commit diff
+  async function fetchCommitDiff(filePath: string, commitSha: string): Promise<string | null> {
+    try {
+      const response = await fetch(`/api/diff/${encodeURIComponent(filePath)}?sha1=${commitSha}&sha2=WORKING_TREE`);
+      if (!response.ok) {
+        console.error('Failed to fetch commit diff:', response.statusText);
+        return null;
+      }
+      const diffData = await response.json();
+      return diffData.diff_output || '';
+    } catch (error) {
+      console.error('Error fetching commit diff:', error);
+      return null;
+    }
+  }
+
+  // Function to parse and render diff content
+  function renderDiffContent(diffOutput: string) {
+    if (!diffContent) return;
+    
+    if (!diffOutput || diffOutput.trim() === '') {
+      diffContent.innerHTML = '<div class="diff-empty">No changes in this commit</div>';
+      return;
+    }
+    
+    const lines = diffOutput.split('\n');
+    const diffHTML = lines.map(line => {
+      let className = 'diff-line context';
+      let content = line;
+      
+      if (line.startsWith('+++') || line.startsWith('---') || line.startsWith('@@')) {
+        className = 'diff-line header';
+      } else if (line.startsWith('+')) {
+        className = 'diff-line added';
+        content = line.substring(1); // Remove the + prefix
+      } else if (line.startsWith('-')) {
+        className = 'diff-line removed';
+        content = line.substring(1); // Remove the - prefix
+      }
+      
+      return `<div class="${className}">${content}</div>`;
+    }).join('');
+    
+    diffContent.innerHTML = diffHTML;
+  }
+
+  // Function to show diff view
+  function showDiffView(filePath: string, commitSha: string, commitMessage: string) {
+    if (!diffView || !diffTitle || !historyList) return;
+    
+    // Update diff title
+    const shortSha = commitSha.substring(0, 7);
+    diffTitle.textContent = `${shortSha}: ${commitMessage}`;
+    
+    // Hide history list and show diff view
+    historyList.classList.add('hidden');
+    diffView.classList.remove('hidden');
+    
+    // Load diff content
+    loadDiffContent(filePath, commitSha);
+  }
+
+  // Function to hide diff view and return to history
+  function hideDiffView() {
+    if (!diffView || !historyList) return;
+    
+    diffView.classList.add('hidden');
+    historyList.classList.remove('hidden');
+  }
+
+  // Function to load diff content
+  async function loadDiffContent(filePath: string, commitSha: string) {
+    if (!diffContent) return;
+    
+    // Show loading state
+    diffContent.innerHTML = '<div class="diff-loading">Loading diff...</div>';
+    
+    // Fetch and render diff
+    const diffOutput = await fetchCommitDiff(filePath, commitSha);
+    if (diffOutput !== null) {
+      renderDiffContent(diffOutput);
+    } else {
+      diffContent.innerHTML = '<div class="diff-empty">Failed to load diff</div>';
+    }
+  }
+
+  // Function to open commit diff
+  function openCommitDiff(filePath: string, commitSha: string) {
+    // Find the commit message from the current history list
+    const historyItems = document.querySelectorAll('.history-item');
+    let commitMessage = 'Commit Details';
+    
+    historyItems.forEach(item => {
+      if (item.getAttribute('data-sha') === commitSha) {
+        const messageEl = item.querySelector('.commit-message');
+        if (messageEl) {
+          commitMessage = messageEl.textContent || 'Commit Details';
+        }
+      }
+    });
+    
+    showDiffView(filePath, commitSha, commitMessage);
+  }
+
+  // Function to toggle history drawer
+  function toggleHistoryDrawer() {
+    if (!historyDrawer) return;
+
+    const isHidden = historyDrawer.classList.contains('hidden');
+
+    if (isHidden) {
+      // Show drawer and load history for current file
+      historyDrawer.classList.remove('hidden');
+      if (currentFilePath) {
+        loadHistoryForFile(currentFilePath);
+      }
+    } else {
+      // Hide drawer
+      historyDrawer.classList.add('hidden');
+    }
+  }
+
+  // Function to load history for a specific file
+  async function loadHistoryForFile(filePath: string) {
+    if (!historyList) return;
+
+    // Show loading state
+    historyList.innerHTML = '<div class="history-loading">Loading commit history...</div>';
+
+    // Fetch and render commit history
+    const commits = await fetchCommitHistory(filePath);
+    renderCommitHistory(commits);
   }
 
   function persistModified() {
@@ -223,6 +422,23 @@ async function main() {
 
   discardCancelBtn?.addEventListener('click', () => {
     discardDialog?.close();
+  });
+
+  // History link event listener
+  historyBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
+    toggleHistoryDrawer();
+  });
+
+  historyCloseBtn?.addEventListener('click', () => {
+    if (historyDrawer) {
+      historyDrawer.classList.add('hidden');
+    }
+  });
+
+  // Diff view back button event listener
+  diffBackBtn?.addEventListener('click', () => {
+    hideDiffView();
   });
 
   // Ctrl+S manual save shortcut

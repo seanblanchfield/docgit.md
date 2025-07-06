@@ -1,16 +1,21 @@
 ## WIP
-Current phase: Status Bar Last-Commit Meta Display  
-✅ **Completed Task:** Item 4 - Last-Commit Meta Display
+Current phase: Edit-Lock Backend Implementation  
+🔄 **Current Task:** Item 7 - Edit-Lock Backend
 
-_Completed tasks:_
+_Work in progress tasks:_
 - ✅ Backend `/api/history/{path}` endpoint exists and returns CommitDetail schema
-- ✅ Implement frontend logic to fetch latest commit for current file
-- ✅ Display "Author — relative time" text in status bar
-- ✅ Add tooltip with full SHA + commit message
-- ✅ Handle cases where file has no commit history
-
-🔄 **Next Task:** Item 6 - History Drawer
-
+- ✅ Backend `/api/diff/{path}` endpoint exists for viewing commit diffs
+- ✅ Implement side panel UI for listing commits
+- ✅ Wire up history button to toggle drawer visibility
+- ✅ Display commit list with author, time, and message
+- ✅ Implement click handler to open diff view
+- ✅ Style drawer and commit entries
+- ✅ Implement diff view UI and styling
+- ✅ Test complete history drawer workflow with diff functionality
+- 🔄 Implement Edit-Lock Backend for concurrent editing protection
+- 🔄 Test Edit-Lock Backend with multiple users
+- 🔄 Implement auto-save commit functionality
+- 🔄 Test auto-save commit workflow
 
 Implementation roadmap (✅ = done, 🔄 = in progress). *Stop after each **Checkpoint** and ask the user for approval before moving on.*
 
