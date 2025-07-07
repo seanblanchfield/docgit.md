@@ -59,3 +59,20 @@ class TreeNode(BaseModel):
 # you might need `TreeNode.update_forward_refs()` after the class definition.
 # However, with Pydantic v1.8+ (FastAPI often uses this or newer), string type hints
 # for forward references usually work out of the box.
+
+
+# Lock-related schemas for file-based locking system
+class AcquireLockRequest(BaseModel):
+    owner: str  # User identifier
+
+class LockResponse(BaseModel):
+    lock_id: str
+    expires_at: str  # ISO format timestamp
+
+class LockConflictResponse(BaseModel):
+    error: str
+    owner: str  # Current lock owner
+    expires_at: str  # When current lock expires
+
+class RefreshLockResponse(BaseModel):
+    expires_at: str  # New expiration timestamp

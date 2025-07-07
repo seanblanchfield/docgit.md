@@ -1,9 +1,14 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Header, BackgroundTasks
 from typing import List, Optional
+import asyncio
+import logging
 from . import schemas
 from .schemas import TreeNode # Added for the directory tree endpoint
 from .config import settings
 from .git_service import GitService
+from .file_lock_service import lock_service
+
+logger = logging.getLogger(__name__)
 
 # Instantiate GitService with configuration from settings
 git_service = GitService(
@@ -13,6 +18,27 @@ git_service = GitService(
 )
 
 app = FastAPI(openapi_url="/api/openapi.json", docs_url="/api/docs", redoc_url="/api/redoc")
+
+# Background task for cleaning up expired locks
+async def cleanup_expired_locks_task():
+    """Background task that runs every 60 seconds to clean up expired locks."""
+    while True:
+        try:
+            cleaned_count = lock_service.cleanup_expired_locks()
+            if cleaned_count > 0:
+                logger.info(f"Background cleanup removed {cleaned_count} expired locks")
+        except Exception as e:
+            logger.error(f"Error in background lock cleanup: {e}")
+        
+        # Wait 60 seconds before next cleanup
+        await asyncio.sleep(60)
+
+# Startup event to begin background cleanup task
+@app.on_event("startup")
+async def startup_event():
+    """Start background tasks when the application starts."""
+    logger.info("Starting background lock cleanup task")
+    asyncio.create_task(cleanup_expired_locks_task())
 
 # Dependency injector for GitService
 def get_git_service() -> GitService:
@@ -83,13 +109,28 @@ async def get_file_contents(
 async def save_file_contents(
     file_path: str, # Path parameter
     request_body: schemas.SaveFileRequest,
-    gs: GitService = Depends(get_git_service)
+    gs: GitService = Depends(get_git_service),
+    x_lock_id: Optional[str] = Header(None, alias="X-Lock-ID")
 ):
     """
     Create or update a file and commit the change.
     - **file_path**: The path to the file, relative to the repository root.
     - **request_body**: JSON body with `content` and `message`.
+    - **X-Lock-ID**: Optional lock identifier in request header for concurrent editing protection.
     """
+    # Check if file is locked and enforce lock if present
+    existing_lock = lock_service.check_lock(file_path)
+    if existing_lock:
+        if not x_lock_id or existing_lock["lock_id"] != x_lock_id:
+            raise HTTPException(
+                status_code=423,
+                detail={
+                    "error": "File is locked by another user",
+                    "owner": existing_lock["owner"],
+                    "expires_at": existing_lock["expires_at"]
+                }
+            )
+    
     try:
         commit_sha = gs.save_file_content(
             file_path_relative_to_repo=file_path,
@@ -263,4 +304,113 @@ async def get_file_diff_content(
         print(f"Unexpected error in get_file_diff_content: {type(e).__name__} - {e}")
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred while generating diff for '{file_path}': {str(e)}")
 
-# Further endpoints will be added below.
+# Lock management endpoints for concurrent editing protection
+
+@app.post("/api/lock/{file_path:path}")
+async def acquire_lock(
+    file_path: str,
+    request_body: schemas.AcquireLockRequest
+):
+    """
+    Acquire a lock for a file to enable concurrent editing protection.
+    - **file_path**: The path to the file, relative to the repository root.
+    - **request_body**: JSON body with `owner` identifier.
+    """
+    result = lock_service.acquire_lock(file_path, request_body.owner)
+    
+    if result["success"]:
+        return schemas.LockResponse(
+            lock_id=result["lock_id"],
+            expires_at=result["expires_at"]
+        )
+    else:
+        status_code = result["status_code"]
+        if status_code == 423:
+            # Lock conflict
+            raise HTTPException(
+                status_code=423,
+                detail=schemas.LockConflictResponse(
+                    error=result["error"],
+                    owner=result["owner"],
+                    expires_at=result["expires_at"]
+                ).dict()
+            )
+        else:
+            raise HTTPException(status_code=status_code, detail=result["error"])
+
+@app.put("/api/lock/{file_path:path}/ping")
+async def refresh_lock(
+    file_path: str,
+    x_lock_id: Optional[str] = Header(None, alias="X-Lock-ID")
+):
+    """
+    Refresh a lock's TTL to extend its expiration time.
+    - **file_path**: The path to the locked file, relative to the repository root.
+    - **X-Lock-ID**: Lock identifier in request header.
+    """
+    if not x_lock_id:
+        raise HTTPException(status_code=400, detail="X-Lock-ID header is required")
+    
+    # For refresh, we need the owner. For simplicity, we'll extract it from the existing lock
+    # In a real system, you might want to include owner in the request or use session-based auth
+    existing_lock = lock_service.check_lock(file_path)
+    if not existing_lock:
+        raise HTTPException(status_code=404, detail="Lock not found")
+    
+    if existing_lock["lock_id"] != x_lock_id:
+        raise HTTPException(status_code=403, detail="Invalid lock credentials")
+    
+    result = lock_service.refresh_lock(file_path, x_lock_id, existing_lock["owner"])
+    
+    if result["success"]:
+        return schemas.RefreshLockResponse(expires_at=result["expires_at"])
+    else:
+        raise HTTPException(status_code=result["status_code"], detail=result["error"])
+
+@app.delete("/api/lock/{file_path:path}")
+async def release_lock(
+    file_path: str,
+    x_lock_id: Optional[str] = Header(None, alias="X-Lock-ID")
+):
+    """
+    Release a lock for a file.
+    - **file_path**: The path to the locked file, relative to the repository root.
+    - **X-Lock-ID**: Lock identifier in request header.
+    """
+    if not x_lock_id:
+        raise HTTPException(status_code=400, detail="X-Lock-ID header is required")
+    
+    # Get existing lock to verify ownership
+    existing_lock = lock_service.check_lock(file_path)
+    if not existing_lock:
+        raise HTTPException(status_code=404, detail="Lock not found")
+    
+    if existing_lock["lock_id"] != x_lock_id:
+        raise HTTPException(status_code=403, detail="Invalid lock credentials")
+    
+    result = lock_service.release_lock(file_path, x_lock_id, existing_lock["owner"])
+    
+    if result["success"]:
+        return {"message": "Lock released successfully"}
+    else:
+        raise HTTPException(status_code=result["status_code"], detail=result["error"])
+
+@app.get("/api/lock/{file_path:path}")
+async def check_lock_status(
+    file_path: str
+):
+    """
+    Check if a file is currently locked.
+    - **file_path**: The path to the file, relative to the repository root.
+    """
+    lock_data = lock_service.check_lock(file_path)
+    
+    if lock_data:
+        return {
+            "locked": True,
+            "owner": lock_data["owner"],
+            "expires_at": lock_data["expires_at"],
+            "acquired_at": lock_data["acquired_at"]
+        }
+    else:
+        return {"locked": False}

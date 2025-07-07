@@ -1,6 +1,6 @@
 ## WIP
 Current phase: Edit-Lock Backend Implementation  
-🔄 **Current Task:** Item 7 - Edit-Lock Backend
+🔄 **Current Task:** Item 7 - Edit-Lock Backend (File-Based)
 
 _Work in progress tasks:_
 - ✅ Backend `/api/history/{path}` endpoint exists and returns CommitDetail schema
@@ -12,10 +12,33 @@ _Work in progress tasks:_
 - ✅ Style drawer and commit entries
 - ✅ Implement diff view UI and styling
 - ✅ Test complete history drawer workflow with diff functionality
-- 🔄 Implement Edit-Lock Backend for concurrent editing protection
+- 🔄 **File-Based Lock System Implementation:**
+  - ✅ Add lock_data Docker volume to compose.yaml
+  - ✅ Create FileLockService for file-based lock operations
+  - ✅ Implement POST /api/lock/{path} endpoint (acquire/refresh)
+  - ✅ Implement PUT /api/lock/{path}/ping endpoint (refresh TTL)
+  - ✅ Implement DELETE /api/lock/{path} endpoint (release)
+  - ✅ Add GET /api/lock/{path} endpoint (check lock status)
+  - ✅ Add background cleanup task for expired lock files
+  - ✅ Update middleware to enforce file-based locks on PUT /api/files/{path}
+  - ✅ Test complete lock workflow with curl (acquire, conflict, refresh, enforce, release)
+  - ✅ Document file-based lock system architecture in spec
+  - 🔄 Add comprehensive unit tests for file operations
+- 🔄 **Frontend Lock Integration:**
+  - 🔄 Add lock status API calls to frontend
+  - 🔄 Implement visual lock indicators in file tree
+  - 🔄 Add lock management UI (acquire, release, conflict handling)
+  - 🔄 Integrate lock enforcement with editor save operations
 - 🔄 Test Edit-Lock Backend with multiple users
 - 🔄 Implement auto-save commit functionality
 - 🔄 Test auto-save commit workflow
+
+**File-Based Lock Design:**
+- Lock files stored in `/locks` Docker volume (e.g., `docs_readme.md.lock`)
+- Each lock file contains JSON: `{path, lock_id, owner, acquired_at, expires_at, last_ping}`
+- Atomic file operations: create (acquire), delete (release), read/write (refresh)
+- Background cleanup scans for expired lock files every 60 seconds
+- Multi-process safe, survives container restarts, no memory state
 
 Implementation roadmap (✅ = done, 🔄 = in progress). *Stop after each **Checkpoint** and ask the user for approval before moving on.*
 
@@ -225,6 +248,62 @@ backend/
 
 * CORS allow origin from `<FRONTEND_URL>`.
 * Add optional JWT bearer auth later; endpoints currently open for MVP.
+
+**6.4 File-Based Lock System** [DONE]
+
+A robust concurrent editing protection system using file-based locks stored in a dedicated Docker volume.
+
+**Architecture Overview:**
+- **Lock Storage**: JSON files in `/locks` directory (Docker volume `lock_data`)
+- **Lock Format**: One `.lock` file per locked path containing metadata
+- **TTL Management**: 5-minute default expiration with refresh capability
+- **Background Cleanup**: Automatic removal of expired locks every 60 seconds
+- **Multi-process Safe**: Atomic file operations handle race conditions
+
+**Lock File Structure:**
+```json
+{
+  "path": "docs/example.md",
+  "lock_id": "uuid4-string",
+  "owner": "user-identifier", 
+  "acquired_at": "2025-07-07T21:24:56.817678Z",
+  "expires_at": "2025-07-07T21:29:56.817678Z"
+}
+```
+
+**API Endpoints:**
+| Endpoint | Method | Headers | Purpose |
+|----------|--------|---------|----------|
+| `/api/lock/{path:path}` | POST | - | Acquire lock for file |
+| `/api/lock/{path:path}` | GET | - | Check lock status |
+| `/api/lock/{path:path}/ping` | PUT | `X-Lock-ID` | Refresh lock TTL |
+| `/api/lock/{path:path}` | DELETE | `X-Lock-ID` | Release lock |
+
+**Lock Enforcement:**
+- `PUT /api/files/{path}` requires valid `X-Lock-ID` header if file is locked
+- Returns HTTP 423 (Locked) with owner info on conflicts
+- Lock ownership verified for all operations
+
+**Background Cleanup:**
+```python
+# Runs every 60 seconds via FastAPI startup event
+async def cleanup_expired_locks_task():
+    while True:
+        cleaned_count = lock_service.cleanup_expired_locks()
+        await asyncio.sleep(60)
+```
+
+**Race Condition Handling:**
+- Multiple cleanup workers can run safely (catches FileNotFoundError)
+- Atomic file operations prevent corruption
+- Graceful error handling for concurrent access
+- Persistent across container restarts via Docker volume
+
+**Implementation Files:**
+- `backend/app/file_lock_service.py` - Core lock service
+- `backend/app/main.py` - API endpoints and background task
+- `backend/app/schemas.py` - Pydantic models for requests/responses
+- `compose.yaml` - Docker volume configuration
 
 ---
 
