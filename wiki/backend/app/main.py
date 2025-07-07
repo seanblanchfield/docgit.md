@@ -326,14 +326,16 @@ async def acquire_lock(
     else:
         status_code = result["status_code"]
         if status_code == 423:
-            # Lock conflict
+            # Lock conflict - format to match frontend expectations
             raise HTTPException(
                 status_code=423,
-                detail=schemas.LockConflictResponse(
-                    error=result["error"],
-                    owner=result["owner"],
-                    expires_at=result["expires_at"]
-                ).dict()
+                detail={
+                    "detail": result["error"],
+                    "lock_info": {
+                        "owner": result["owner"],
+                        "expires_at": result["expires_at"]
+                    }
+                }
             )
         else:
             raise HTTPException(status_code=status_code, detail=result["error"])

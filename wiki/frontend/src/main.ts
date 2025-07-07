@@ -2,6 +2,7 @@ import { initContentEditor } from './content';
 import { DirectoryTree, TreeNode } from './tree';
 import { setupDrawer } from './drawer';
 import { humanizeTime } from './humanize';
+import { lockService } from './lock';
 
 
 import '@milkdown/crepe/theme/common/style.css';
@@ -21,6 +22,104 @@ interface CommitDetail {
   date: string; // ISO format string
   message: string;
 }
+
+// Global state for lock management
+let currentFilePath: string | null = null;
+let lockRefreshInterval: (() => void) | null = null;
+let directoryTree: DirectoryTree | null = null;
+
+// Lock management functions
+async function acquireLockForFile(filePath: string, showNotification: boolean = true): Promise<{success: boolean, conflict?: any}> {
+  try {
+    const result = await lockService.acquireLock(filePath, 'user');
+    if (result.success) {
+      // Start auto-refresh for this lock
+      if (lockRefreshInterval) {
+        lockRefreshInterval();
+      }
+      lockRefreshInterval = lockService.startAutoRefresh(filePath);
+      
+      return {success: true};
+    } else if (result.conflict) {
+      // Show lock conflict notification only if requested
+      if (showNotification) {
+        showLockConflictNotification(result.conflict);
+      }
+      return {success: false, conflict: result.conflict};
+    }
+  } catch (error) {
+    console.error('Error acquiring lock:', error);
+  }
+  return {success: false};
+}
+
+async function releaseLockForFile(filePath: string): Promise<void> {
+  try {
+    await lockService.releaseLock(filePath);
+    
+    // Stop auto-refresh
+    if (lockRefreshInterval) {
+      lockRefreshInterval();
+      lockRefreshInterval = null;
+    }
+    
+    // Update tree visual indicators
+    if (directoryTree) {
+      await directoryTree.updateLockStatus(filePath);
+    }
+  } catch (error) {
+    console.error('Error releasing lock:', error);
+  }
+}
+
+function showLockConflictNotification(conflict: any): void {
+  const message = `File is locked by ${conflict.detail.lock_info.owner}. You cannot edit this file until the lock is released.`;
+  
+  // Create a simple notification (you could replace this with a proper modal)
+  const notification = document.createElement('div');
+  notification.className = 'lock-conflict-notification';
+  notification.innerHTML = `
+    <div class="notification-content">
+      <strong>File Locked</strong><br>
+      ${message}
+    </div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Auto-remove after 5 seconds
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.parentNode.removeChild(notification);
+    }
+  }, 5000);
+}
+
+// Set up lock service callback for when locks are lost
+lockService.onLockLost = (filePath: string) => {
+  console.warn(`Lock lost for file: ${filePath}`);
+  if (directoryTree) {
+    directoryTree.updateLockStatus(filePath);
+  }
+  
+  // Show notification to user
+  const notification = document.createElement('div');
+  notification.className = 'lock-lost-notification';
+  notification.innerHTML = `
+    <div class="notification-content">
+      <strong>Lock Expired</strong><br>
+      Your edit lock for "${filePath}" has expired. Your changes may not be saved.
+    </div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.parentNode.removeChild(notification);
+    }
+  }, 5000);
+};
 
 async function fetchFileContent(filePath: string): Promise<string> {
   try {
@@ -77,7 +176,7 @@ async function main() {
   let currentMarkdown = '# Welcome to Markdown Wiki\n\nSelect a file from the sidebar to edit.';
   let baselineMarkdown = '';
   // Draft/dirty tracking vars declared early to avoid hoisting issues
-  let currentFilePath = '';
+  // Note: currentFilePath is declared globally, don't redeclare here
   const draftPrefix = 'draft:';
   const modifiedKey = 'modifiedFiles';
   const modifiedFiles = new Set<string>(JSON.parse(localStorage.getItem(modifiedKey) || '[]'));
@@ -85,26 +184,40 @@ async function main() {
 
 
   // Function to update commit meta display
-  async function updateCommitMeta(filePath: string) {
-    if (!commitMetaEl) return;
-    
-    const commit = await fetchLatestCommit(filePath);
-    if (!commit) {
-      commitMetaEl.classList.add('hidden');
-      commitMetaEl.textContent = '';
-      commitMetaEl.title = '';
-      return;
-    }
+async function updateCommitMeta(filePath: string) {
+  if (!commitMetaEl) return;
+  
+  // Check lock status first
+    const lockStatus = await lockService.checkLockStatus(filePath);
+  const ownedByMe = lockService.hasLock(filePath);
+  const isLockedByOther = lockStatus.locked && !ownedByMe;
 
-    // Display "Author — relative time" format
-    const relativeTime = humanizeTime(commit.date);
-    commitMetaEl.textContent = `${commit.author_name} — ${relativeTime}`;
-
-    // Set tooltip with commit message
-    commitMetaEl.title = commit.message;
-
+  if (isLockedByOther) {
+    // Show lock status instead of commit info
+    const ownerName = (lockStatus as any).owner || (lockStatus as any).lock_info?.owner || 'Another user';
+    commitMetaEl.innerHTML = `<span class="editor-lock-status">${ownerName} currently editing</span>`;
+    commitMetaEl.title = `This file is being edited by ${ownerName}`;
     commitMetaEl.classList.remove('hidden');
+    return;
   }
+  
+  const commit = await fetchLatestCommit(filePath);
+  if (!commit) {
+    commitMetaEl.classList.add('hidden');
+    commitMetaEl.textContent = '';
+    commitMetaEl.title = '';
+    return;
+  }
+
+  // Display "Author — relative time" format
+  const relativeTime = humanizeTime(commit.date);
+  commitMetaEl.textContent = `${commit.author_name} — ${relativeTime}`;
+
+  // Set tooltip with commit message
+  commitMetaEl.title = commit.message;
+
+  commitMetaEl.classList.remove('hidden');
+}
 
   // Function to fetch full commit history for a file
   async function fetchCommitHistory(filePath: string): Promise<CommitDetail[]> {
@@ -375,19 +488,115 @@ async function main() {
 
 
   // --- Save handling ---
-  function handleSave() {
-    if (!dirty) return;
-    baselineMarkdown = getCurrentContent();
-    if (currentFilePath) {
-      localStorage.removeItem(`${draftPrefix}${currentFilePath}`);
+  async function handleSave() {
+    if (!dirty || !currentFilePath) return;
+    
+    // Check if we have a valid lock for this file
+    const currentLockId = lockService.getCurrentLockId(currentFilePath);
+    
+    // If we don't have a lock ID, try to acquire one
+    if (!currentLockId) {
+      const lockAcquired = await acquireLockForFile(currentFilePath);
+      if (!lockAcquired) {
+        showLockConflictNotification({
+          lock_info: {
+            owner: 'another user'
+          }
+        });
+        return;
+      }
     }
-    dirty = false;
-    showDraft(false);
-    modifiedFiles.delete(currentFilePath);
-    persistModified();
-    const itemEl = document.querySelector(`.infinite-tree-item[data-id="${CSS.escape(currentFilePath)}"]`);
-    if (itemEl) itemEl.classList.remove('modified');
-    // TODO: POST to backend save endpoint
+    
+    // Double-check lock status before saving
+    const lockStatus = await lockService.checkLockStatus(currentFilePath);
+    const finalLockId = lockService.getCurrentLockId(currentFilePath);
+    
+    if (!lockStatus.locked || !finalLockId) {
+      showLockConflictNotification({
+        lock_info: {
+          owner: lockStatus.lock_info?.owner || 'another user'
+        }
+      });
+      return;
+    }
+    
+    const content = getCurrentContent();
+    
+    try {
+      // Save to backend with lock enforcement
+      const response = await fetch(`/api/files/${currentFilePath}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Lock-ID': finalLockId || ''
+        },
+        body: JSON.stringify({ 
+          content,
+          message: `Update ${currentFilePath}` 
+        })
+      });
+      
+      if (!response.ok) {
+        if (response.status === 423) {
+          // Lock conflict
+          const errorData = await response.json();
+          showLockConflictNotification(errorData);
+          return;
+        }
+        throw new Error(`Save failed: ${response.statusText}`);
+      }
+      
+      // Save successful
+      baselineMarkdown = content;
+      if (currentFilePath) {
+        localStorage.removeItem(`${draftPrefix}${currentFilePath}`);
+      }
+      dirty = false;
+      showDraft(false);
+      modifiedFiles.delete(currentFilePath);
+      persistModified();
+      const itemEl = document.querySelector(`.infinite-tree-item[data-id="${CSS.escape(currentFilePath)}"]`);
+      if (itemEl) itemEl.classList.remove('modified');
+      
+      // Show success notification
+      const notification = document.createElement('div');
+      notification.className = 'save-success-notification';
+      notification.innerHTML = `
+        <div class="notification-content">
+          <strong>Saved</strong><br>
+          File "${currentFilePath}" saved successfully.
+        </div>
+      `;
+      
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Save error:', error);
+      
+      // Show error notification
+      const notification = document.createElement('div');
+      notification.className = 'save-error-notification';
+      notification.innerHTML = `
+        <div class="notification-content">
+          <strong>Save Failed</strong><br>
+          ${error instanceof Error ? error.message : 'Unknown error occurred'}
+        </div>
+      `;
+      
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 5000);
+    }
   }
 
   // Save button click
@@ -412,12 +621,12 @@ async function main() {
     dirty = false;
     if (currentFilePath) {
       localStorage.removeItem(`${draftPrefix}${currentFilePath}`);
+      modifiedFiles.delete(currentFilePath);
+      persistModified();
+      const itemEl = document.querySelector(`.infinite-tree-item[data-id="${CSS.escape(currentFilePath)}"]`);
+      if (itemEl) itemEl.classList.remove('modified');
     }
     showDraft(false);
-    modifiedFiles.delete(currentFilePath);
-    persistModified();
-    const itemEl = document.querySelector(`.infinite-tree-item[data-id="${CSS.escape(currentFilePath)}"]`);
-    if (itemEl) itemEl.classList.remove('modified');
   });
 
   discardCancelBtn?.addEventListener('click', () => {
@@ -469,6 +678,28 @@ async function main() {
 
   type Mode = 'read' | 'wysiwyg' | 'raw';
   let currentMode: Mode = (localStorage.getItem('editorMode') as Mode) || 'read';
+
+  // Function to update button states based on lock status
+  function updateButtonStates(isLockedByOther: boolean) {
+    const editButtons = document.querySelectorAll<HTMLButtonElement>('.mode-btn[data-mode="wysiwyg"], .mode-btn[data-mode="raw"]');
+    
+    editButtons.forEach(btn => {
+      if (isLockedByOther) {
+        btn.disabled = true;
+        btn.title = 'File is locked by another user';
+        btn.classList.add('disabled-by-lock');
+      } else {
+        btn.disabled = false;
+        btn.title = '';
+        btn.classList.remove('disabled-by-lock');
+      }
+    });
+    
+    // If currently in an edit mode and file becomes locked, switch to read mode
+    if (isLockedByOther && (currentMode === 'wysiwyg' || currentMode === 'raw')) {
+      updateMode('read');
+    }
+  }
 
   function updateMode(mode: Mode) {
   
@@ -558,7 +789,7 @@ async function main() {
   const initialPath = rawPath ? decodeURIComponent(rawPath) : undefined;
 
   // Create DirectoryTree instance
-  const directoryTree = new DirectoryTree({
+  directoryTree = new DirectoryTree({
     el: treeContainer,
     selectDefault: initialPath ? false : true,
     
@@ -572,7 +803,23 @@ async function main() {
         }
       }
 
+      // Release lock on previous file if any
+      if (currentFilePath && currentFilePath !== node.id) {
+        await releaseLockForFile(currentFilePath);
+      }
+
       currentFilePath = node.id;
+      
+      // Try to acquire lock for the selected file (suppress notification on file load)
+      const lockResult = await acquireLockForFile(currentFilePath, false);
+      if (!lockResult.success) {
+        console.log('File is locked by another user, entering read-only mode');
+        updateButtonStates(true); // Disable edit buttons
+      } else {
+        console.log('Successfully acquired lock for file:', currentFilePath);
+        updateButtonStates(false); // Enable edit buttons
+      }
+
       // Update browser path to current file (SPA deep link)
       try {
         const encoded = currentFilePath.split('/').map(encodeURIComponent).join('/');
@@ -618,6 +865,31 @@ async function main() {
   // Observe mutations in the tree to re-apply highlights when directories are expanded
   const mo = new MutationObserver(() => highlightModified());
   mo.observe(treeContainer, { subtree: true, childList: true });
+
+  // Periodic lock status refresh for editor header and button states
+  setInterval(async () => {
+    if (currentFilePath) {
+      await updateCommitMeta(currentFilePath);
+      
+      // Also update button states based on current lock status
+      const lockStatus = await lockService.checkLockStatus(currentFilePath);
+      const ownedByMe = lockService.hasLock(currentFilePath);
+      const isLockedByOther = lockStatus.locked && !ownedByMe;
+      updateButtonStates(isLockedByOther);
+    }
+  }, 30000); // Refresh every 30 seconds
+
+  // Clean up locks when the page is about to unload
+  window.addEventListener('beforeunload', async () => {
+    if (currentFilePath) {
+      // Try to release the current lock (best effort)
+      try {
+        await releaseLockForFile(currentFilePath);
+      } catch (error) {
+        console.warn('Failed to release lock on page unload:', error);
+      }
+    }
+  });
 
   // Initialize drawer toggle
   setupDrawer('#tree-drawer');

@@ -7,6 +7,8 @@
   --bg-hover: #f3f4f6;
   --border-color: #e5e7eb;
   --tree-indent: 16px;
+  --lock-color: #dc2626;
+  --disabled-color: #9ca3af;
 }
 
 body {
@@ -385,6 +387,76 @@ body {
 .infinite-tree-content .infinite-tree-item[disabled] {
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+/* Lock status in editor header */
+.editor-lock-status {
+  color: #dc2626;
+  font-weight: 500;
+  font-size: 12px;
+}
+
+/* Notification styles */
+.lock-conflict-notification,
+.lock-lost-notification,
+.save-success-notification,
+.save-error-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  max-width: 350px;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.lock-conflict-notification {
+  background-color: #fef2f2;
+  border-left: 4px solid #dc2626;
+  color: #991b1b;
+}
+
+.lock-lost-notification {
+  background-color: #fef3c7;
+  border-left: 4px solid #f59e0b;
+  color: #92400e;
+}
+
+.save-success-notification {
+  background-color: #f0fdf4;
+  border-left: 4px solid #059669;
+  color: #065f46;
+}
+
+.save-error-notification {
+  background-color: #fef2f2;
+  border-left: 4px solid #dc2626;
+  color: #991b1b;
+}
+
+.notification-content {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.notification-content strong {
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: block;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 .infinite-tree-content .infinite-tree-node {
   position: relative;
@@ -809,4 +881,78 @@ dialog::backdrop { background: rgba(0,0,0,0.4); }
   color: var(--text-primary);
   font-weight: 600;
   border-left-color: var(--border-color);
+}
+
+/* Lock-related styles */
+.mode-btn.disabled-by-lock {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: var(--disabled-color) !important;
+  color: #fff !important;
+}
+
+.mode-btn.disabled-by-lock:hover {
+  background-color: var(--disabled-color) !important;
+  transform: none;
+}
+
+.editor-lock-status {
+  color: var(--lock-color);
+  font-weight: 500;
+}
+
+/* Lock conflict notifications */
+.lock-conflict-notification,
+.lock-lost-notification,
+.save-success-notification,
+.save-error-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 16px;
+  max-width: 300px;
+  z-index: 9999;
+  animation: slideIn 0.3s ease-out;
+}
+
+.lock-conflict-notification {
+  border-left: 4px solid var(--lock-color);
+}
+
+.lock-lost-notification {
+  border-left: 4px solid #f59e0b;
+}
+
+.save-success-notification {
+  border-left: 4px solid #10b981;
+}
+
+.save-error-notification {
+  border-left: 4px solid var(--lock-color);
+}
+
+.notification-content {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.notification-content strong {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }

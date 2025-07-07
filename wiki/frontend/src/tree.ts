@@ -1,5 +1,6 @@
 import InfiniteTree from 'infinite-tree';
 import { humanizeFileName } from './humanize';
+import { lockService } from './lock';
 
 export interface TreeNode {
   id: string;
@@ -11,6 +12,12 @@ export interface TreeNode {
     open?: boolean;
     selected?: boolean;
     loading?: boolean;
+  };
+  lockStatus?: {
+    locked: boolean;
+    ownedByMe: boolean;
+    owner?: string;
+    expiresAt?: string;
   };
 }
 
@@ -320,13 +327,73 @@ export class DirectoryTree {
     const parts = id.split('/');
     let curr = '';
     for (let i = 0; i < parts.length - 1; i++) {
-      curr = curr ? curr + '/' + parts[i] : parts[i];
+      curr = curr ? curr + '/' + parts[i]! : parts[i]!;
       const ancestor = this.tree.getNodeById(curr);
       if (ancestor && ancestor.isDirectory && !ancestor.state?.open) {
         this.tree.openNode(ancestor);
       }
     }
     this.tree.selectNode(node);
+  }
+
+  /**
+   * Update lock status for a specific file
+   */
+  async updateLockStatus(filePath: string): Promise<void> {
+    if (!filePath || filePath.endsWith('/')) return; // Skip directories
+    
+    const node = this.tree.getNodeById(filePath);
+    if (!node || node.isDirectory) return;
+
+    try {
+      const lockResponse = await lockService.checkLockStatus(filePath);
+      const ownedByMe = lockService.hasLock(filePath);
+      
+      node.lockStatus = {
+        locked: lockResponse.locked,
+        ownedByMe,
+        owner: lockResponse.lock_info?.owner,
+        expiresAt: lockResponse.lock_info?.expires_at
+      };
+      
+      this.tree.updateNode(node);
+      this.updateNodeVisualIndicators(node);
+    } catch (error) {
+      console.error(`Error updating lock status for ${filePath}:`, error);
+    }
+  }
+
+  /**
+   * Update visual indicators for a node based on lock status
+   */
+  private updateNodeVisualIndicators(node: TreeNode): void {
+    const element = this.el.querySelector(`[data-id="${CSS.escape(node.id)}"]`);
+    if (!element) return;
+
+    // Remove existing lock classes
+    element.classList.remove('locked-by-me', 'locked-by-other');
+    
+    // Add appropriate lock class
+    if (node.lockStatus?.locked) {
+      if (node.lockStatus.ownedByMe) {
+        element.classList.add('locked-by-me');
+      } else {
+        element.classList.add('locked-by-other');
+      }
+    }
+  }
+
+  /**
+   * Refresh lock status for all visible files
+   */
+  async refreshAllLockStatuses(): Promise<void> {
+    const allNodes = this.tree.flatten();
+    const fileNodes = allNodes.filter((node: TreeNode) => !node.isDirectory);
+    
+    // Update lock statuses in parallel
+    await Promise.all(
+      fileNodes.map((node: TreeNode) => this.updateLockStatus(node.id))
+    );
   }
 
   private addIsDirectory = (node: any): any => {

@@ -190,8 +190,17 @@ class FileLockService:
                     "status_code": 423
                 }
             else:
-                # Expired lock, try again
-                return self.acquire_lock(file_path, owner)
+                # Expired lock found during race condition, clean it up and return error
+                try:
+                    lock_file.unlink()
+                    logger.info(f"Cleaned up expired lock during race condition for {file_path}")
+                except OSError:
+                    pass
+                return {
+                    "success": False,
+                    "error": "Lock creation failed due to race condition",
+                    "status_code": 409
+                }
                 
         except IOError as e:
             logger.error(f"Failed to create lock file {lock_file}: {e}")
