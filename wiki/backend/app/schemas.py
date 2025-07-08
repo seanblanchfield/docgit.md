@@ -76,3 +76,34 @@ class LockConflictResponse(BaseModel):
 
 class RefreshLockResponse(BaseModel):
     expires_at: str  # New expiration timestamp
+
+
+# File operations schemas
+class CreateDirectoryRequest(BaseModel):
+    name: str  # Directory name
+    message: Optional[str] = None  # Optional commit message
+
+class CreateDirectoryResponse(BaseModel):
+    path: str  # Full path of created directory
+    message: str
+    commit_sha: Optional[str]
+
+class MoveFileRequest(BaseModel):
+    destination_path: str  # New path for the file
+    message: Optional[str] = None  # Optional commit message
+
+class MoveFileResponse(BaseModel):
+    source_path: str
+    destination_path: str
+    message: str
+    commit_sha: Optional[str]
+
+class MoveDirectoryRequest(BaseModel):
+    destination_path: str  # New path for the directory
+    message: Optional[str] = None  # Optional commit message
+
+class MoveDirectoryResponse(BaseModel):
+    source_path: str
+    destination_path: str
+    message: str
+    commit_sha: Optional[str]

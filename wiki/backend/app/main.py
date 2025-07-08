@@ -416,3 +416,263 @@ async def check_lock_status(
         }
     else:
         return {"locked": False}
+
+
+# File operations endpoints
+
+@app.post("/api/directory", response_model=schemas.CreateDirectoryResponse)
+async def create_directory(
+    request_body: schemas.CreateDirectoryRequest,
+    parent_path: Optional[str] = None,  # Query parameter for parent directory
+    gs: GitService = Depends(get_git_service)
+):
+    """
+    Create a new directory in the repository.
+    - **request_body**: JSON body with directory name and optional commit message.
+    - **parent_path**: Optional parent directory path. Defaults to repository root.
+    """
+    try:
+        # Validate directory name
+        if not request_body.name or not request_body.name.strip():
+            raise HTTPException(status_code=400, detail="Directory name cannot be empty")
+        
+        # Remove any path separators from name to prevent path traversal
+        clean_name = request_body.name.strip().replace("/", "").replace("\\", "")
+        if not clean_name:
+            raise HTTPException(status_code=400, detail="Invalid directory name")
+        
+        # Build full directory path
+        if parent_path:
+            full_path = f"{parent_path.rstrip('/')}/{clean_name}"
+        else:
+            full_path = clean_name
+        
+        # Check if directory already exists
+        dir_absolute_path = gs.repo_path / full_path
+        if dir_absolute_path.exists():
+            raise HTTPException(status_code=409, detail=f"Directory '{full_path}' already exists")
+        
+        # Create directory
+        dir_absolute_path.mkdir(parents=True, exist_ok=False)
+        
+        # Create a placeholder file to ensure the directory is tracked by Git
+        placeholder_file = dir_absolute_path / ".gitkeep"
+        placeholder_file.touch()
+        
+        # Commit the change
+        commit_message = request_body.message or f"Create directory '{full_path}'"
+        commit_sha = gs.commit_files([f"{full_path}/.gitkeep"], commit_message)
+        
+        return schemas.CreateDirectoryResponse(
+            path=full_path,
+            message=commit_message,
+            commit_sha=commit_sha
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating directory '{request_body.name}': {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create directory: {str(e)}")
+
+
+@app.delete("/api/file/{file_path:path}", response_model=schemas.DeleteItemResponse)
+async def delete_file(
+    file_path: str,
+    commit_message: Optional[str] = None,  # Query parameter for commit message
+    gs: GitService = Depends(get_git_service)
+):
+    """
+    Delete a file from the repository.
+    - **file_path**: The path to the file, relative to the repository root.
+    - **commit_message**: Optional commit message. Defaults to "Delete [file_path]".
+    """
+    try:
+        # Check if file exists
+        file_absolute_path = gs.repo_path / file_path
+        if not file_absolute_path.exists():
+            raise HTTPException(status_code=404, detail=f"File '{file_path}' not found")
+        
+        if not file_absolute_path.is_file():
+            raise HTTPException(status_code=400, detail=f"'{file_path}' is not a file")
+        
+        # Use default commit message if not provided
+        message = commit_message or f"Delete '{file_path}'"
+        
+        # Delete the file using GitService
+        commit_sha = gs.delete_item(file_path, message)
+        
+        if commit_sha is None:
+            raise HTTPException(status_code=500, detail="Failed to delete file")
+        
+        return schemas.DeleteItemResponse(
+            message=message,
+            commit_sha=commit_sha,
+            path=file_path
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting file '{file_path}': {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")
+
+
+@app.delete("/api/directory/{dir_path:path}", response_model=schemas.DeleteItemResponse)
+async def delete_directory(
+    dir_path: str,
+    commit_message: Optional[str] = None,  # Query parameter for commit message
+    gs: GitService = Depends(get_git_service)
+):
+    """
+    Delete a directory from the repository.
+    - **dir_path**: The path to the directory, relative to the repository root.
+    - **commit_message**: Optional commit message. Defaults to "Delete [dir_path]".
+    """
+    try:
+        # Check if directory exists
+        dir_absolute_path = gs.repo_path / dir_path
+        if not dir_absolute_path.exists():
+            raise HTTPException(status_code=404, detail=f"Directory '{dir_path}' not found")
+        
+        if not dir_absolute_path.is_dir():
+            raise HTTPException(status_code=400, detail=f"'{dir_path}' is not a directory")
+        
+        # Use default commit message if not provided
+        message = commit_message or f"Delete directory '{dir_path}'"
+        
+        # Delete the directory using GitService
+        commit_sha = gs.delete_item(dir_path, message)
+        
+        if commit_sha is None:
+            raise HTTPException(status_code=500, detail="Failed to delete directory")
+        
+        return schemas.DeleteItemResponse(
+            message=message,
+            commit_sha=commit_sha,
+            path=dir_path
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting directory '{dir_path}': {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete directory: {str(e)}")
+
+
+@app.put("/api/file/{file_path:path}/move", response_model=schemas.MoveFileResponse)
+async def move_file(
+    file_path: str,
+    request_body: schemas.MoveFileRequest,
+    gs: GitService = Depends(get_git_service)
+):
+    """
+    Move or rename a file in the repository.
+    - **file_path**: The current path to the file, relative to the repository root.
+    - **request_body**: JSON body with destination path and optional commit message.
+    """
+    try:
+        # Check if source file exists
+        source_absolute_path = gs.repo_path / file_path
+        if not source_absolute_path.exists():
+            raise HTTPException(status_code=404, detail=f"File '{file_path}' not found")
+        
+        if not source_absolute_path.is_file():
+            raise HTTPException(status_code=400, detail=f"'{file_path}' is not a file")
+        
+        # Validate destination path
+        destination_path = request_body.destination_path.strip()
+        if not destination_path:
+            raise HTTPException(status_code=400, detail="Destination path cannot be empty")
+        
+        # Check if destination already exists
+        dest_absolute_path = gs.repo_path / destination_path
+        if dest_absolute_path.exists():
+            raise HTTPException(status_code=409, detail=f"Destination '{destination_path}' already exists")
+        
+        # Prevent moving to same location
+        if file_path == destination_path:
+            raise HTTPException(status_code=400, detail="Source and destination paths are the same")
+        
+        # Use default commit message if not provided
+        message = request_body.message or f"Move '{file_path}' to '{destination_path}'"
+        
+        # Move the file using GitService
+        commit_sha = gs.move_item(file_path, destination_path, message)
+        
+        if commit_sha is None:
+            raise HTTPException(status_code=500, detail="Failed to move file")
+        
+        return schemas.MoveFileResponse(
+            source_path=file_path,
+            destination_path=destination_path,
+            message=message,
+            commit_sha=commit_sha
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error moving file '{file_path}' to '{request_body.destination_path}': {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to move file: {str(e)}")
+
+
+@app.put("/api/directory/{dir_path:path}/move", response_model=schemas.MoveDirectoryResponse)
+async def move_directory(
+    dir_path: str,
+    request_body: schemas.MoveDirectoryRequest,
+    gs: GitService = Depends(get_git_service)
+):
+    """
+    Move or rename a directory in the repository.
+    - **dir_path**: The current path to the directory, relative to the repository root.
+    - **request_body**: JSON body with destination path and optional commit message.
+    """
+    try:
+        # Check if source directory exists
+        source_absolute_path = gs.repo_path / dir_path
+        if not source_absolute_path.exists():
+            raise HTTPException(status_code=404, detail=f"Directory '{dir_path}' not found")
+        
+        if not source_absolute_path.is_dir():
+            raise HTTPException(status_code=400, detail=f"'{dir_path}' is not a directory")
+        
+        # Validate destination path
+        destination_path = request_body.destination_path.strip()
+        if not destination_path:
+            raise HTTPException(status_code=400, detail="Destination path cannot be empty")
+        
+        # Check if destination already exists
+        dest_absolute_path = gs.repo_path / destination_path
+        if dest_absolute_path.exists():
+            raise HTTPException(status_code=409, detail=f"Destination '{destination_path}' already exists")
+        
+        # Prevent moving to same location
+        if dir_path == destination_path:
+            raise HTTPException(status_code=400, detail="Source and destination paths are the same")
+        
+        # Prevent moving directory into itself
+        if destination_path.startswith(dir_path + "/"):
+            raise HTTPException(status_code=400, detail="Cannot move directory into itself")
+        
+        # Use default commit message if not provided
+        message = request_body.message or f"Move directory '{dir_path}' to '{destination_path}'"
+        
+        # Move the directory using GitService
+        commit_sha = gs.move_item(dir_path, destination_path, message)
+        
+        if commit_sha is None:
+            raise HTTPException(status_code=500, detail="Failed to move directory")
+        
+        return schemas.MoveDirectoryResponse(
+            source_path=dir_path,
+            destination_path=destination_path,
+            message=message,
+            commit_sha=commit_sha
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error moving directory '{dir_path}' to '{request_body.destination_path}': {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to move directory: {str(e)}")

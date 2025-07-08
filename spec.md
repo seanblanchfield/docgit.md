@@ -1,68 +1,55 @@
 ## WIP
-Current phase: Lock System Complete - Ready for Production  
-✅ **Completed Task:** Item 7 & 8 - Edit-Lock Backend & Frontend Integration
+Current phase: Frontend File Operations UI Implementation
+🔄 **Current Task:** Implement frontend file operations UI components
 
-_Completed work:_
-- ✅ Backend `/api/history/{path}` endpoint exists and returns CommitDetail schema
-- ✅ Backend `/api/diff/{path}` endpoint exists for viewing commit diffs
-- ✅ Implement side panel UI for listing commits
-- ✅ Wire up history button to toggle drawer visibility
-- ✅ Display commit list with author, time, and message
-- ✅ Implement click handler to open diff view
-- ✅ Style drawer and commit entries
-- ✅ Implement diff view UI and styling
-- ✅ Test complete history drawer workflow with diff functionality
-- ✅ **File-Based Lock System Implementation:**
-  - ✅ Add lock_data Docker volume to compose.yaml
-  - ✅ Create FileLockService for file-based lock operations
-  - ✅ Implement POST /api/lock/{path} endpoint (acquire/refresh)
-  - ✅ Implement PUT /api/lock/{path}/ping endpoint (refresh TTL)
-  - ✅ Implement DELETE /api/lock/{path} endpoint (release)
-  - ✅ Add GET /api/lock/{path} endpoint (check lock status)
-  - ✅ Add background cleanup task for expired lock files
-  - ✅ Update middleware to enforce file-based locks on PUT /api/files/{path}
-  - ✅ Test complete lock workflow with curl (acquire, conflict, refresh, enforce, release)
-  - ✅ Document complete lock system architecture in spec
-  - 🔄 Add comprehensive unit tests for file operations (optional enhancement)
-- ✅ **Frontend Lock Integration:**
-  - ✅ Add lock status API calls to frontend (LockService class)
-  - ✅ Implement lock management UI (acquire, release, conflict handling)
-  - ✅ Integrate lock enforcement with editor save operations
-  - ✅ Add visual lock status indicators in editor header
-  - ✅ Disable edit/markdown buttons when file locked by others
-  - ✅ Suppress redundant lock conflict notifications on page load
-  - ✅ Add comprehensive CSS styling for lock states
-  - ✅ Implement periodic lock status refresh and button state updates
-  - ✅ Add graceful lock conflict resolution and user feedback
-- ✅ Test complete lock system with frontend UX integration
+_Next implementation steps:_
+- 🔄 **Frontend File Operations UI:**
+  - 🔄 Add empty row with plus symbol to tree view directories
+  - 🔄 Implement create file/directory dialog
+  - 🔄 Add menu button to file header with delete option
+  - 🔄 Implement delete confirmation modal
+  - 🔄 Add drag and drop functionality to tree view
+  - 🔄 Add visual feedback for drag/drop operations
+  - 🔄 Integrate with backend APIs and handle errors
+- 🔄 **Testing and Polish:**
+  - 🔄 Test complete file operations workflow
+  - 🔄 Add comprehensive error handling and user feedback
+  - 🔄 Verify optimistic updates and rollback functionality
 
-**Identified Bugs for Next Session:**
-- ✅ **Editor Mode Persistence Bug**: [FIXED] When user is on a page in edit mode and navigates to another page, the second page opens in edit mode instead of view mode. This causes unintentional lock acquisition. Fix: Always open pages in view mode on navigation.
-  - **Solution**: Added `updateMode('read')` call in `onFileSelect` function to always reset editor to view mode when navigating to a new file.
-  - **Files Modified**: `wiki/frontend/src/main.ts` - Added mode reset in navigation handler.
-- ✅ **History Diff Display Bug**: [FIXED] When clicking on a commit in the history drawer, the diff view always shows "No changes in this commit" instead of the actual diff content. Fix: Investigate diff API response and rendering logic.
-  - **Root Cause**: Frontend was comparing commit SHA to WORKING_TREE instead of comparing commit to its parent.
-  - **Solution**: Updated `fetchCommitDiff` function to compare commit to its parent using Git's `commitSha^1` notation.
-  - **Files Modified**: `wiki/frontend/src/main.ts` - Fixed diff comparison logic in fetchCommitDiff function.
-  - **Verification**: API now returns actual diff content showing changes introduced by each commit.
+## Completed Work
 
-**Recently Completed:**
-- ✅ **Save Feedback Improvement**: Fixed bug where 'last edit' text in header didn't update immediately after saving content. Now updates instantly with green color feedback instead of showing popup notification.
-  - **Issue**: Last edit text updated only every 30 seconds via polling, causing delayed feedback after saves
-  - **Solution**: Modified `handleSave()` function to immediately call `updateCommitMeta()` after successful save
-  - **Enhancement**: Removed popup notification and added green color feedback to last edit text for 3 seconds
-  - **Files Modified**: `wiki/frontend/src/main.ts` - Updated save handling logic
+**✅ File Operations Specification:** [DONE]
+- Detailed UI/UX specifications for creating, deleting, and moving files
+- Complete API endpoint definitions and validation rules
+- Error handling and user feedback strategies
+- Integration with existing tree view and editor components
 
-**Future Enhancements:**
-- 🔄 Implement auto-save commit functionality
-- 🔄 Test auto-save commit workflow
+**✅ Backend File Operations API:** [DONE]
+- POST /api/directory endpoint with validation and Git tracking
+- DELETE /api/file/{path} and DELETE /api/directory/{path} endpoints
+- PUT /api/file/{path}/move and PUT /api/directory/{path}/move endpoints
+- Comprehensive validation (conflict detection, path safety, empty checks)
+- Proper error handling with HTTP status codes (400, 404, 409, 500)
+- Git integration with customizable commit messages
+- All endpoints tested successfully with curl
 
-**File-Based Lock Design:**
-- Lock files stored in `/locks` Docker volume (e.g., `docs_readme.md.lock`)
-- Each lock file contains JSON: `{path, lock_id, owner, acquired_at, expires_at, last_ping}`
-- Atomic file operations: create (acquire), delete (release), read/write (refresh)
-- Background cleanup scans for expired lock files every 60 seconds
-- Multi-process safe, survives container restarts, no memory state
+**✅ Lock System Complete:** [DONE]
+- Backend file-based lock system with Docker volume storage
+- Frontend lock integration with visual indicators and conflict handling
+- Complete lock workflow: acquire, refresh, release, cleanup
+- Lock enforcement on save operations with graceful error handling
+
+**✅ History and Diff System:** [DONE]
+- Backend `/api/history/{path}` and `/api/diff/{path}` endpoints
+- Frontend history drawer with commit list and diff view
+- Fixed diff comparison logic to show actual changes
+- Complete history workflow with proper UI styling
+
+**✅ Editor Improvements:** [DONE]
+- Fixed editor mode persistence bug (always open files in view mode)
+- Improved save feedback with instant header updates
+- Enhanced lock conflict resolution and user experience
+- Comprehensive CSS styling for all lock states
 
 Implementation roadmap (✅ = done, 🔄 = in progress). *Stop after each **Checkpoint** and ask the user for approval before moving on.*
 
