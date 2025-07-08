@@ -810,6 +810,10 @@ async function updateCommitMeta(filePath: string) {
 
       currentFilePath = node.id;
       
+      // Always reset to read mode when navigating to a new file
+      // This prevents unintentional lock acquisition from persisted editor mode
+      updateMode('read');
+      
       // Try to acquire lock for the selected file (suppress notification on file load)
       const lockResult = await acquireLockForFile(currentFilePath, false);
       if (!lockResult.success) {

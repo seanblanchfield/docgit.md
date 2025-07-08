@@ -35,8 +35,16 @@ _Completed work:_
   - ✅ Implement periodic lock status refresh and button state updates
   - ✅ Add graceful lock conflict resolution and user feedback
 - ✅ Test complete lock system with frontend UX integration
-- 🔄 Implement auto-save commit functionality (future enhancement)
-- 🔄 Test auto-save commit workflow (future enhancement)
+
+**Identified Bugs for Next Session:**
+- ✅ **Editor Mode Persistence Bug**: [FIXED] When user is on a page in edit mode and navigates to another page, the second page opens in edit mode instead of view mode. This causes unintentional lock acquisition. Fix: Always open pages in view mode on navigation.
+  - **Solution**: Added `updateMode('read')` call in `onFileSelect` function to always reset editor to view mode when navigating to a new file.
+  - **Files Modified**: `wiki/frontend/src/main.ts` - Added mode reset in navigation handler.
+- 🐛 **History Diff Display Bug**: When clicking on a commit in the history drawer, the diff view always shows "No changes in this commit" instead of the actual diff content. Fix: Investigate diff API response and rendering logic.
+
+**Future Enhancements:**
+- 🔄 Implement auto-save commit functionality
+- 🔄 Test auto-save commit workflow
 
 **File-Based Lock Design:**
 - Lock files stored in `/locks` Docker volume (e.g., `docs_readme.md.lock`)
