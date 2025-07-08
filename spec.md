@@ -40,7 +40,11 @@ _Completed work:_
 - ✅ **Editor Mode Persistence Bug**: [FIXED] When user is on a page in edit mode and navigates to another page, the second page opens in edit mode instead of view mode. This causes unintentional lock acquisition. Fix: Always open pages in view mode on navigation.
   - **Solution**: Added `updateMode('read')` call in `onFileSelect` function to always reset editor to view mode when navigating to a new file.
   - **Files Modified**: `wiki/frontend/src/main.ts` - Added mode reset in navigation handler.
-- 🐛 **History Diff Display Bug**: When clicking on a commit in the history drawer, the diff view always shows "No changes in this commit" instead of the actual diff content. Fix: Investigate diff API response and rendering logic.
+- ✅ **History Diff Display Bug**: [FIXED] When clicking on a commit in the history drawer, the diff view always shows "No changes in this commit" instead of the actual diff content. Fix: Investigate diff API response and rendering logic.
+  - **Root Cause**: Frontend was comparing commit SHA to WORKING_TREE instead of comparing commit to its parent.
+  - **Solution**: Updated `fetchCommitDiff` function to compare commit to its parent using Git's `commitSha^1` notation.
+  - **Files Modified**: `wiki/frontend/src/main.ts` - Fixed diff comparison logic in fetchCommitDiff function.
+  - **Verification**: API now returns actual diff content showing changes introduced by each commit.
 
 **Future Enhancements:**
 - 🔄 Implement auto-save commit functionality

@@ -278,7 +278,10 @@ async function updateCommitMeta(filePath: string) {
   // Function to fetch commit diff
   async function fetchCommitDiff(filePath: string, commitSha: string): Promise<string | null> {
     try {
-      const response = await fetch(`/api/diff/${encodeURIComponent(filePath)}?sha1=${commitSha}&sha2=WORKING_TREE`);
+      // To show what a commit changed, we need to compare it to its parent
+      // Use the Git convention: commitSha^1 represents the parent of commitSha
+      const parentSha = `${commitSha}^1`;
+      const response = await fetch(`/api/diff/${encodeURIComponent(filePath)}?sha1=${parentSha}&sha2=${commitSha}`);
       if (!response.ok) {
         console.error('Failed to fetch commit diff:', response.statusText);
         return null;
