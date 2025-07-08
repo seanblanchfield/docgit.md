@@ -561,23 +561,21 @@ async function updateCommitMeta(filePath: string) {
       const itemEl = document.querySelector(`.infinite-tree-item[data-id="${CSS.escape(currentFilePath)}"]`);
       if (itemEl) itemEl.classList.remove('modified');
       
-      // Show success notification
-      const notification = document.createElement('div');
-      notification.className = 'save-success-notification';
-      notification.innerHTML = `
-        <div class="notification-content">
-          <strong>Saved</strong><br>
-          File "${currentFilePath}" saved successfully.
-        </div>
-      `;
+      // Immediately update commit meta to show the save was successful
+      await updateCommitMeta(currentFilePath);
       
-      document.body.appendChild(notification);
-      
-      setTimeout(() => {
-        if (notification.parentNode) {
-          notification.parentNode.removeChild(notification);
-        }
-      }, 3000);
+      // Add green color feedback to indicate successful save
+      if (commitMetaEl) {
+        commitMetaEl.style.color = '#22c55e'; // Green color
+        commitMetaEl.style.transition = 'color 0.3s ease';
+        
+        // Remove green color after 3 seconds
+        setTimeout(() => {
+          if (commitMetaEl) {
+            commitMetaEl.style.color = '';
+          }
+        }, 3000);
+      }
       
     } catch (error) {
       console.error('Save error:', error);

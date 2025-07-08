@@ -46,6 +46,13 @@ _Completed work:_
   - **Files Modified**: `wiki/frontend/src/main.ts` - Fixed diff comparison logic in fetchCommitDiff function.
   - **Verification**: API now returns actual diff content showing changes introduced by each commit.
 
+**Recently Completed:**
+- ✅ **Save Feedback Improvement**: Fixed bug where 'last edit' text in header didn't update immediately after saving content. Now updates instantly with green color feedback instead of showing popup notification.
+  - **Issue**: Last edit text updated only every 30 seconds via polling, causing delayed feedback after saves
+  - **Solution**: Modified `handleSave()` function to immediately call `updateCommitMeta()` after successful save
+  - **Enhancement**: Removed popup notification and added green color feedback to last edit text for 3 seconds
+  - **Files Modified**: `wiki/frontend/src/main.ts` - Updated save handling logic
+
 **Future Enhancements:**
 - 🔄 Implement auto-save commit functionality
 - 🔄 Test auto-save commit workflow
