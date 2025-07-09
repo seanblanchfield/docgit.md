@@ -96,14 +96,14 @@ export function setupDrawer(drawerSelector: string) {
 
   // Double-click to snap widths
   function onDblClick(ev?: MouseEvent) {
-    console.log('[drawer] dblclick fired');
+
     ev?.stopPropagation();
     ev?.preventDefault();
     if (drawer!.classList.contains('drawer-collapsed')) return;
     const current = drawer!.getBoundingClientRect().width;
     const maxW = clampWidth(window.innerWidth * 2);
     const isExpanded = current > DEFAULT_WIDTH + 20;
-    console.log('[drawer] current', { current, DEFAULT_WIDTH, maxW, isExpanded });
+
     if (isExpanded) {
       applyWidth(DEFAULT_WIDTH);
     } else {

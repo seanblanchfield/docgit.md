@@ -794,6 +794,11 @@ async function updateCommitMeta(filePath: string) {
     el: treeContainer,
     selectDefault: initialPath ? false : true,
     
+    onCreateFile: async (parentPath: string, name: string, isDirectory: boolean) => {
+
+      // TODO: Implement API call to create file/directory
+    },
+    
     onFileSelect: async (node: TreeNode) => {
       // Persist current draft before navigation
       if (dirty && currentFilePath) {
@@ -818,10 +823,10 @@ async function updateCommitMeta(filePath: string) {
       // Try to acquire lock for the selected file (suppress notification on file load)
       const lockResult = await acquireLockForFile(currentFilePath, false);
       if (!lockResult.success) {
-        console.log('File is locked by another user, entering read-only mode');
+
         updateButtonStates(true); // Disable edit buttons
       } else {
-        console.log('Successfully acquired lock for file:', currentFilePath);
+
         updateButtonStates(false); // Enable edit buttons
       }
 

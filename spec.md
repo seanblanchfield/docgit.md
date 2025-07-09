@@ -1,16 +1,35 @@
 ## WIP
 Current phase: Frontend File Operations UI Implementation
-🔄 **Current Task:** Implement frontend file operations UI components
+🔄 **Current Task:** Fix DOM structure for proper sibling positioning (Bug #4)
+
+_Progress on create row functionality:_
+- ✅ **Create Row Implementation:**
+  - ✅ Add minimal create row with "+" symbol to tree view directories
+  - ✅ Implement hover effects (black and bold on mouseover)
+  - ✅ Fix modal dialog z-index to appear above all page elements
+  - ✅ Position create rows as last item in each directory (not first)
+  - ✅ Implement create file/directory dialog modal
+
+_Bugs identified for create row functionality:_
+- ✅ **Debug Output:** Verbose console.log statements need cleanup
+- ✅ **Tree Expansion:** Tree shows fully expanded on refresh; should default to collapsed
+- ✅ **Rendering Timing:** "+" rows render with visible delay, causing content to shift down
+- ✅ **DOM Structure:** ".create-file-row" appears as child instead of sibling, causing double highlight on hover
 
 _Next implementation steps:_
-- 🔄 **Frontend File Operations UI:**
-  - 🔄 Add empty row with plus symbol to tree view directories
-  - 🔄 Implement create file/directory dialog
+- 🔄 **Bug Fixes:**
+  - ✅ Remove debug console output
+  - ✅ Fix tree default state to collapsed
+  - ✅ Fix create row rendering timing
+  - ✅ Fix DOM structure for proper sibling positioning
+- 🔄 **Integration:**
+  - 🔄 Integrate create dialog with backend APIs
+  - 🔄 Add error handling and user feedback for create operations
+- 🔄 **Remaining File Operations UI:**
   - 🔄 Add menu button to file header with delete option
   - 🔄 Implement delete confirmation modal
   - 🔄 Add drag and drop functionality to tree view
   - 🔄 Add visual feedback for drag/drop operations
-  - 🔄 Integrate with backend APIs and handle errors
 - 🔄 **Testing and Polish:**
   - 🔄 Test complete file operations workflow
   - 🔄 Add comprehensive error handling and user feedback
