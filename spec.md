@@ -1,27 +1,27 @@
 ## WIP
 Current phase: Frontend File Operations UI Implementation
-🔄 **Current Task:** Fix DOM structure for proper sibling positioning (Bug #4)
+🔄 **Current Task:** Create Row UI/UX Improvements
 
 _Progress on create row functionality:_
-- ✅ **Create Row Implementation:**
-  - ✅ Add minimal create row with "+" symbol to tree view directories
-  - ✅ Implement hover effects (black and bold on mouseover)
-  - ✅ Fix modal dialog z-index to appear above all page elements
-  - ✅ Position create rows as last item in each directory (not first)
-  - ✅ Implement create file/directory dialog modal
+- ✅ **Data-Driven Create Row Implementation:**
+  - ✅ Implemented robust data-driven approach using virtual create nodes
+  - ✅ Fixed duplication bug - each folder now shows exactly one create item
+  - ✅ Deep cloning and single-pass recursive processing eliminates timing issues
+  - ✅ Create items properly positioned at end of each directory and root level
+  - ✅ Stable tree structure with no recursion conflicts
 
-_Bugs identified for create row functionality:_
-- ✅ **Debug Output:** Verbose console.log statements need cleanup
-- ✅ **Tree Expansion:** Tree shows fully expanded on refresh; should default to collapsed
-- ✅ **Rendering Timing:** "+" rows render with visible delay, causing content to shift down
-- ✅ **DOM Structure:** ".create-file-row" appears as child instead of sibling, causing double highlight on hover
+_Completed bug fixes:_
+- ✅ **Debug Output:** Removed verbose console.log statements
+- ✅ **Tree Expansion:** Tree defaults to collapsed state on refresh
+- ✅ **Rendering Timing:** No visible delay in create row rendering
+- ✅ **DOM Structure:** Proper sibling positioning achieved
+- ✅ **Duplication Bug:** Fixed duplicate create items in directories
 
-_Next implementation steps:_
-- 🔄 **Bug Fixes:**
-  - ✅ Remove debug console output
-  - ✅ Fix tree default state to collapsed
-  - ✅ Fix create row rendering timing
-  - ✅ Fix DOM structure for proper sibling positioning
+_Next UI/UX improvements:_
+- 🔄 **Create Row Polish:**
+  - 🔄 Update create row text from "+ Add file or folder" to just "+"
+  - 🔄 Style create rows: light grey that turns dark bold on hover
+  - 🔄 Connect create row click to show new file/folder dialog
 - 🔄 **Integration:**
   - 🔄 Integrate create dialog with backend APIs
   - 🔄 Add error handling and user feedback for create operations

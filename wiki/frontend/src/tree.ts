@@ -7,6 +7,7 @@ export interface TreeNode {
   name: string;
   isDirectory: boolean;
   children?: TreeNode[];
+  isCreateItem?: boolean; // Flag for create items
   state?: {
     depth?: number;
     open?: boolean;
@@ -70,64 +71,55 @@ export class DirectoryTree {
       
     }, true);
 
-    // Add create rows after tree is initialized
-    setTimeout(() => {
-      this.addCreateRows();
-    }, 1000);
+
 
     el.addEventListener('click', (event) => {
       const target = event.target as HTMLElement;
       
-      // Check if click is on a toggler
-      const toggler = target.closest('.infinite-tree-toggler');
-      if (toggler) {
-        // Find the parent node
-        const nodeEl = toggler.closest('.infinite-tree-node');
+      // Check if click is on a create node
+      if (target.closest('.create-node-button')) {
+        const nodeEl = target.closest('.infinite-tree-node');
         if (nodeEl) {
-          const titleEl = nodeEl.querySelector('.infinite-tree-title');
-          if (titleEl) {
-            const nodeData = this.findNodeByTitle(titleEl.textContent || '');
-            if (nodeData && nodeData.isDirectory) {
-              // Add create rows after a delay to allow the tree to update
-              setTimeout(() => {
-                this.addCreateRows();
-              }, 150);
+          const nodeId = nodeEl.getAttribute('data-id');
+          if (nodeId) {
+            const node = this.tree.getNodeById(nodeId);
+            if (node && node.isCreateItem) {
+              this.handleCreateNodeClick(node);
+              return;
             }
           }
         }
         return;
       }
       
+      // Check if click is on a toggler
+      const toggler = target.closest('.infinite-tree-toggler');
+      if (toggler) {
+        return; // Let the tree handle toggling
+      }
+      
       const itemEl = target.closest('.infinite-tree-node');
       if (!itemEl) return;
       
-      // For file selection, find the node by title
-      const titleEl = itemEl.querySelector('.infinite-tree-title');
-      if (!titleEl) return;
+      const nodeId = itemEl.getAttribute('data-id');
+      if (!nodeId) return;
       
-      const nodeData = this.findNodeByTitle(titleEl.textContent || '');
-      if (!nodeData) return;
-      
-      const node: TreeNode | undefined = this.tree.getNodeById(nodeData.id);
+      const node: TreeNode | undefined = this.tree.getNodeById(nodeId);
       if (!node) return;
+
+      // Skip create nodes for regular selection
+      if (node.isCreateItem) return;
 
       if (node.isDirectory) {
         const currentlyOpen = !!node.state?.open;
-        
 
         // If collapsing and selected leaf is inside, move highlight to this directory
         if (currentlyOpen && this.lastSelectedId && this.lastSelectedId.startsWith(node.id + '/')) {
-          
           this.tree.selectNode(node);
         }
 
         // Toggle directories
         this.tree.toggleNode(node);
-
-        // Add create rows after toggle
-        setTimeout(() => {
-          this.addCreateRows();
-        }, 100); // Increased timeout to ensure DOM is updated
 
         // If expanding and we have a stored leaf inside, select the nearest visible ancestor (next path segment)
         if (!currentlyOpen && this.lastSelectedId && this.lastSelectedId.startsWith(node.id + '/')) {
@@ -277,25 +269,90 @@ export class DirectoryTree {
       .sort((a: any, b: any) => (a.rawName || a.name).localeCompare(b.rawName || b.name, undefined, { sensitivity: 'base' }))
       .map((n: any) => ({
         ...n,
-        children: Array.isArray(n.children) ? this.sortNodes(n.children) : n.children,
+        children: n.children ? this.sortNodes(n.children) : n.children,
       }));
   }
 
   /**
-   * Recursively open all directories in the tree
+   * Step 2: Add create items at the end of each directory and at the root
    */
-  private openAllDirectories(nodes: TreeNode[]): void {
-    nodes.forEach(node => {
+  private addCreateItems(nodes: TreeNode[]): TreeNode[] {
+    // Deep clone the nodes to avoid mutation issues
+    const clonedNodes = JSON.parse(JSON.stringify(nodes));
+    
+    // Recursively add create items to each directory
+    const processNode = (node: TreeNode): TreeNode => {
+      // Skip if already a create item
+      if (node.isCreateItem) {
+        return node;
+      }
+      
+      const processedNode = { ...node };
+      
+      // Process children first if they exist
+      if (node.children && node.children.length > 0) {
+        processedNode.children = node.children.map(child => processNode(child));
+      }
+      
+      // Add create item to directories (only once)
       if (node.isDirectory) {
-        const treeNode = this.tree.getNodeById(node.id);
-        if (treeNode) {
-          this.tree.openNode(treeNode);
+        if (!processedNode.children) {
+          processedNode.children = [];
         }
-        if (node.children) {
-          this.openAllDirectories(node.children);
+        
+        // Only add if no create item exists yet
+        const hasCreateItem = processedNode.children.some(child => 
+          child.isCreateItem && child.id === `${node.id}/__create__`
+        );
+        
+        if (!hasCreateItem) {
+          const createItem: TreeNode = {
+            id: `${node.id}/__create__`,
+            name: '+ Add file or folder',
+            isDirectory: false,
+            isCreateItem: true
+          };
+          processedNode.children.push(createItem);
         }
       }
-    });
+      
+      return processedNode;
+    };
+    
+    // Process all nodes
+    const result = clonedNodes.map((node: TreeNode) => processNode(node));
+    
+    // Add root-level create item
+    const rootCreateItem: TreeNode = {
+      id: '__root_create__',
+      name: '+ Add file or folder',
+      isDirectory: false,
+      isCreateItem: true
+    };
+    result.push(rootCreateItem);
+    
+    return result;
+  }
+
+
+
+
+
+  /**
+   * Handle click on a create node
+   */
+  private handleCreateNodeClick(node: TreeNode): void {
+    if (!this.onCreateFile) return;
+    
+    // Determine the parent path from the create node ID
+    let parentPath = '';
+    if (node.id === '__root_create__') {
+      parentPath = '';
+    } else if (node.id.endsWith('/__create__')) {
+      parentPath = node.id.replace('/__create__', '');
+    }
+    
+    this.showCreateDialog(parentPath);
   }
 
   async load() {
@@ -304,12 +361,10 @@ export class DirectoryTree {
       ? treeDataRaw.map(this.addIsDirectory)
       : treeDataRaw;
     const sorted = this.sortNodes(treeData);
-    this.tree.loadData(sorted);
     
-    // Add create rows after loading data
-    setTimeout(() => {
-      this.addCreateRows();
-    }, 500);
+    // Step 2: Add create items at the end of each directory and at the root
+    const dataWithCreateItems = this.addCreateItems(sorted);
+    this.tree.loadData(dataWithCreateItems);
 
     // Auto-select default file if any
     if (this.options.selectDefault !== false) {
@@ -452,208 +507,9 @@ export class DirectoryTree {
     );
   }
 
-  /**
-   * Find the insertion point for a create row (after the last child of a directory)
-   */
-  private findCreateRowInsertionPoint(dirNode: Element, nodeData: TreeNode): Element | null {
-    if (!nodeData.children || nodeData.children.length === 0) {
-      return dirNode; // Insert right after the directory if it has no children
-    }
 
-    // Find the last child by name in the tree data
-    const lastChild = nodeData.children[nodeData.children.length - 1];
-    if (!lastChild) {
-      return dirNode;
-    }
-    
-    const lastChildName = lastChild.name;
-    
-    // Find the DOM element for this last child
-    const allNodes = this.el.querySelectorAll('.infinite-tree-node');
-    for (const node of allNodes) {
-      const titleElement = node.querySelector('.infinite-tree-title');
-      if (titleElement && titleElement.textContent === lastChildName) {
-        // This is the last child - now find where its subtree ends
-        return this.findEndOfSubtree(node, lastChild);
-      }
-    }
-    
-    return dirNode; // Fallback to directory node
-  }
 
-  /**
-   * Find the end of a node's subtree (including all descendants)
-   */
-  private findEndOfSubtree(node: Element, nodeData: TreeNode): Element {
-    if (!nodeData.children || nodeData.children.length === 0) {
-      return node; // No children, so this node is the end
-    }
-    
-    // Find the last child recursively
-    const lastChild = nodeData.children[nodeData.children.length - 1];
-    if (!lastChild) {
-      return node;
-    }
-    
-    const lastChildName = lastChild.name;
-    
-    // Find the DOM element for the last child
-    const allNodes = this.el.querySelectorAll('.infinite-tree-node');
-    for (const childNode of allNodes) {
-      const titleElement = childNode.querySelector('.infinite-tree-title');
-      if (titleElement && titleElement.textContent === lastChildName) {
-        return this.findEndOfSubtree(childNode, lastChild);
-      }
-    }
-    
-    return node; // Fallback
-  }
 
-  /**
-   * Find a tree node by its title text
-   */
-  private findNodeByTitle(title: string): TreeNode | null {
-    // Get all nodes from the tree data instead of using flatten()
-    const treeData = this.tree.nodes || [];
-    
-    const findInNodes = (nodes: TreeNode[]): TreeNode | null => {
-      for (const node of nodes) {
-        if (node.name === title) {
-          return node;
-        }
-        if (node.children) {
-          const found = findInNodes(node.children);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
-    
-    return findInNodes(treeData);
-  }
-
-  /**
-   * Add create rows to expanded directories
-   */
-  private addCreateRows(): void {
-    if (!this.onCreateFile) {
-      return;
-    }
-    
-    // Remove existing create rows first
-    const existingCreateRows = this.el.querySelectorAll('.create-file-row');
-    existingCreateRows.forEach(row => row.remove());
-    
-    // Find all directory nodes that have togglers and are expanded (not closed)
-    const allNodes = this.el.querySelectorAll('.infinite-tree-node');
-    
-    let expandedDirCount = 0;
-    allNodes.forEach(dirNode => {
-      // Check if this node has a toggler (meaning it's a directory)
-      const toggler = dirNode.querySelector('.infinite-tree-toggler');
-      if (!toggler) return; // Not a directory
-      
-      // Check if the directory is expanded (toggler doesn't have 'infinite-tree-closed' class)
-      if (toggler.classList.contains('infinite-tree-closed')) {
-        return; // Directory is collapsed
-      }
-      
-      expandedDirCount++;
-      
-      // Get the node ID from the tree data
-      const titleElement = dirNode.querySelector('.infinite-tree-title');
-      if (!titleElement) return;
-      
-      // Find the corresponding tree node data to get the ID
-      const nodeData = this.findNodeByTitle(titleElement.textContent || '');
-      if (!nodeData || !nodeData.isDirectory) return;
-      
-      // Calculate indentation based on the node's current margin-left
-      const currentMargin = parseInt((dirNode as HTMLElement).style.marginLeft || '0px');
-      const createRowIndent = currentMargin + 16; // Add one level of indentation
-      
-      // Create the create row element
-      const createRow = document.createElement('div');
-      createRow.className = 'create-file-row';
-      createRow.textContent = '+';
-      createRow.style.cssText = `
-        margin-left: ${createRowIndent}px;
-        padding: 4px 8px;
-        color: #999;
-        cursor: pointer;
-        font-size: 16px;
-        user-select: none;
-        transition: all 0.2s ease;
-      `;
-      createRow.setAttribute('data-parent-path', nodeData.id);
-      
-      // Add hover effect
-      createRow.addEventListener('mouseenter', () => {
-        createRow.style.color = '#000';
-        createRow.style.fontWeight = 'bold';
-      });
-      createRow.addEventListener('mouseleave', () => {
-        createRow.style.color = '#999';
-        createRow.style.fontWeight = 'normal';
-      });
-      
-      // Add click handler
-      createRow.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.showCreateDialog(nodeData.id);
-      });
-      
-      // Insert the create row after all children of this directory
-      const insertionPoint = this.findCreateRowInsertionPoint(dirNode, nodeData);
-      
-      // Find the tree container to insert at the correct level
-      const treeContainer = this.el.querySelector('.infinite-tree-content');
-      if (!treeContainer) {
-        console.warn('Could not find tree container for create row insertion');
-        return;
-      }
-      
-      if (insertionPoint && insertionPoint !== dirNode) {
-        // Find the infinite-tree-item that contains the insertion point
-        let itemElement: Element | null = insertionPoint;
-        while (itemElement && !itemElement.classList.contains('infinite-tree-item')) {
-          itemElement = itemElement.parentElement;
-        }
-        
-        if (itemElement) {
-          // Insert after the tree item (as a sibling)
-          if (itemElement.nextSibling) {
-            treeContainer.insertBefore(createRow, itemElement.nextSibling);
-          } else {
-            treeContainer.appendChild(createRow);
-          }
-        } else {
-          // Fallback: insert after directory's tree item
-          let dirItemElement: Element | null = dirNode;
-          while (dirItemElement && !dirItemElement.classList.contains('infinite-tree-item')) {
-            dirItemElement = dirItemElement.parentElement;
-          }
-          if (dirItemElement && dirItemElement.nextSibling) {
-            treeContainer.insertBefore(createRow, dirItemElement.nextSibling);
-          } else if (dirItemElement) {
-            treeContainer.appendChild(createRow);
-          }
-        }
-      } else {
-        // If no children, insert after the directory's tree item
-        let dirItemElement: Element | null = dirNode;
-        while (dirItemElement && !dirItemElement.classList.contains('infinite-tree-item')) {
-          dirItemElement = dirItemElement.parentElement;
-        }
-        if (dirItemElement && dirItemElement.nextSibling) {
-          treeContainer.insertBefore(createRow, dirItemElement.nextSibling);
-        } else if (dirItemElement) {
-          treeContainer.appendChild(createRow);
-        }
-      }
-    });
-  }
 
   /**
    * Show create file/directory dialog
