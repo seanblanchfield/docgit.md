@@ -1,2 +1,5 @@
 # Ignore the embedded Git repository for wiki data
 wiki/data/repo/
+
+# Ignore locks directory
+data/locks/
