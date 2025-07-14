@@ -45,7 +45,8 @@ export class DirectoryTree {
       el,
       data: [],
       autoOpen: false,
-      childrenProperty: 'children'
+      childrenProperty: 'children',
+      rowRenderer: this.customRowRenderer.bind(this)
     });
 
     // Add manual toggle handler for directory toggler or name clicks
@@ -76,29 +77,8 @@ export class DirectoryTree {
     el.addEventListener('click', (event) => {
       const target = event.target as HTMLElement;
       
-      // Check if click is on a create node
-      if (target.closest('.create-node-button')) {
-        const nodeEl = target.closest('.infinite-tree-node');
-        if (nodeEl) {
-          const nodeId = nodeEl.getAttribute('data-id');
-          if (nodeId) {
-            const node = this.tree.getNodeById(nodeId);
-            if (node && node.isCreateItem) {
-              this.handleCreateNodeClick(node);
-              return;
-            }
-          }
-        }
-        return;
-      }
-      
-      // Check if click is on a toggler
-      const toggler = target.closest('.infinite-tree-toggler');
-      if (toggler) {
-        return; // Let the tree handle toggling
-      }
-      
-      const itemEl = target.closest('.infinite-tree-node');
+      // Get the closest tree item to determine what was clicked
+      const itemEl = target.closest('.infinite-tree-item');
       if (!itemEl) return;
       
       const nodeId = itemEl.getAttribute('data-id');
@@ -107,10 +87,25 @@ export class DirectoryTree {
       const node: TreeNode | undefined = this.tree.getNodeById(nodeId);
       if (!node) return;
 
-      // Skip create nodes for regular selection
-      if (node.isCreateItem) return;
-
-      if (node.isDirectory) {
+      // Handle create node clicks
+      if (node.isCreateItem) {
+        event.preventDefault();
+        event.stopPropagation();
+        this.handleCreateNodeClick(node);
+        return;
+      }
+      
+      // Check if click is on a toggler - let InfiniteTree handle it
+      const toggler = target.closest('.infinite-tree-toggler');
+      if (toggler) {
+        return; // Let the tree handle toggling
+      }
+      
+      // Handle directory clicks (on title, not toggler)
+      if (node.isDirectory && target.closest('.infinite-tree-title')) {
+        event.preventDefault();
+        event.stopPropagation();
+        
         const currentlyOpen = !!node.state?.open;
 
         // If collapsing and selected leaf is inside, move highlight to this directory
@@ -134,16 +129,13 @@ export class DirectoryTree {
             }
           }, 0);
         }
-      } else {
-        // If this file is already selected, prevent InfiniteTree from deselecting it
-        const alreadySelected = itemEl.classList.contains('infinite-tree-selected');
-        if (alreadySelected) {
-          
-          event.preventDefault();
-          event.stopPropagation();
-          // Re-select explicitly to ensure class stays
-          this.tree.selectNode(node);
-        }
+        return;
+      }
+      
+      // Handle file clicks - let InfiniteTree handle selection
+      if (!node.isDirectory) {
+        // Let the default behavior handle file selection
+        return;
       }
     });
 
@@ -245,6 +237,9 @@ export class DirectoryTree {
         await this.loadDirectoryContents(node);
       }
 
+      // Force re-render of the node to update triangle icon
+      this.tree.updateNode(node);
+
       if (isOpen) {
         // Section was expanded – if previously selected leaf lies inside, restore highlight to it
         if (this.lastSelectedId && this.lastSelectedId.startsWith(node.id + '/')) {
@@ -308,7 +303,7 @@ export class DirectoryTree {
         if (!hasCreateItem) {
           const createItem: TreeNode = {
             id: `${node.id}/__create__`,
-            name: '+ Add file or folder',
+            name: '+',
             isDirectory: false,
             isCreateItem: true
           };
@@ -325,7 +320,7 @@ export class DirectoryTree {
     // Add root-level create item
     const rootCreateItem: TreeNode = {
       id: '__root_create__',
-      name: '+ Add file or folder',
+      name: '+',
       isDirectory: false,
       isCreateItem: true
     };
@@ -365,6 +360,8 @@ export class DirectoryTree {
     // Step 2: Add create items at the end of each directory and at the root
     const dataWithCreateItems = this.addCreateItems(sorted);
     this.tree.loadData(dataWithCreateItems);
+
+
 
     // Auto-select default file if any
     if (this.options.selectDefault !== false) {
@@ -620,6 +617,57 @@ export class DirectoryTree {
         document.body.removeChild(overlay);
       }
     });
+  }
+
+  /**
+   * Custom row renderer that extends the default InfiniteTree renderer
+   * to add create node styling while preserving all original functionality
+   */
+  private customRowRenderer(node: any, treeOptions: any): string {
+    const { id, name } = node;
+    const isCreateItem = node.isCreateItem || false;
+    const hasChildren = node.children && node.children.length > 0;
+    
+    // Calculate depth by counting slashes in the ID (more reliable than treeOptions.depth)
+    const depth = (id.match(/\//g) || []).length;
+    
+    // Get the actual node state from the tree instance
+    const actualNode = this.tree.getNodeById(id);
+    const isOpen = actualNode?.state?.open || false;
+    
+    // Build CSS classes - start with InfiniteTree defaults
+    const classes = ['infinite-tree-item'];
+    if (isCreateItem) {
+      classes.push('create-item');
+    }
+    if (isOpen) {
+      classes.push('infinite-tree-open');
+    }
+    
+    // Build data attributes - preserve InfiniteTree defaults
+    const dataAttrs = [`data-id="${id}"`];
+    if (isCreateItem) {
+      dataAttrs.push('data-create-item="true"');
+    }
+    if (hasChildren) {
+      dataAttrs.push('data-children="true"');
+    }
+    
+    // Calculate indentation based on depth
+    const indentStyle = depth > 0 ? `style="padding-left: ${depth * 18}px"` : '';
+    
+    // Triangle icon for directories (right-pointing when closed, down-pointing when open)
+    const triangleIcon = hasChildren ? (isOpen ? '▼' : '▶') : '';
+    
+    // Build the row HTML using InfiniteTree's expected structure
+    return `
+      <div class="${classes.join(' ')}" ${dataAttrs.join(' ')} ${indentStyle}>
+        <div class="infinite-tree-node">
+          ${hasChildren ? `<span class="infinite-tree-toggler">${triangleIcon}</span>` : '<span class="infinite-tree-toggler-spacer"></span>'}
+          <span class="infinite-tree-title">${name}</span>
+        </div>
+      </div>
+    `;
   }
 
   private addIsDirectory = (node: any): any => {

@@ -259,7 +259,19 @@ body {
 .infinite-tree-toggler {
   display: inline-block;
   width: 1em;
-  text-align: center;
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+}
+
+.infinite-tree-toggler-spacer {
+  display: inline-block;
+  width: 0;
+}
+
+/* Align file titles with directory triangles - only for root level items */
+.infinite-tree-item:not([data-children]):not([style*="padding-left"]) .infinite-tree-title {
+  margin-left: -4px;
 }
 
 
@@ -477,6 +489,23 @@ body {
   text-align: center;
 }
 /* --- End InfiniteTree base styles --- */
+
+/* Create node styles */
+.infinite-tree-item.create-item .infinite-tree-title {
+  color: #999999aa;
+  text-align: center;
+  font-weight: normal;
+  cursor: pointer;
+}
+
+.infinite-tree-item.create-item:hover .infinite-tree-title {
+  color: #333;
+  font-weight: bold;
+}
+
+.infinite-tree-item.create-item {
+  cursor: pointer;
+}
 
 /* Editor status bar */
 .editor-status-bar {

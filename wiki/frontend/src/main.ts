@@ -800,6 +800,11 @@ async function updateCommitMeta(filePath: string) {
     },
     
     onFileSelect: async (node: TreeNode) => {
+      // Guard: Skip content loading for create nodes
+      if (node.isCreateItem) {
+        return;
+      }
+
       // Persist current draft before navigation
       if (dirty && currentFilePath) {
         try {

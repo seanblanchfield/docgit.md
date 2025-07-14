@@ -379,6 +379,7 @@ window.addEventListener('resize', debounce(() => {
 /* Indentation for tree hierarchy */
 .infinite-tree-node {
     /* padding-left set dynamically based on depth */
+    
 }
 
 /* Icon states */
