@@ -3,6 +3,7 @@ import { DirectoryTree, TreeNode } from './tree';
 import { setupDrawer } from './drawer';
 import { humanizeTime } from './humanize';
 import { lockService } from './lock';
+import './console-logger'; // Initialize console logging to server
 
 
 import '@milkdown/crepe/theme/common/style.css';

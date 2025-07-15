@@ -4,32 +4,35 @@
 - The project spec and plan is maintained in `spec.md`. Refer to the Project Specification rules below.
 - ALWAYS: Whenever asked to do a task, you should first update the "Work in Progress" section of the spec.
 
-Remember: This is your project. No one else is working on it. If something breaks, you are probably responsible for it and should inspect your recent actions for the cause.  
+Remember: This is your project. No one else is working on it. If something breaks, you are probably responsible for it and should inspect your recent actions for the cause.
 
 ## Project Specification
 
-The `spec.md` file contains the project specification and project spec. 
-- Update this before you make changes to the project. 
-- If you do not fully understand what section of the spec you are working on, ask the user. 
+The `spec.md` file contains the project specification and project spec.
+- Update this before you make changes to the project.
+- If you do not fully understand what section of the spec you are working on, ask the user.
 - The spec should be sufficient for a new developer to understand the project.
 - It is your job to ensure the spec is kept up to date.
 
-- Whenever something significant changes (including removal of a dependency), update the spec.  
+- Whenever something significant changes (including removal of a dependency), update the spec.
 - The start of the spec.md file includes a section called "Work in Progress".  You should update this section as you perform work. Ensure that the current step accurately refers to the part of the spec that you are working on. Update the bullet list with each step of work you perform.  Refer to this list if you need to work backwards, e.g., to trace the cause of a recently-introduced problem.
 
-As each section of the spec is done, update it by annotating the corresponding header with "[DONE]". 
+As each section of the spec is done, update it by annotating the corresponding header with "[DONE]".
 
 ## Special commands:
-* `plan` - summarise the current step of the project spec and what you are working on. Refer to the "Work in Progress" section of the plan. 
+* `story` - add the given feature or user story to the WIP plan for later implementation
+* `explain` - summarise the current step of the project spec and what you are working on. Refer to the "Work in Progress" section of the plan.
 * `commit` - Refer to the "Work in Progress" section of the spec and that the most recent piece of work is appropriately marked as 'DONE', then compact the relevant sections of the work-in-progress into a semantic commit message, and commit all the changes to any files in the project to the git repository.
-* `feature` - Start a new feature branch off the main branch for the current changes. If there are no current changes or you are unsure what feature you are working on, ask the user.
-* `merge` - Merge the current feature branch into the main branch. 
+* `branch` - Start a new feature branch off the main branch for the current changes. If there are no current changes or you are unsure what feature you are working on, ask the user.
+* `merge` - Merge the current feature branch into the main branch.
 
 ## Testing
 You should do whatever you can to test your own work, and don't ask the user to do something you can just as easily do yourself.
 - Use `curl` to test that an endpoint is working as expected.
 - Use the puppeteer tool to test that a frontend feature looks correct.
-- Restart the docker stack as necessary.
+- Restart the backend docker container if necessary
+- Debug the frontend by inserting browser console log messages  (console.log, console.info, console.warn, console.error,
+  console.debug), which can be viewed by checking the backend container logs (they are all forwarded to the backend).
 
 ### Docker
 

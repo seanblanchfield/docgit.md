@@ -107,3 +107,17 @@ class MoveDirectoryResponse(BaseModel):
     destination_path: str
     message: str
     commit_sha: Optional[str]
+
+
+# Console logging schemas for forwarding browser console messages to server
+class ConsoleMessage(BaseModel):
+    level: Literal["log", "info", "warn", "error", "debug"]  # Console log level
+    message: str  # The actual log message
+    timestamp: str  # ISO format timestamp from frontend
+    url: Optional[str] = None  # Current page URL when logged
+    user_agent: Optional[str] = None  # Browser user agent
+    stack_trace: Optional[str] = None  # Stack trace for errors
+
+class ConsoleLogResponse(BaseModel):
+    status: str  # Success/failure status
+    logged_at: str  # Server timestamp when logged

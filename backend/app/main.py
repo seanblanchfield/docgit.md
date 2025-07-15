@@ -1,7 +1,8 @@
-from fastapi import FastAPI, Depends, HTTPException, Header, BackgroundTasks
+from fastapi import FastAPI, Depends, HTTPException, Header, BackgroundTasks, Request
 from typing import List, Optional
 import asyncio
 import logging
+from datetime import datetime
 from . import schemas
 from .schemas import TreeNode # Added for the directory tree endpoint
 from .config import settings
@@ -47,6 +48,42 @@ def get_git_service() -> GitService:
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
+
+@app.post("/api/console-log", response_model=schemas.ConsoleLogResponse)
+async def log_console_message(console_msg: schemas.ConsoleMessage, request: Request):
+    """
+    Receive console messages from frontend and log them on the server.
+    This allows browser console messages to appear in docker logs alongside server logs.
+    """
+    # Get client IP and user agent from request
+    client_ip = request.client.host if request.client else "unknown"
+    user_agent = console_msg.user_agent or request.headers.get("user-agent", "unknown")
+    
+    # Create structured log message
+    log_prefix = f"[BROWSER-CONSOLE] [{console_msg.level.upper()}] [{client_ip}]"
+    log_message = f"{log_prefix} {console_msg.message}"
+    
+    # Add additional context if available
+    if console_msg.url:
+        log_message += f" | URL: {console_msg.url}"
+    if console_msg.stack_trace:
+        log_message += f" | Stack: {console_msg.stack_trace}"
+    
+    # Log to server console based on level
+    if console_msg.level in ["error"]:
+        logger.error(log_message)
+    elif console_msg.level in ["warn"]:
+        logger.warning(log_message)
+    elif console_msg.level in ["info"]:
+        logger.info(log_message)
+    else:  # log, debug, or other levels
+        logger.debug(log_message)
+    
+    # Return response with server timestamp
+    return schemas.ConsoleLogResponse(
+        status="logged",
+        logged_at=datetime.utcnow().isoformat() + "Z"
+    )
 
 @app.get("/api/files", response_model=List[schemas.FileListItem])
 async def list_repository_files(
