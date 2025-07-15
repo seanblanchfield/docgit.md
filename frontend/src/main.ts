@@ -72,27 +72,29 @@ async function releaseLockForFile(filePath: string): Promise<void> {
   }
 }
 
-function showLockConflictNotification(conflict: any): void {
-  const message = `File is locked by ${conflict.detail.lock_info.owner}. You cannot edit this file until the lock is released.`;
-  
-  // Create a simple notification (you could replace this with a proper modal)
+// Generic notification helper
+function showNotification(type: 'lock-conflict' | 'lock-lost' | 'save-error', title: string, message: string): void {
   const notification = document.createElement('div');
-  notification.className = 'lock-conflict-notification';
+  notification.className = `${type}-notification`;
   notification.innerHTML = `
     <div class="notification-content">
-      <strong>File Locked</strong><br>
+      <strong>${title}</strong><br>
       ${message}
     </div>
   `;
   
   document.body.appendChild(notification);
   
-  // Auto-remove after 5 seconds
   setTimeout(() => {
     if (notification.parentNode) {
       notification.parentNode.removeChild(notification);
     }
   }, 5000);
+}
+
+function showLockConflictNotification(conflict: any): void {
+  const message = `File is locked by ${conflict.detail.lock_info.owner}. You cannot edit this file until the lock is released.`;
+  showNotification('lock-conflict', 'File Locked', message);
 }
 
 // Set up lock service callback for when locks are lost
@@ -102,23 +104,7 @@ lockService.onLockLost = (filePath: string) => {
     directoryTree.updateLockStatus(filePath);
   }
   
-  // Show notification to user
-  const notification = document.createElement('div');
-  notification.className = 'lock-lost-notification';
-  notification.innerHTML = `
-    <div class="notification-content">
-      <strong>Lock Expired</strong><br>
-      Your edit lock for "${filePath}" has expired. Your changes may not be saved.
-    </div>
-  `;
-  
-  document.body.appendChild(notification);
-  
-  setTimeout(() => {
-    if (notification.parentNode) {
-      notification.parentNode.removeChild(notification);
-    }
-  }, 5000);
+  showNotification('lock-lost', 'Lock Expired', `Your edit lock for "${filePath}" has expired. Your changes may not be saved.`);
 };
 
 async function fetchFileContent(filePath: string): Promise<string> {
@@ -580,23 +566,7 @@ async function updateCommitMeta(filePath: string) {
     } catch (error) {
       console.error('Save error:', error);
       
-      // Show error notification
-      const notification = document.createElement('div');
-      notification.className = 'save-error-notification';
-      notification.innerHTML = `
-        <div class="notification-content">
-          <strong>Save Failed</strong><br>
-          ${error instanceof Error ? error.message : 'Unknown error occurred'}
-        </div>
-      `;
-      
-      document.body.appendChild(notification);
-      
-      setTimeout(() => {
-        if (notification.parentNode) {
-          notification.parentNode.removeChild(notification);
-        }
-      }, 5000);
+      showNotification('save-error', 'Save Failed', error instanceof Error ? error.message : 'Unknown error occurred');
     }
   }
 
