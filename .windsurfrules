@@ -22,6 +22,8 @@ As each section of the spec is done, update it by annotating the corresponding h
 ## Special commands:
 * `plan` - summarise the current step of the project spec and what you are working on. Refer to the "Work in Progress" section of the plan. 
 * `commit` - Refer to the "Work in Progress" section of the spec and that the most recent piece of work is appropriately marked as 'DONE', then compact the relevant sections of the work-in-progress into a semantic commit message, and commit all the changes to any files in the project to the git repository.
+* `feature` - Start a new feature branch off the main branch for the current changes. If there are no current changes or you are unsure what feature you are working on, ask the user.
+* `merge` - Merge the current feature branch into the main branch. 
 
 ## Testing
 You should do whatever you can to test your own work, and don't ask the user to do something you can just as easily do yourself.
