@@ -1,6 +1,6 @@
-# mdcanvas
+# docgit.md
 
-**mdcanvas** is a lightweight, self-hosted wiki where every page is a Markdown file stored and versioned in a Git repository.
+**docgit.md** is a lightweight, self-hosted wiki where every page is a Markdown file stored and versioned in a Git repository.
 
 ## Project Overview
 
@@ -24,18 +24,18 @@ This project provides a simple and effective way to create and manage a personal
 
 ## Getting Started
 
-To get started with **mdcanvas**, you will need to have Docker and Docker Compose installed.
+To get started with **docgit.md**, you will need to have Docker and Docker Compose installed.
 
 1.  Clone the repository:
 
     ```bash
-    git clone https://github.com/your-username/mdcanvas.git
+    git clone https://github.com/your-username/docgit.md.git
     ```
 
 2.  Navigate to the `wiki` directory:
 
     ```bash
-    cd mdcanvas/wiki
+    cd docgit.md/wiki
     ```
 
 3.  Start the application:
@@ -72,18 +72,18 @@ responsive drawer│                                        │ Remote git? │ 
 
 ## Getting Started
 
-To get started with **mdcanvas**, you will need to have Docker and Docker Compose installed.
+To get started with **docgit.md**, you will need to have Docker and Docker Compose installed.
 
 1.  Clone the repository:
 
     ```bash
-    git clone https://github.com/your-username/mdcanvas.git
+    git clone https://github.com/your-username/docgit.md.git
     ```
 
 2.  Navigate to the `wiki` directory:
 
     ```bash
-    cd mdcanvas/wiki
+    cd docgit.md/wiki
     ```
 
 3.  Start the application:

@@ -2,6 +2,14 @@
 Current phase: Frontend File Operations UI Implementation
 🔄 **Current Task:** Create Row UI/UX Improvements
 
+_Recently completed:_
+- ✅ **Spec Review and Corrections:** [DONE]
+  - ✅ Updated Section 3 directory layout to reflect actual project structure
+  - ✅ Removed outdated wiki/ top-level directory reference
+  - ✅ Updated Section 4 architecture diagram for accuracy
+  - ✅ Corrected frontend description (vanilla TypeScript, not React)
+  - ✅ Added missing files and directories to spec
+
 _Progress on create row functionality:_
 - ✅ **Data-Driven Create Row Implementation:**
   - ✅ Implemented robust data-driven approach using virtual create nodes
@@ -87,43 +95,30 @@ Implementation roadmap (✅ = done, 🔄 = in progress). *Stop after each **Chec
 |11 | **Preference Persistence** | • Store collapsed state, drawer widths, etc. | UX persists across reload. |
 |12 | **User Acceptance Regression** | • Run full E2E test script (Puppeteer).<br>• Collect feedback, adjust UI polish. | Green-light from user. |
 
----
 
-### Simplified Tree Implementation Details
+# Project Specification – "Git-Backed Markdown Wiki"
 
-#### Data Structure
-```typescript
-interface TreeNode {
-  id: string;          // Full path
-  name: string;        // Display name
-  isDirectory: boolean;
-  children?: TreeNode[];
-  state?: {
-    depth?: number;
-    open?: boolean;
-    selected?: boolean;
-    loading?: boolean;
-  };
-}
-```
+## Table of Contents
 
-#### Key Features
-- Simplified to show only folder/file names
-- Lazy loading of directory contents
-- Basic expand/collapse functionality
-- Visual indicators for directories and files
-- Loading states for async operations
-
-#### Backend Integration
-- GET `/api/files/tree` - Initial tree structure
-- GET `/api/files/{path}` - Lazy load directory contents
-- Uses standard HTTP status codes for error handling
+1. [Overview](#1-overview)
+2. [Primary Use-Cases](#2-primary-use-cases)
+3. [Top-Level Directory Layout](#3-top-level-directory-layout)
+4. [Architecture Diagram](#4-architecture-diagram-high-level)
+5. [Frontend Specification](#5-frontend-specification)
+   - [5.1 Tree Drawer UX](#51-tree-drawer-ux-done)
+   - [5.7 Editor Modes](#57-editor-modes-view--wysiwyg--raw)
+   - [5.8 Auto-Save & Concurrency](#58-auto-save--concurrency-turn-based-editing)
+6. [Backend Specification](#6-backend-specification-fastapi)
+7. [Docker & Compose](#7-docker--compose)
+8. [Environment Variables](#8-environment-variables)
+9. [Local Dev Workflow](#9-local-dev-workflow)
+10. [Production Notes](#10-production-notes)
+11. [Non-functional Requirements](#11-non-functional-requirements)
+12. [Stretch Goals](#12-stretch-goals)
 
 ---
 
-# Project Specification – “Git-Backed Markdown Wiki”
-
-#### 1  Overview
+## 1  Overview
 
 Build a lightweight self-hosted wiki where every page is a Markdown file stored and versioned in a Git repository.
 
@@ -135,7 +130,7 @@ Build a lightweight self-hosted wiki where every page is a Markdown file stored 
 
 ---
 
-#### 2  Primary Use-Cases
+## 2  Primary Use-Cases
 
 | ID | Description                                           |
 | -- | ----------------------------------------------------- |
@@ -147,44 +142,57 @@ Build a lightweight self-hosted wiki where every page is a Markdown file stored 
 
 ---
 
-#### 3  Top-Level Directory Layout
+## 3  Top-Level Directory Layout
 
 ```
-wiki/
+.
 ├── docker/
 │   ├── backend.Dockerfile
 │   ├── frontend.Dockerfile
+│   ├── frontend.dev.Dockerfile
 │   └── nginx.conf
 ├── compose.yaml
-├── frontend/     # Vite React app
+├── run-node.sh   # Script for running npm commands in Docker
+├── frontend/     # Vite TypeScript app (vanilla, not React)
 ├── backend/      # FastAPI service
-└── data/
-    └── repo/.git  (mounted volume for persistence)
+├── data/
+│   ├── locks/    # File-based lock storage
+│   └── repo/     # Git repository (mounted volume for persistence)
+├── spec.md       # Project specification
+├── README.md     # Project documentation
+├── .gitignore
+└── .dockerignore
 ```
 
 ---
 
-#### 4  Architecture Diagram (high-level)
+## 4  Architecture Diagram (high-level)
 
 ```
-┌──────────────┐           HTTPS            ┌────────────────┐
+┌──────────────┐           HTTP             ┌────────────────┐
 │      UI      │  ───────→ /api/*  ───────→ │  FastAPI app   │──┐
-│ (Vite build) │  Static  │                 └────────────────┘  │
-└──────────────┘  assets  │                     │GitPython       │
-        ▲                Nginx                 repo volume       │
+│ (Vite dev)   │                            └────────────────┘  │
+└──────────────┘                                │GitPython       │
+        ▲                                    repo volume         │
         │                                         │              │
    infinite-tree                              commits           │
    Milkdown editor                                              Git
         │                                                       │
 Mobile/desktop ▲                                        ┌──────────────┐
 responsive drawer│                                        │ Remote git? │ (optional push)
+                                                         └──────────────┘
+                                                                │
+                                                         ┌──────────────┐
+                                                         │ Lock Storage │
+                                                         │ (file-based) │
+                                                         └──────────────┘
 ```
 
 ---
 
-#### 5  Frontend Specification
+## 5  Frontend Specification
 
-##### 5.1  Tree Drawer UX  [DONE]
+### 5.1  Tree Drawer UX  [DONE]
 
 A collapsible left-hand drawer hosts the directory tree.
 
@@ -211,7 +219,7 @@ A collapsible left-hand drawer hosts the directory tree.
 
 ---
 
-##### 5.7 Editor Modes (View / WYSIWYG / Raw)
+### 5.7 Editor Modes (View / WYSIWYG / Raw)
 
 * **Modes**
   * **View** – Rendered HTML (read-only) via `markdown-it` (lightweight) or Milkdown in readOnly.
@@ -225,7 +233,7 @@ A collapsible left-hand drawer hosts the directory tree.
 * **Unsaved Detection** – Common store (currentMarkdown) updated on change events from either editor; diff vs baseline to compute "unsaved" flag.
 * **Keyboard Shortcut** – `Ctrl+E` cycles modes.
 
-##### 5.8 Auto-Save & Concurrency (Turn-Based Editing)
+### 5.8 Auto-Save & Concurrency (Turn-Based Editing)
 
 * **Local Drafts** – Editor serializes markdown to `localStorage.draft:<file>` every 10 s along with `base_sha`.
 * **Edit Lock API** – `POST /api/lock/{path}` obtains a lock (returns `lock_id`, TTL 5 min, refreshed on activity). If lock exists, server returns `423 Locked` with lock owner info; client enters read-only mode and displays banner.
@@ -240,7 +248,7 @@ A collapsible left-hand drawer hosts the directory tree.
 
 ---
 
-#### 6  Backend Specification (FastAPI)
+## 6  Backend Specification (FastAPI)
 
 | Endpoint                   | Method | Payload / Query        | Purpose                                    |
 | -------------------------- | ------ | ---------------------- | ------------------------------------------ |
@@ -443,7 +451,7 @@ This system ensures robust collaborative editing with clear user feedback and gr
 
 ---
 
-#### 7  Docker & Compose
+## 7  Docker & Compose
 
 **7.1 backend.Dockerfile**
 
@@ -496,7 +504,7 @@ Developers run `docker compose up --build`.
 
 ---
 
-#### 8  Environment Variables
+## 8  Environment Variables
 
 | Var                                   | Purpose                               | Default                                                     |
 | ------------------------------------- | ------------------------------------- | ----------------------------------------------------------- |
@@ -506,7 +514,7 @@ Developers run `docker compose up --build`.
 
 ---
 
-#### 9  Local Dev Workflow
+## 9  Local Dev Workflow
 
 ```bash
 # one time
@@ -524,7 +532,7 @@ npm run dev --prefix frontend
 
 ---
 
-#### 10  Production Notes
+## 10  Production Notes
 
 * TLS termination handled by upstream reverse-proxy (e.g. Caddy or Traefik).
 * Enable read-only filesystem except for mounted repo volume.
@@ -532,7 +540,7 @@ npm run dev --prefix frontend
 
 ---
 
-#### 11  Non-functional Requirements
+## 11  Non-functional Requirements
 
 | Category        | Target                                                                                        |
 | --------------- | --------------------------------------------------------------------------------------------- |
@@ -543,7 +551,7 @@ npm run dev --prefix frontend
 
 ---
 
-#### 12  Stretch Goals
+## 12  Stretch Goals
 
 * Live-collaboration via Milkdown’s Y.js bridge.
 * Full-text search (use ripgrep + WASM on backend).

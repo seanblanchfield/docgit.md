@@ -1,3 +1,15 @@
+# Node.js and pnpm specific
+frontend/node_modules/
+frontend/.pnpm-store/
+
+# IDE and OS files
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/
+
+
 # Ignore the embedded Git repository for wiki data
 wiki/data/repo/
 
