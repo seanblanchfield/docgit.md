@@ -85,14 +85,14 @@ Implementation roadmap (✅ = done, 🔄 = in progress). *Stop after each **Chec
 | 1 | **Status-Bar Skeleton** [DONE] | • Add fixed container (flex, 40 px) in `Editor.tsx`.<br>• Add placeholder slots for mode control, unsaved pill, commit meta, history & revert buttons.<br>• Basic styling in `styles.css`. | UI screenshot + a11y audit. |
 | 2 | **Mode Switch Control** [DONE] | • Segmented control `View | WYSIWYG | Raw`.<br>• Wire to Milkdown `readOnly` and raw `<textarea>` views.<br>• Persist choice in `localStorage.editorMode`.<br>• Shortcut `Ctrl+E` cycles modes. | Demo switching between modes with sample doc. |
 | 3 | **Unsaved Indicator & Local Drafts** [DONE] | • Compute dirty flag via baseline SHA diff.<br>• Auto-save buffer to `localStorage.draft:<path>` every 10 s.<br>• Show orange "Unsaved" pill when dirty. | Refresh page → pill persists; user confirmation. |
-| 4 | **Last-Commit Meta Display** | • Call `/api/history/{path}?limit=1`.<br>• Show "Author — relative time" text.<br>• Tooltip with full SHA + message. | Demo with file having recent commit. |
+| 4 | **Last-Commit Meta Display** [DONE] | • Call `/api/history/{path}?limit=1`.<br>• Show "Author — relative time" text.<br>• Tooltip with full SHA + message. | Demo with file having recent commit. |
 | 5 | **Revert/Discard Local Draft** [DONE] | • "Revert" icon clears draft key & reloads from backend.<br>• Confirmation dialog. | Confirm that dirty pill disappears after revert. |
-| 6 | **History Drawer** | • Side panel listing commits (reuse `/api/history`).<br>• Clicking entry opens diff (`/api/diff`). | Walkthrough diff view. |
-| 7 | **Edit-Lock Backend** | • Endpoint `POST /api/lock/{path}` (lock_id, TTL 5 min).<br>• Middleware to enforce lock for PUT/auto-save.<br>• Auto-refresh lock ping every 60 s. | Unit tests + curl demo acquiring/denying lock. |
-| 8 | **Lock UI Integration** | • On 423 response show red banner "Sean is editing…".<br>• Disable editing; allow View mode. | Simulate double-tab scenario; banner appears. |
-| 9 | **Backend Auto-Save Commit (+amend)** | • PUT `/api/file/{path}` accepts `lock_id` & `base_sha`.<br>• If `base_sha==HEAD` and author matches, `git commit --amend` else new commit.<br>• Release lock on success. | Run auto-save; inspect git log (single commit). |
-|10 | **Client Auto-Save Trigger** | • 5-min inactivity or manual save button.<br>• Payload includes `lock_id` & `base_sha`.<br>• On success clear draft, refresh baseline SHA. | Demo end-to-end save cycle. |
-|11 | **Preference Persistence** | • Store collapsed state, drawer widths, etc. | UX persists across reload. |
+| 6 | **History Drawer** [DONE] | • Side panel listing commits (reuse `/api/history`).<br>• Clicking entry opens diff (`/api/diff`). | Walkthrough diff view. |
+| 7 | **Edit-Lock Backend** [DONE] | • Endpoint `POST /api/lock/{path}` (lock_id, TTL 5 min).<br>• Middleware to enforce lock for PUT/auto-save.<br>• Auto-refresh lock ping every 60 s. | Unit tests + curl demo acquiring/denying lock. |
+| 8 | **Lock UI Integration** [DONE] | • On 423 response show red banner "Sean is editing…".<br>• Disable editing; allow View mode. | Simulate double-tab scenario; banner appears. |
+| 9 | **Backend Auto-Save Commit (+amend)** [DONE] | • PUT `/api/file/{path}` accepts `lock_id` & `base_sha`.<br>• If `base_sha==HEAD` and author matches, `git commit --amend` else new commit.<br>• Release lock on success. | Run auto-save; inspect git log (single commit). |
+|10 | **Client Auto-Save Trigger** [DONE] | • 5-min inactivity or manual save button.<br>• Payload includes `lock_id` & `base_sha`.<br>• On success clear draft, refresh baseline SHA. | Demo end-to-end save cycle. |
+|11 | **Preference Persistence** [DONE] | • Store collapsed state, drawer widths, etc. | UX persists across reload. |
 |12 | **User Acceptance Regression** | • Run full E2E test script (Puppeteer).<br>• Collect feedback, adjust UI polish. | Green-light from user. |
 
 
@@ -102,19 +102,24 @@ Implementation roadmap (✅ = done, 🔄 = in progress). *Stop after each **Chec
 
 1. [Overview](#1-overview)
 2. [Primary Use-Cases](#2-primary-use-cases)
-3. [Top-Level Directory Layout](#3-top-level-directory-layout)
-4. [Architecture Diagram](#4-architecture-diagram-high-level)
-5. [Frontend Specification](#5-frontend-specification)
-   - [5.1 Tree Drawer UX](#51-tree-drawer-ux-done)
-   - [5.7 Editor Modes](#57-editor-modes-view--wysiwyg--raw)
-   - [5.8 Auto-Save & Concurrency](#58-auto-save--concurrency-turn-based-editing)
-6. [Backend Specification](#6-backend-specification-fastapi)
-7. [Docker & Compose](#7-docker--compose)
-8. [Environment Variables](#8-environment-variables)
-9. [Local Dev Workflow](#9-local-dev-workflow)
-10. [Production Notes](#10-production-notes)
-11. [Non-functional Requirements](#11-non-functional-requirements)
-12. [Stretch Goals](#12-stretch-goals)
+3. [Architecture Diagram](#3-architecture-diagram-high-level)
+4. [Top-Level Directory Layout](#4-top-level-directory-layout)
+5. [Project File Overview](#5-project-file-overview)
+6. [Frontend Specification](#6-frontend-specification)
+   - [6.1 Tree Drawer UX](#61-tree-drawer-ux-done)
+   - [6.7 Editor Modes](#67-editor-modes-view--wysiwyg--raw)
+   - [6.8 Auto-Save & Concurrency](#68-auto-save--concurrency-turn-based-editing)
+   - [6.9 Status Bar & Editor Controls](#69-status-bar--editor-controls-done)
+   - [6.10 History & Diff Viewer](#610-history--diff-viewer-done)
+   - [6.11 Lock Management & Conflict Resolution](#611-lock-management--conflict-resolution-done)
+   - [6.12 File Tree Operations](#612-file-tree-operations-done)
+7. [Backend Specification](#7-backend-specification-fastapi)
+8. [Docker & Compose](#8-docker--compose)
+9. [Environment Variables](#9-environment-variables)
+10. [Local Dev Workflow](#10-local-dev-workflow)
+11. [Production Notes](#11-production-notes)
+12. [Non-functional Requirements](#12-non-functional-requirements)
+13. [Stretch Goals](#13-stretch-goals)
 
 ---
 
@@ -142,31 +147,7 @@ Build a lightweight self-hosted wiki where every page is a Markdown file stored 
 
 ---
 
-## 3  Top-Level Directory Layout
-
-```
-.
-├── docker/
-│   ├── backend.Dockerfile
-│   ├── frontend.Dockerfile
-│   ├── frontend.dev.Dockerfile
-│   └── nginx.conf
-├── compose.yaml
-├── run-node.sh   # Script for running npm commands in Docker
-├── frontend/     # Vite TypeScript app (vanilla, not React)
-├── backend/      # FastAPI service
-├── data/
-│   ├── locks/    # File-based lock storage
-│   └── repo/     # Git repository (mounted volume for persistence)
-├── spec.md       # Project specification
-├── README.md     # Project documentation
-├── .gitignore
-└── .dockerignore
-```
-
----
-
-## 4  Architecture Diagram (high-level)
+## 3  Architecture Diagram (high-level)
 
 ```
 ┌──────────────┐           HTTP             ┌────────────────┐
@@ -190,9 +171,119 @@ responsive drawer│                                        │ Remote git? │ 
 
 ---
 
-## 5  Frontend Specification
+## 4  Top-Level Directory Layout
 
-### 5.1  Tree Drawer UX  [DONE]
+```
+.
+├── docker/
+│   ├── backend.Dockerfile
+│   ├── frontend.Dockerfile
+│   ├── frontend.dev.Dockerfile
+│   └── nginx.conf
+├── compose.yaml
+├── run-node.sh   # Script for running npm commands in Docker
+├── frontend/     # Vite TypeScript app (vanilla, not React)
+├── backend/      # FastAPI service
+├── data/
+│   ├── locks/    # File-based lock storage
+│   └── repo/     # Git repository (mounted volume for persistence)
+├── spec.md       # Project specification
+├── README.md     # Project documentation
+├── .gitignore
+└── .dockerignore
+```
+
+---
+
+## 5  Project File Overview
+
+This section provides a detailed overview of the main files and directories in the project, designed to help AI agents quickly understand the codebase structure and functionality.
+
+### 5.1 Root Level Files
+
+| File | Purpose | Key Details |
+|------|---------|-------------|
+| `compose.yaml` | Docker Compose configuration | Defines 3 services: backend (FastAPI), frontend (Vite dev server), nginx (reverse proxy). Uses named volumes for repo data and lock storage. |
+| `run-node.sh` | Node.js command runner | Shell script for running npm commands inside Docker containers during development. |
+| `spec.md` | Project specification | Complete technical specification including architecture, API endpoints, frontend components, and implementation roadmap. |
+| `README.md` | Project documentation | Main project documentation with setup and usage instructions. |
+
+### 5.2 Backend Directory (`backend/`)
+
+| File | Purpose | Key Details |
+|------|---------|-------------|
+| `app/main.py` | FastAPI application entry point | Contains all HTTP endpoints for file operations, history, diff, and lock management. Implements background lock cleanup task. |
+| `app/git_service.py` | Git operations service | Wraps GitPython for repository operations: file CRUD, history retrieval, diff generation, commit management. |
+| `app/file_lock_service.py` | Concurrent editing lock system | File-based locking with JSON metadata storage. Manages lock acquisition, refresh, release, and cleanup. |
+| `app/schemas.py` | Pydantic data models | Request/response schemas for all API endpoints including file operations, commits, diffs, and lock management. |
+| `app/config.py` | Application configuration | Settings management using Pydantic for environment variables and defaults. |
+| `requirements.txt` | Python dependencies | FastAPI, GitPython, Pydantic, and other backend dependencies. |
+
+### 5.3 Frontend Directory (`frontend/`)
+
+| File | Purpose | Key Details |
+|------|---------|-------------|
+| `src/main.ts` | Application entry point | Initializes editor, tree, drawer, and lock management. Handles file selection, mode switching, and save operations. |
+| `src/content.ts` | Markdown editor integration | Wraps Milkdown editor with custom configuration for WYSIWYG markdown editing. |
+| `src/tree.ts` | Directory tree component | Implements file tree using infinite-tree library with create/edit functionality and lock status indicators. |
+| `src/drawer.ts` | Sidebar drawer functionality | Handles resizable drawer with persistence, mobile behavior, and toggle functionality. |
+| `src/lock.ts` | Lock service client | Frontend lock management: acquisition, refresh, release, status checking, and conflict handling. |
+| `src/humanize.ts` | Time/name formatting utilities | Humanizes timestamps and file names for better UX. |
+| `src/styles.css` | Application styles | Complete CSS for layout, components, editor modes, lock states, and responsive design. |
+| `index.html` | HTML template | Single-page application shell with editor container, tree drawer, and status elements. |
+| `package.json` | Node.js configuration | Vite, TypeScript, Milkdown, infinite-tree, and other frontend dependencies. Uses pnpm package manager. |
+
+### 5.4 Docker Directory (`docker/`)
+
+| File | Purpose | Key Details |
+|------|---------|-------------|
+| `backend.Dockerfile` | Backend container definition | Python 3.12 slim image with FastAPI, GitPython, and application dependencies. |
+| `frontend.Dockerfile` | Frontend production build | Multi-stage build: Node.js for compilation, nginx for serving static assets. |
+| `frontend.dev.Dockerfile` | Frontend development container | Vite dev server with live reload and source mounting for development. |
+| `nginx.conf` | Nginx reverse proxy config | Routes `/api/*` to backend, serves frontend assets, handles CORS and static files. |
+
+### 5.5 Data Directory (`data/`)
+
+| Directory | Purpose | Key Details |
+|-----------|---------|-------------|
+| `repo/` | Git repository storage | Contains the actual wiki content as markdown files in a Git repository. Mounted as Docker volume. |
+| `locks/` | Lock files storage | File-based lock storage with JSON metadata. Each lock is a separate file with TTL and ownership info. |
+
+### 5.6 Key Implementation Patterns
+
+**Lock Management:**
+- Backend: File-based locks in `/locks` directory with JSON metadata
+- Frontend: Auto-refresh every 2 minutes, conflict detection, graceful fallback to read-only
+- Integration: Lock enforcement on save operations, visual indicators in UI
+
+**Editor Architecture:**
+- Three modes: Read (rendered), WYSIWYG (Milkdown), Raw (textarea)
+- Auto-save drafts to localStorage every 10 seconds
+- Dirty detection via baseline comparison every 2 seconds
+- Mode persistence in localStorage
+
+**Git Integration:**
+- All file operations automatically create Git commits
+- History and diff endpoints for version control features
+- GitPython wraps Git operations with error handling
+
+**Frontend State Management:**
+- No framework - vanilla TypeScript with custom state management
+- Lock state synchronized between components
+- File modification tracking with visual indicators
+
+**API Design:**
+- RESTful endpoints with proper HTTP status codes
+- Comprehensive error handling and validation
+- Lock enforcement via HTTP headers
+
+This architecture provides a robust, git-backed markdown wiki with collaborative editing protection and a modern web interface.
+
+---
+
+## 6  Frontend Specification
+
+### 6.1  Tree Drawer UX  [DONE]
 
 A collapsible left-hand drawer hosts the directory tree.
 
@@ -211,15 +302,15 @@ A collapsible left-hand drawer hosts the directory tree.
 | **Bootstrapping**            | `npm create vite@latest wiki-frontend -- --template vanilla-ts` |
 | **Styling**                  | Custom CSS with vanilla styling |
 | **State/Data fetch**         | Native `fetch` API for data fetching |
-| **5.1 Milkdown Integration** | Using `@milkdown/crepe` for WYSIWYG markdown editing |
-| **5.2 Directory Tree**       | Using `infinite-tree` for file navigation |
-| **5.3 Tree Data model**      | `{ id: string, name: string, children?: TreeNodeData[] }` from `/api/files/tree` |
-| **5.5 Creating files**       | “New Page” button in drawer footer → prompt path → POST `/api/file` → optimistic tree update → open editor with stub front-matter.                                                                                                                                 |                                                        |
-| **5.6 Responsive behaviour** | On xs screens, Sheet slides over content; on ≥md screens it docks (`md:static md:translate-x-0`).                                                                                                                                                                  |                                                        |
+| **6.2 Milkdown Integration** | Using `@milkdown/crepe` for WYSIWYG markdown editing |
+| **6.3 Directory Tree**       | Using `infinite-tree` for file navigation |
+| **6.4 Tree Data model**      | `{ id: string, name: string, children?: TreeNodeData[] }` from `/api/files/tree` |
+| **6.5 Creating files**       | Create row implementation with virtual nodes for file/directory creation |
+| **6.6 Responsive behaviour** | Drawer slides over content on mobile; docks on desktop with resizable width |
 
 ---
 
-### 5.7 Editor Modes (View / WYSIWYG / Raw)
+### 6.7 Editor Modes (View / WYSIWYG / Raw)
 
 * **Modes**
   * **View** – Rendered HTML (read-only) via `markdown-it` (lightweight) or Milkdown in readOnly.
@@ -233,7 +324,7 @@ A collapsible left-hand drawer hosts the directory tree.
 * **Unsaved Detection** – Common store (currentMarkdown) updated on change events from either editor; diff vs baseline to compute "unsaved" flag.
 * **Keyboard Shortcut** – `Ctrl+E` cycles modes.
 
-### 5.8 Auto-Save & Concurrency (Turn-Based Editing)
+### 6.8 Auto-Save & Concurrency (Turn-Based Editing) [DONE]
 
 * **Local Drafts** – Editor serializes markdown to `localStorage.draft:<file>` every 10 s along with `base_sha`.
 * **Edit Lock API** – `POST /api/lock/{path}` obtains a lock (returns `lock_id`, TTL 5 min, refreshed on activity). If lock exists, server returns `423 Locked` with lock owner info; client enters read-only mode and displays banner.
@@ -246,20 +337,77 @@ A collapsible left-hand drawer hosts the directory tree.
 * **History Hygiene** – `--amend` keeps one commit per editing turn. Long idle gaps naturally create new commits, giving meaningful snapshots.
 * **Future Enhancements** – Replace locking with real-time CRDT + AI-assisted merge & commit-message generation.
 
+### 6.9 Status Bar & Editor Controls [DONE]
+
+* **Status Bar Layout** – Fixed 40px container with flex layout containing mode controls, unsaved indicator, commit metadata, and action buttons.
+* **Unsaved Indicator** – Orange "Unsaved" pill displayed when content differs from baseline; persists across page reloads via localStorage.
+* **Save Controls** – Manual save button (Ctrl+S shortcut) and discard button with confirmation dialog.
+* **Commit Metadata Display** – Shows "Author — relative time" format for last commit with tooltip containing full commit message.
+* **Lock Status Integration** – Status bar shows lock owner when file is locked by another user instead of commit info.
+
+### 6.10 History & Diff Viewer [DONE]
+
+* **History Drawer** – Collapsible side panel listing complete commit history for current file.
+* **Commit List** – Each entry shows author, relative time, short SHA, and commit message with click-to-view-diff functionality.
+* **Diff View** – Unified diff display with syntax highlighting for additions, deletions, and context lines.
+* **Navigation** – Back button to return from diff view to history list; integrated with main history button in status bar.
+* **API Integration** – Uses `/api/history/{path}` for commit list and `/api/diff/{path}?sha1=parent&sha2=commit` for diff content.
+
+### 6.11 Lock Management & Conflict Resolution [DONE]
+
+* **Visual Lock Indicators** – Tree items show lock status; editor header displays current lock owner information.
+* **Automatic Lock Acquisition** – Locks acquired on file selection (with notification suppression on page load).
+* **Lock Refresh** – Auto-refresh every 2 minutes to maintain lock during active editing sessions.
+* **Conflict Handling** – Graceful fallback to read-only mode when locks conflict; edit buttons disabled with tooltips.
+* **Lock Release** – Automatic cleanup on file navigation and page unload; manual release via API.
+* **User Feedback** – Slide-out notifications for lock conflicts and expiration with 5-second auto-dismiss.
+
+### 6.12 File Tree Operations [DONE]
+
+* **Create Row Implementation** – Virtual create nodes at end of each directory using data-driven approach.
+* **Optimistic Updates** – Tree state updates immediately on file operations with rollback on API errors.
+* **State Persistence** – Tree expansion state and file modification indicators persist in localStorage.
+* **Lock Status Display** – Visual indicators in tree for files currently locked by users.
+* **Deep Linking** – URL path synchronization for direct file navigation and bookmarking.
+
 ---
 
-## 6  Backend Specification (FastAPI)
+## 7  Backend Specification (FastAPI)
+
+### 7.1 Core API Endpoints
 
 | Endpoint                   | Method | Payload / Query        | Purpose                                    |
 | -------------------------- | ------ | ---------------------- | ------------------------------------------ |
-| `/api/tree`                | GET    | `?depth` (opt)         | JSON list of files + dirs (see §5.3).      |
-| `/api/file/{path:path}`    | GET    | –                      | Raw Markdown.                              |
-| `/api/file`                | POST   | `{ path, content }`    | Create new file & commit.                  |
-| `/api/file/{path:path}`    | PUT    | `{ content, message }` | Update file & commit.                      |
-| `/api/history/{path:path}` | GET    | `?limit`               | Commit meta list (sha, author, date, msg). |
-| `/api/diff/{path:path}`    | GET    | `?sha1&sha2`           | Unified diff for two commits.              |
+| `/health`                  | GET    | –                      | Health check endpoint.                     |
+| `/api/files`               | GET    | `?path` (opt)          | List files and directories in repository.  |
+| `/api/files/tree`          | GET    | –                      | Get complete directory tree structure.     |
+| `/api/files/{path:path}`   | GET    | –                      | Get file content.                          |
+| `/api/files/{path:path}`   | PUT    | `{ content, message }` | Update file & commit.                      |
+| `/api/files/{path:path}`   | DELETE | `?commit_message` (opt)| Delete file/directory & commit.            |
+| `/api/files/move`          | POST   | `{ source_path, destination_path, message }` | Move/rename file or directory. |
+| `/api/history/{path:path}` | GET    | `?limit` (opt)         | Commit history for file.                   |
+| `/api/diff/{path:path}`    | GET    | `?sha1&sha2`           | Unified diff between two commits.          |
 
-**6.1 Git layer**
+### 7.2 File Operations API
+
+| Endpoint                         | Method | Payload / Query        | Purpose                                    |
+| -------------------------------- | ------ | ---------------------- | ------------------------------------------ |
+| `/api/directory`                 | POST   | `{ name, message? }, ?parent_path` | Create new directory.         |
+| `/api/file/{path:path}`          | DELETE | `?commit_message` (opt)| Delete specific file.                      |
+| `/api/directory/{path:path}`     | DELETE | `?commit_message` (opt)| Delete specific directory.                 |
+| `/api/file/{path:path}/move`     | PUT    | `{ destination_path, message? }` | Move/rename file.               |
+| `/api/directory/{path:path}/move`| PUT    | `{ destination_path, message? }` | Move/rename directory.          |
+
+### 7.3 Lock Management API
+
+| Endpoint                   | Method | Headers | Payload | Purpose                                    |
+| -------------------------- | ------ | ------- | ------- | ------------------------------------------ |
+| `/api/lock/{path:path}`    | POST   | –       | `{ owner }` | Acquire lock for file.                 |
+| `/api/lock/{path:path}`    | GET    | –       | –       | Check lock status.                         |
+| `/api/lock/{path:path}/ping`| PUT   | `X-Lock-ID` | –   | Refresh lock TTL.                          |
+| `/api/lock/{path:path}`    | DELETE | `X-Lock-ID` | –   | Release lock.                              |
+
+**7.4 Git layer**
 
 ```python
 from git import Repo
@@ -272,22 +420,25 @@ index.commit(message, author=Actor(user, email))
 (See GitPython quick-start.) ([gitpython.readthedocs.io][5])
 Handle first-run: if repo empty, create `README.md` commit.
 
-**6.2 Service structure**
+**7.5 Service structure**
 
 ```
 backend/
-├── main.py           # FastAPI app / routers
-├── git_service.py    # thin wrapper around GitPython
-├── schemas.py        # Pydantic models
-└── settings.py       # Pydantic-based config
+├── app/
+│   ├── main.py           # FastAPI app with all API endpoints
+│   ├── git_service.py    # GitPython wrapper for repository operations
+│   ├── file_lock_service.py # File-based lock management service
+│   ├── schemas.py        # Pydantic models for requests/responses
+│   └── config.py         # Pydantic-based configuration settings
+└── requirements.txt      # Python dependencies
 ```
 
-**6.3 CORS & Auth**
+**7.6 CORS & Auth**
 
 * CORS allow origin from `<FRONTEND_URL>`.
 * Add optional JWT bearer auth later; endpoints currently open for MVP.
 
-**6.4 File-Based Lock System** [DONE]
+**7.7 File-Based Lock System** [DONE]
 
 A robust concurrent editing protection system using file-based locks stored in a dedicated Docker volume.
 
@@ -305,7 +456,8 @@ A robust concurrent editing protection system using file-based locks stored in a
   "lock_id": "uuid4-string",
   "owner": "user-identifier", 
   "acquired_at": "2025-07-07T21:24:56.817678Z",
-  "expires_at": "2025-07-07T21:29:56.817678Z"
+  "expires_at": "2025-07-07T21:29:56.817678Z",
+  "last_ping": "2025-07-07T21:26:56.817678Z"
 }
 ```
 
@@ -345,7 +497,7 @@ async def cleanup_expired_locks_task():
 - `frontend/src/lock.ts` - Frontend lock service and API integration
 - `frontend/src/main.ts` - Lock UI integration and conflict handling
 
-**6.5 Complete Locking System Architecture** [DONE]
+**7.8 Complete Locking System Architecture** [DONE]
 
 A comprehensive collaborative editing protection system with both backend file-based locks and frontend UX integration.
 
@@ -451,9 +603,9 @@ This system ensures robust collaborative editing with clear user feedback and gr
 
 ---
 
-## 7  Docker & Compose
+## 8  Docker & Compose
 
-**7.1 backend.Dockerfile**
+**8.1 backend.Dockerfile**
 
 ```dockerfile
 FROM python:3.12-slim AS base
@@ -464,7 +616,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 CMD ["uvicorn","backend.main:app","--host","0.0.0.0","--port","8000"]
 ```
 
-**7.2 frontend.Dockerfile**
+**8.2 frontend.Dockerfile**
 
 ```dockerfile
 # build stage
@@ -478,7 +630,7 @@ COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 ```
 
-**7.3 compose.yaml**
+**8.3 compose.yaml**
 
 ```yaml
 version: "3.9"
@@ -504,7 +656,7 @@ Developers run `docker compose up --build`.
 
 ---
 
-## 8  Environment Variables
+## 9  Environment Variables
 
 | Var                                   | Purpose                               | Default                                                     |
 | ------------------------------------- | ------------------------------------- | ----------------------------------------------------------- |
@@ -514,7 +666,7 @@ Developers run `docker compose up --build`.
 
 ---
 
-## 9  Local Dev Workflow
+## 10  Local Dev Workflow
 
 ```bash
 # one time
@@ -532,7 +684,7 @@ npm run dev --prefix frontend
 
 ---
 
-## 10  Production Notes
+## 11  Production Notes
 
 * TLS termination handled by upstream reverse-proxy (e.g. Caddy or Traefik).
 * Enable read-only filesystem except for mounted repo volume.
@@ -540,7 +692,7 @@ npm run dev --prefix frontend
 
 ---
 
-## 11  Non-functional Requirements
+## 12  Non-functional Requirements
 
 | Category        | Target                                                                                        |
 | --------------- | --------------------------------------------------------------------------------------------- |
@@ -551,7 +703,7 @@ npm run dev --prefix frontend
 
 ---
 
-## 12  Stretch Goals
+## 13  Stretch Goals
 
 * Live-collaboration via Milkdown’s Y.js bridge.
 * Full-text search (use ripgrep + WASM on backend).
