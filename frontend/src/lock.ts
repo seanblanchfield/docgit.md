@@ -133,13 +133,6 @@ export class LockService {
   }
 
   /**
-   * Get the lock ID for a file (if we own it)
-   */
-  getLockId(filePath: string): string | undefined {
-    return this.currentLocks.get(filePath);
-  }
-
-  /**
    * Check if we own the lock for a file
    */
   hasLock(filePath: string): boolean {

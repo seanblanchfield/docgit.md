@@ -623,7 +623,7 @@ export class DirectoryTree {
    * Custom row renderer that extends the default InfiniteTree renderer
    * to add create node styling while preserving all original functionality
    */
-  private customRowRenderer(node: any, treeOptions: any): string {
+  private customRowRenderer(node: any, _treeOptions: any): string {
     const { id, name } = node;
     const isCreateItem = node.isCreateItem || false;
     const hasChildren = node.children && node.children.length > 0;

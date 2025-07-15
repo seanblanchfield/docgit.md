@@ -794,8 +794,7 @@ async function updateCommitMeta(filePath: string) {
     el: treeContainer,
     selectDefault: initialPath ? false : true,
     
-    onCreateFile: async (parentPath: string, name: string, isDirectory: boolean) => {
-
+    onCreateFile: async (_parentPath: string, _name: string, _isDirectory: boolean) => {
       // TODO: Implement API call to create file/directory
     },
     

@@ -139,7 +139,6 @@ body {
 
 
 
-/* Removed .drawer-toggle-container as toggle is now inside border */
 
 .drawer-toggle {
   width: 16px;
@@ -189,14 +188,12 @@ body {
   transition: all 0.3s ease;
 }
 
-/* Toggle button for drawer - now inside drawer-toggle-container */
 
 .drawer-toggle:hover,
 .drawer-toggle.drawer-open {
   background: #fefefec7; /* Lighter color when hovered */
   color: rgba(0,0,0,0.35);
 }
-/* Removed duplicate hover styles */
 @media (max-width: 700px) {
   #tree-drawer[data-id="tree"] {
     position: fixed;
@@ -1118,23 +1115,6 @@ dialog::backdrop { background: rgba(0,0,0,0.4); }
 .btn-primary:hover {
   background: #1a7f37;
   border-color: #1a7f37;
-}
-
-.btn-secondary {
-  background: #f6f8fa;
-  color: #24292f;
-  border-color: #d0d7de;
-}
-
-.btn-secondary:hover {
-  background: #f3f4f6;
-  border-color: #d0d7de;
-}
-
-/* Create file row styles */
-.create-file-row:hover {
-  opacity: 1 !important;
-  background-color: #f6f8fa;
 }
 
 .create-file-btn:hover {
