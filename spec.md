@@ -2,34 +2,7 @@
 Current phase: Frontend File Operations UI Implementation
 🔄 **Current Task:** Create Row UI/UX Improvements
 
-_Recently completed:_
-- ✅ **Spec Review and Corrections:** [DONE]
-  - ✅ Updated Section 3 directory layout to reflect actual project structure
-  - ✅ Removed outdated wiki/ top-level directory reference
-  - ✅ Updated Section 4 architecture diagram for accuracy
-  - ✅ Corrected frontend description (vanilla TypeScript, not React)
-  - ✅ Added missing files and directories to spec
-
-_Progress on create row functionality:_
-- ✅ **Data-Driven Create Row Implementation:**
-  - ✅ Implemented robust data-driven approach using virtual create nodes
-  - ✅ Fixed duplication bug - each folder now shows exactly one create item
-  - ✅ Deep cloning and single-pass recursive processing eliminates timing issues
-  - ✅ Create items properly positioned at end of each directory and root level
-  - ✅ Stable tree structure with no recursion conflicts
-
-_Completed bug fixes:_
-- ✅ **Debug Output:** Removed verbose console.log statements
-- ✅ **Tree Expansion:** Tree defaults to collapsed state on refresh
-- ✅ **Rendering Timing:** No visible delay in create row rendering
-- ✅ **DOM Structure:** Proper sibling positioning achieved
-- ✅ **Duplication Bug:** Fixed duplicate create items in directories
-
 _Next UI/UX improvements:_
-- 🔄 **Create Row Polish:**
-  - 🔄 Update create row text from "+ Add file or folder" to just "+"
-  - 🔄 Style create rows: light grey that turns dark bold on hover
-  - 🔄 Connect create row click to show new file/folder dialog
 - 🔄 **Integration:**
   - 🔄 Integrate create dialog with backend APIs
   - 🔄 Add error handling and user feedback for create operations
@@ -43,57 +16,11 @@ _Next UI/UX improvements:_
   - 🔄 Add comprehensive error handling and user feedback
   - 🔄 Verify optimistic updates and rollback functionality
 
-## Completed Work
-
-**✅ File Operations Specification:** [DONE]
-- Detailed UI/UX specifications for creating, deleting, and moving files
-- Complete API endpoint definitions and validation rules
-- Error handling and user feedback strategies
-- Integration with existing tree view and editor components
-
-**✅ Backend File Operations API:** [DONE]
-- POST /api/directory endpoint with validation and Git tracking
-- DELETE /api/file/{path} and DELETE /api/directory/{path} endpoints
-- PUT /api/file/{path}/move and PUT /api/directory/{path}/move endpoints
-- Comprehensive validation (conflict detection, path safety, empty checks)
-- Proper error handling with HTTP status codes (400, 404, 409, 500)
-- Git integration with customizable commit messages
-- All endpoints tested successfully with curl
-
-**✅ Lock System Complete:** [DONE]
-- Backend file-based lock system with Docker volume storage
-- Frontend lock integration with visual indicators and conflict handling
-- Complete lock workflow: acquire, refresh, release, cleanup
-- Lock enforcement on save operations with graceful error handling
-
-**✅ History and Diff System:** [DONE]
-- Backend `/api/history/{path}` and `/api/diff/{path}` endpoints
-- Frontend history drawer with commit list and diff view
-- Fixed diff comparison logic to show actual changes
-- Complete history workflow with proper UI styling
-
-**✅ Editor Improvements:** [DONE]
-- Fixed editor mode persistence bug (always open files in view mode)
-- Improved save feedback with instant header updates
-- Enhanced lock conflict resolution and user experience
-- Comprehensive CSS styling for all lock states
-
-Implementation roadmap (✅ = done, 🔄 = in progress). *Stop after each **Checkpoint** and ask the user for approval before moving on.*
+Implementation roadmap (🔄 = in progress). *Stop after each **Checkpoint** and ask the user for approval before moving on.*
 
 | # | Work Item | Description / Deliverables | Checkpoint |
 |---|-----------|----------------------------|------------|
-| 1 | **Status-Bar Skeleton** [DONE] | • Add fixed container (flex, 40 px) in `Editor.tsx`.<br>• Add placeholder slots for mode control, unsaved pill, commit meta, history & revert buttons.<br>• Basic styling in `styles.css`. | UI screenshot + a11y audit. |
-| 2 | **Mode Switch Control** [DONE] | • Segmented control `View | WYSIWYG | Raw`.<br>• Wire to Milkdown `readOnly` and raw `<textarea>` views.<br>• Persist choice in `localStorage.editorMode`.<br>• Shortcut `Ctrl+E` cycles modes. | Demo switching between modes with sample doc. |
-| 3 | **Unsaved Indicator & Local Drafts** [DONE] | • Compute dirty flag via baseline SHA diff.<br>• Auto-save buffer to `localStorage.draft:<path>` every 10 s.<br>• Show orange "Unsaved" pill when dirty. | Refresh page → pill persists; user confirmation. |
-| 4 | **Last-Commit Meta Display** [DONE] | • Call `/api/history/{path}?limit=1`.<br>• Show "Author — relative time" text.<br>• Tooltip with full SHA + message. | Demo with file having recent commit. |
-| 5 | **Revert/Discard Local Draft** [DONE] | • "Revert" icon clears draft key & reloads from backend.<br>• Confirmation dialog. | Confirm that dirty pill disappears after revert. |
-| 6 | **History Drawer** [DONE] | • Side panel listing commits (reuse `/api/history`).<br>• Clicking entry opens diff (`/api/diff`). | Walkthrough diff view. |
-| 7 | **Edit-Lock Backend** [DONE] | • Endpoint `POST /api/lock/{path}` (lock_id, TTL 5 min).<br>• Middleware to enforce lock for PUT/auto-save.<br>• Auto-refresh lock ping every 60 s. | Unit tests + curl demo acquiring/denying lock. |
-| 8 | **Lock UI Integration** [DONE] | • On 423 response show red banner "Sean is editing…".<br>• Disable editing; allow View mode. | Simulate double-tab scenario; banner appears. |
-| 9 | **Backend Auto-Save Commit (+amend)** [DONE] | • PUT `/api/file/{path}` accepts `lock_id` & `base_sha`.<br>• If `base_sha==HEAD` and author matches, `git commit --amend` else new commit.<br>• Release lock on success. | Run auto-save; inspect git log (single commit). |
-|10 | **Client Auto-Save Trigger** [DONE] | • 5-min inactivity or manual save button.<br>• Payload includes `lock_id` & `base_sha`.<br>• On success clear draft, refresh baseline SHA. | Demo end-to-end save cycle. |
-|11 | **Preference Persistence** [DONE] | • Store collapsed state, drawer widths, etc. | UX persists across reload. |
-|12 | **User Acceptance Regression** | • Run full E2E test script (Puppeteer).<br>• Collect feedback, adjust UI polish. | Green-light from user. |
+
 
 
 # Project Specification – "Git-Backed Markdown Wiki"
@@ -454,7 +381,7 @@ A robust concurrent editing protection system using file-based locks stored in a
 {
   "path": "docs/example.md",
   "lock_id": "uuid4-string",
-  "owner": "user-identifier", 
+  "owner": "user-identifier",
   "acquired_at": "2025-07-07T21:24:56.817678Z",
   "expires_at": "2025-07-07T21:29:56.817678Z",
   "last_ping": "2025-07-07T21:26:56.817678Z"
@@ -547,7 +474,7 @@ class LockService {
   async refreshLock(filePath: string): Promise<boolean>
   async releaseLock(filePath: string): Promise<boolean>
   async checkLockStatus(filePath: string): Promise<LockStatus>
-  
+
   // Internal state management
   private currentLocks: Map<string, string> // filePath -> lockId
   private refreshIntervals: Map<string, number> // Auto-refresh timers
