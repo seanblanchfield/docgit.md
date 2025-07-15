@@ -36,6 +36,18 @@ export class DirectoryTree {
   private el: HTMLElement;
   private lastSelectedId: string | null = null;
 
+  private updateVisualSelection(nodeId: string) {
+    // Remove selection from all items
+    const allItems = this.el.querySelectorAll('.infinite-tree-item');
+    allItems.forEach(item => item.classList.remove('infinite-tree-selected'));
+    
+    // Add selection to target item
+    const targetItem = this.el.querySelector(`[data-id="${CSS.escape(nodeId)}"]`);
+    if (targetItem) {
+      targetItem.classList.add('infinite-tree-selected');
+    }
+  }
+
   constructor(private options: DirectoryTreeOptions) {
     this.onFileSelect = options.onFileSelect;
     this.onCreateFile = options.onCreateFile;
@@ -164,38 +176,84 @@ export class DirectoryTree {
     if (!el.hasAttribute('tabindex')) {
       el.setAttribute('tabindex', '0');
     }
+    
+    // Auto-select first node if none is selected when tree gains focus
+    el.addEventListener('focus', () => {
+      const selected = (this.tree.getSelectedNodes ? this.tree.getSelectedNodes()[0] : (this.tree.getSelectedNode ? this.tree.getSelectedNode() : undefined));
+      
+      if (!selected) {
+        const firstVisibleElement = el.querySelector('.infinite-tree-item') as HTMLElement;
+        if (firstVisibleElement) {
+          const firstId = firstVisibleElement.getAttribute('data-id');
+          if (firstId) {
+            const firstNode = this.tree.getNodeById(firstId);
+            if (firstNode) {
+              this.tree.selectNode(firstNode);
+            }
+          }
+        }
+      }
+    });
+    
+    // Ensure tree gets focus when clicked
+    el.addEventListener('click', () => {
+      el.focus();
+    });
     const treeInstance = this.tree;
     el.addEventListener('keydown', (ev) => {
       const key = ev.key;
       const selected: TreeNode | undefined = (this.tree.getSelectedNodes ? this.tree.getSelectedNodes()[0] : (this.tree.getSelectedNode ? this.tree.getSelectedNode() : undefined));
-      if (!selected) return;
+      
+      if (!selected) {
+        return;
+      }
       switch (key) {
         case 'ArrowUp': {
           ev.preventDefault();
-          const selEl = el.querySelector('.infinite-tree-selected') as HTMLElement | null;
+          let selEl = el.querySelector('.infinite-tree-selected') as HTMLElement | null;
+          if (!selEl) {
+            selEl = el.querySelector(`[data-id="${CSS.escape(selected.id)}"]`) as HTMLElement | null;
+          }
           if (!selEl) break;
-          let target = selEl.previousElementSibling as HTMLElement | null;
-          while (target && target.offsetParent === null) target = target.previousElementSibling as HTMLElement | null; // skip hidden
-          if (target) {
+          
+          const allItems = Array.from(el.querySelectorAll('.infinite-tree-item')) as HTMLElement[];
+          const currentIndex = allItems.indexOf(selEl);
+          
+          if (currentIndex > 0) {
+            const target = allItems[currentIndex - 1];
             const id = target.getAttribute('data-id');
+            
             if (id) {
               const node = this.tree.getNodeById(id);
-              if (node) this.tree.selectNode(node);
+              if (node) {
+                this.tree.selectNode(node);
+                this.updateVisualSelection(id);
+              }
             }
           }
           break;
         }
         case 'ArrowDown': {
           ev.preventDefault();
-          const selEl = el.querySelector('.infinite-tree-selected') as HTMLElement | null;
+          let selEl = el.querySelector('.infinite-tree-selected') as HTMLElement | null;
+          if (!selEl) {
+            selEl = el.querySelector(`[data-id="${CSS.escape(selected.id)}"]`) as HTMLElement | null;
+          }
           if (!selEl) break;
-          let target = selEl.nextElementSibling as HTMLElement | null;
-          while (target && target.offsetParent === null) target = target.nextElementSibling as HTMLElement | null;
-          if (target) {
+          
+          const allItems = Array.from(el.querySelectorAll('.infinite-tree-item')) as HTMLElement[];
+          const currentIndex = allItems.indexOf(selEl);
+          
+          if (currentIndex >= 0 && currentIndex < allItems.length - 1) {
+            const target = allItems[currentIndex + 1];
             const id = target.getAttribute('data-id');
+            
             if (id) {
               const node = this.tree.getNodeById(id);
-              if (node) this.tree.selectNode(node);
+              if (node) {
+                this.tree.selectNode(node);
+                this.updateVisualSelection(id);
+              }
             }
           }
           break;
@@ -206,9 +264,10 @@ export class DirectoryTree {
             if (!selected.state?.open) {
               treeInstance.openNode(selected);
             } else {
-              // move to first child if exists
               const firstChild = selected.children && selected.children[0];
-              if (firstChild) treeInstance.selectNode(firstChild);
+              if (firstChild) {
+                treeInstance.selectNode(firstChild);
+              }
             }
           }
           break;
@@ -221,7 +280,9 @@ export class DirectoryTree {
             const parentId = selected.id.substring(0, selected.id.lastIndexOf('/'));
             if (parentId) {
               const parent = treeInstance.getNodeById(parentId);
-              if (parent) this.tree.selectNode(parent);
+              if (parent) {
+                this.tree.selectNode(parent);
+              }
             }
           }
           break;

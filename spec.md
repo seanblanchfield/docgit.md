@@ -1,20 +1,15 @@
 ## WIP
-Current phase: Frontend File Operations UI Implementation
-🔄 **Current Task:** Create Row UI/UX Improvements
+Current phase: Tree View Keyboard Navigation Enhancement
+🔄 **Current Task:** Tree View Keyboard Navigation Implementation
 
-_Next UI/UX improvements:_
-- 🔄 **Integration:**
-  - 🔄 Integrate create dialog with backend APIs
-  - 🔄 Add error handling and user feedback for create operations
-- 🔄 **Remaining File Operations UI:**
-  - 🔄 Add menu button to file header with delete option
-  - 🔄 Implement delete confirmation modal
-  - 🔄 Add drag and drop functionality to tree view
-  - 🔄 Add visual feedback for drag/drop operations
-- 🔄 **Testing and Polish:**
-  - 🔄 Test complete file operations workflow
-  - 🔄 Add comprehensive error handling and user feedback
-  - 🔄 Verify optimistic updates and rollback functionality
+_Current work items:_
+- ✅ **Analysis:** Examined existing tree view keyboard navigation implementation
+- 🔄 **Enhancement:** Verify and test existing keyboard navigation features:
+  - ✅ Up/down arrow keys move through tree items
+  - ✅ Right arrow key expands closed directories and moves to first child
+  - ✅ Left arrow key collapses expanded directories and moves to parent
+- 🔄 **Testing:** Test keyboard navigation functionality to ensure it meets requirements
+- 🔄 **Documentation:** Update any gaps in keyboard navigation behavior
 
 Implementation roadmap (🔄 = in progress). *Stop after each **Checkpoint** and ask the user for approval before moving on.*
 
