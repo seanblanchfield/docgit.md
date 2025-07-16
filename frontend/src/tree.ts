@@ -285,6 +285,8 @@ export class DirectoryTree {
           ev.preventDefault();
           if (selected.isDirectory && selected.state?.open) {
             treeInstance.closeNode(selected);
+            // Re-select the directory after closing to maintain highlighting
+            this.tree.selectNode(selected);
           } else {
             const parentId = selected.id.substring(0, selected.id.lastIndexOf('/'));
             if (parentId) {
