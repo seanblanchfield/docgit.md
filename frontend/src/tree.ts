@@ -323,19 +323,9 @@ export class DirectoryTree {
           }
         }
       } else {
-        // Section being collapsed – if current leaf selection will be hidden, shift highlight to this visible parent
-        if (this.lastSelectedId && this.lastSelectedId.startsWith(node.id + '/') && this.lastSelectedId !== node.id) {
-          this.tree.selectNode(node); // directory selection does not overwrite lastSelectedId
-          this.updateVisualSelection(node.id);
-        } else {
-          // For keyboard navigation: if no selection or current selection is inside the closing directory,
-          // select the directory itself to maintain highlighting
-          const currentSelected = this.tree.getSelectedNodes?.()?.[0] || this.tree.getSelectedNode?.();
-          if (!currentSelected || currentSelected.id.startsWith(node.id + '/')) {
-            this.tree.selectNode(node);
-            this.updateVisualSelection(node.id);
-          }
-        }
+        // Section being collapsed – always select and highlight the collapsed directory
+        this.tree.selectNode(node);
+        this.updateVisualSelection(node.id);
       }
     });
   }
