@@ -74,9 +74,9 @@ async def log_console_message(console_msg: schemas.ConsoleMessage, request: Requ
         logger.error(log_message)
     elif console_msg.level in ["warn"]:
         logger.warning(log_message)
-    elif console_msg.level in ["info"]:
+    elif console_msg.level in ["info", "log"]:  # Treat console.log as info level
         logger.info(log_message)
-    else:  # log, debug, or other levels
+    else:  # debug or other levels
         logger.debug(log_message)
     
     # Return response with server timestamp

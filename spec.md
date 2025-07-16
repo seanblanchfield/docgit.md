@@ -1,15 +1,18 @@
 ## WIP
-Current phase: Tree View Keyboard Navigation Enhancement
-🔄 **Current Task:** Tree View Keyboard Navigation Implementation
+Current phase: Feature Development Planning
+🔄 **Current Task:** Planning next implementation phases
 
-_Current work items:_
-- ✅ **Analysis:** Examined existing tree view keyboard navigation implementation
-- 🔄 **Enhancement:** Verify and test existing keyboard navigation features:
-  - ✅ Up/down arrow keys move through tree items
-  - ✅ Right arrow key expands closed directories and moves to first child
-  - ✅ Left arrow key collapses expanded directories and moves to parent
-- 🔄 **Testing:** Test keyboard navigation functionality to ensure it meets requirements
-- 🔄 **Documentation:** Update any gaps in keyboard navigation behavior
+_Remaining Features to Implement:_
+- ⏳ **Search Functionality:** Full-text search across markdown files
+- ⏳ **User Authentication:** Basic user management and auth system
+- ⏳ **Theme Support:** Light/dark mode toggle with preference persistence
+- ⏳ **Performance Optimization:** Tree virtualization for large file sets
+- ⏳ **Advanced Editor Features:** Syntax highlighting, table editing, image upload
+- ⏳ **Backup & Sync:** Remote git repository integration
+- ⏳ **Plugin System:** Extensible architecture for custom functionality
+- ⏳ **Mobile Improvements:** Touch gestures, mobile-optimized editing
+- ⏳ **Collaborative Features:** Real-time multi-user editing (beyond current locking)
+- ⏳ **Export Options:** PDF, HTML, and other format exports
 
 Implementation roadmap (🔄 = in progress). *Stop after each **Checkpoint** and ask the user for approval before moving on.*
 
@@ -218,6 +221,13 @@ A collapsible left-hand drawer hosts the directory tree.
 * **Mobile Behaviour** – At ≤700&nbsp;px dragging is disabled. When expanded the drawer slides over the content; when collapsed it shifts left by `calc(-100% + 16px)` leaving a 16&nbsp;px border strip (with chevron) visible so the user can reopen it. No overlay scrim is used.
 * **Cursor & Handle** – `ew-resize` cursor on resizer/border; resizer has matching border & diagonal texture.
 * **Accessibility** – Resizer marked with `aria-hidden="true"`; toggle button has `aria-label` "Toggle drawer".
+* **Keyboard Navigation** – Full keyboard navigation support:
+  * **Arrow Keys**: Up/Down arrows navigate between visible tree items
+  * **Right Arrow**: Expands closed directories; moves to first child if already open
+  * **Left Arrow**: Collapses open directories; moves to parent if already closed
+  * **Focus Management**: Tree container is focusable (tabindex="0"); auto-selects first item on focus
+  * **Click Focus**: Tree gains focus automatically when clicked
+  * **Selection Persistence**: Maintains selection state across directory expand/collapse operations
 
 | Topic                        | Details                                                                                                                                                                                                                                                            |                                                        |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
