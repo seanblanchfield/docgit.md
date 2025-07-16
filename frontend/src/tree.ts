@@ -285,7 +285,11 @@ export class DirectoryTree {
           ev.preventDefault();
           if (selected.isDirectory && selected.state?.open) {
             treeInstance.closeNode(selected);
-            // The toggle handler will handle re-selection
+            // Directly select and highlight the directory after closing
+            setTimeout(() => {
+              this.tree.selectNode(selected);
+              this.updateVisualSelection(selected.id);
+            }, 100);
           } else {
             const parentId = selected.id.substring(0, selected.id.lastIndexOf('/'));
             if (parentId) {
@@ -323,9 +327,7 @@ export class DirectoryTree {
           }
         }
       } else {
-        // Section being collapsed – always select and highlight the collapsed directory
-        this.tree.selectNode(node);
-        this.updateVisualSelection(node.id);
+        // Section being collapsed – selection is now handled by the ArrowLeft key handler
       }
     });
   }
