@@ -320,6 +320,21 @@ export class DirectoryTree {
     });
   }
 
+  private filterHiddenFiles(nodes: any[]): any[] {
+    return nodes
+      .filter(node => {
+        // Hide .gitkeep files
+        if (node.name === '.gitkeep') {
+          return false;
+        }
+        return true;
+      })
+      .map((n: any) => ({
+        ...n,
+        children: n.children ? this.filterHiddenFiles(n.children) : n.children,
+      }));
+  }
+
   private sortNodes(nodes: any[]): any[] {
     return nodes
       .sort((a: any, b: any) => (a.rawName || a.name).localeCompare(b.rawName || b.name, undefined, { sensitivity: 'base' }))
@@ -416,7 +431,8 @@ export class DirectoryTree {
     const treeData = Array.isArray(treeDataRaw)
       ? treeDataRaw.map(this.addIsDirectory)
       : treeDataRaw;
-    const sorted = this.sortNodes(treeData);
+    const filtered = this.filterHiddenFiles(treeData);
+    const sorted = this.sortNodes(filtered);
     
     // Step 2: Add create items at the end of each directory and at the root
     const dataWithCreateItems = this.addCreateItems(sorted);
@@ -431,6 +447,69 @@ export class DirectoryTree {
         const node = this.tree.getNodeById(defaultPath);
         if (node) setTimeout(() => this.tree.selectNode(node), 0);
       }
+    }
+  }
+
+  /**
+   * Reload the tree while preserving expansion state
+   */
+  async loadPreservingExpansion(newDirectoryPath?: string): Promise<void> {
+    try {
+      // First, capture the current expansion state
+      const expandedNodes = new Set<string>();
+      const selectedNodeId = this.tree.getSelectedNodes?.()?.[0]?.id || this.tree.getSelectedNode?.()?.id;
+      
+      // Capture expanded states by checking DOM elements
+      const treeItems = this.el.querySelectorAll('.infinite-tree-item');
+      treeItems.forEach(item => {
+        const itemId = item.getAttribute('data-id');
+        if (itemId) {
+          const node = this.tree.getNodeById(itemId);
+          if (node && node.state?.open) {
+            expandedNodes.add(itemId);
+          }
+        }
+      });
+      
+      // If a new directory was created, also expand it
+      if (newDirectoryPath) {
+        expandedNodes.add(newDirectoryPath);
+      }
+      
+      // Reload the tree data
+      const treeDataRaw = await this.fetchDirectoryTreeData();
+      const treeData = Array.isArray(treeDataRaw)
+        ? treeDataRaw.map(this.addIsDirectory)
+        : treeDataRaw;
+      const filtered = this.filterHiddenFiles(treeData);
+      const sorted = this.sortNodes(filtered);
+      
+      // Add create items
+      const dataWithCreateItems = this.addCreateItems(sorted);
+      this.tree.loadData(dataWithCreateItems);
+      
+      // Use a small delay to ensure the tree has processed the new data
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Restore expansion state
+      expandedNodes.forEach(nodeId => {
+        const node = this.tree.getNodeById(nodeId);
+        if (node && node.isDirectory) {
+          this.tree.openNode(node);
+        }
+      });
+      
+      // Restore selection if the node still exists
+      if (selectedNodeId) {
+        const selectedNode = this.tree.getNodeById(selectedNodeId);
+        if (selectedNode) {
+          setTimeout(() => this.tree.selectNode(selectedNode), 0);
+        }
+      }
+    } catch (error) {
+      console.error('loadPreservingExpansion: Error occurred:', error);
+      // Fall back to regular load if there's an error
+      await this.load();
     }
   }
 
@@ -459,7 +538,9 @@ export class DirectoryTree {
       const response = await fetch(`/api/files/${encodeURIComponent(node.id)}`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
-      node.children = this.sortNodes(data.children || []);
+      const children = data.children || [];
+      const filteredChildren = this.filterHiddenFiles(children);
+      node.children = this.sortNodes(filteredChildren);
       node.state = { ...(node.state || {}), loading: false, open: true };
       this.tree.updateNode(node);
     } catch (error) {
@@ -503,6 +584,41 @@ export class DirectoryTree {
       }
     }
     this.tree.selectNode(node);
+  }
+
+  /**
+   * Reload a specific directory's contents while preserving tree state
+   */
+  async reloadDirectory(directoryPath: string): Promise<void> {
+    if (!directoryPath) {
+      // If no path provided, reload the entire tree
+      await this.load();
+      return;
+    }
+
+    const node = this.tree.getNodeById(directoryPath);
+    if (!node || !node.isDirectory) {
+      console.warn(`Directory not found or not a directory: ${directoryPath}`);
+      // If the directory node doesn't exist, reload the entire tree
+      await this.load();
+      return;
+    }
+
+    try {
+      // Reload the directory contents
+      await this.loadDirectoryContents(node);
+      
+      // Re-add create items to the loaded directory
+      if (node.children) {
+        const dataWithCreateItems = this.addCreateItems(node.children);
+        node.children = dataWithCreateItems;
+        this.tree.updateNode(node);
+      }
+    } catch (error) {
+      console.error(`Error reloading directory '${directoryPath}':`, error);
+      // Fall back to reloading the entire tree
+      await this.load();
+    }
   }
 
   /**
@@ -556,13 +672,17 @@ export class DirectoryTree {
    * Refresh lock status for all visible files
    */
   async refreshAllLockStatuses(): Promise<void> {
-    const allNodes = this.tree.flatten();
-    const fileNodes = allNodes.filter((node: TreeNode) => !node.isDirectory);
-    
-    // Update lock statuses in parallel
-    await Promise.all(
-      fileNodes.map((node: TreeNode) => this.updateLockStatus(node.id))
-    );
+    try {
+      const allNodes = this.tree.flatten();
+      const fileNodes = allNodes.filter((node: TreeNode) => !node.isDirectory);
+      
+      // Update lock statuses in parallel
+      await Promise.all(
+        fileNodes.map((node: TreeNode) => this.updateLockStatus(node.id))
+      );
+    } catch (error) {
+      console.warn('refreshAllLockStatuses: flatten() method not available, skipping');
+    }
   }
 
 
@@ -584,6 +704,20 @@ export class DirectoryTree {
     });
     
     document.dispatchEvent(createEvent);
+  }
+
+  /**
+   * Show create dialog for a specific directory (public method)
+   */
+  public showCreateDialogForDirectory(directoryPath: string): void {
+    // Check if the directory exists in the tree
+    const node = this.tree.getNodeById(directoryPath);
+    if (!node) {
+      console.warn('Directory node not found in tree:', directoryPath);
+      return;
+    }
+    
+    this.showCreateDialog(directoryPath);
   }
 
   /**

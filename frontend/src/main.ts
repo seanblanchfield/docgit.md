@@ -114,13 +114,15 @@ lockService.onLockLost = (filePath: string) => {
 
 async function fetchFileContent(filePath: string): Promise<string> {
   try {
-    const response = await fetch(`/api/files/${filePath}`);
+    // Encode each path segment separately to handle special characters
+    const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
+    const response = await fetch(`/api/files/${encodedPath}`);
     if (!response.ok) {
       console.error(`Error fetching file '${filePath}': ${response.status} ${response.statusText}`);
       return `# Error\n\nCould not load ${filePath}. Status: ${response.status}`;
     }
     const jsonData: ApiFileResponse = await response.json();
-    return jsonData.content || '';``
+    return jsonData.content || '';
   } catch (error) {
     console.error(`Error fetching file '${filePath}':`, error);
     return `# Error\n\nCould not fetch ${filePath}.`;
@@ -129,7 +131,8 @@ async function fetchFileContent(filePath: string): Promise<string> {
 
 async function fetchLatestCommit(filePath: string): Promise<CommitDetail | null> {
   try {
-    const response = await fetch(`/api/history/${filePath}?limit=1`);
+    const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
+    const response = await fetch(`/api/history/${encodedPath}?limit=1`);
     if (!response.ok) {
       console.warn(`Could not fetch commit history for '${filePath}': ${response.status} ${response.statusText}`);
       return null;
@@ -213,7 +216,8 @@ async function updateCommitMeta(filePath: string) {
   // Function to fetch full commit history for a file
   async function fetchCommitHistory(filePath: string): Promise<CommitDetail[]> {
     try {
-      const response = await fetch(`/api/history/${encodeURIComponent(filePath)}`);
+      const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
+      const response = await fetch(`/api/history/${encodedPath}`);
       if (!response.ok) {
         console.error('Failed to fetch commit history:', response.statusText);
         return [];
@@ -272,7 +276,8 @@ async function updateCommitMeta(filePath: string) {
       // To show what a commit changed, we need to compare it to its parent
       // Use the Git convention: commitSha^1 represents the parent of commitSha
       const parentSha = `${commitSha}^1`;
-      const response = await fetch(`/api/diff/${encodeURIComponent(filePath)}?sha1=${parentSha}&sha2=${commitSha}`);
+      const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
+      const response = await fetch(`/api/diff/${encodedPath}?sha1=${parentSha}&sha2=${commitSha}`);
       if (!response.ok) {
         console.error('Failed to fetch commit diff:', response.statusText);
         return null;
@@ -518,7 +523,8 @@ async function updateCommitMeta(filePath: string) {
     
     try {
       // Save to backend with lock enforcement
-      const response = await fetch(`/api/files/${currentFilePath}`, {
+      const encodedPath = currentFilePath.split('/').map(encodeURIComponent).join('/');
+      const response = await fetch(`/api/files/${encodedPath}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -776,15 +782,18 @@ async function updateCommitMeta(filePath: string) {
       try {
         if (isDirectory) {
           // Create directory
-          const response = await fetch('/api/directory', {
+          const url = parentPath ? 
+            `/api/directory?parent_path=${encodeURIComponent(parentPath)}` : 
+            '/api/directory';
+          
+          const response = await fetch(url, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
               name: name,
-              message: `Create directory ${fullPath}`,
-              ...(parentPath && { parent_path: parentPath })
+              message: `Create directory ${fullPath}`
             })
           });
           
@@ -793,7 +802,8 @@ async function updateCommitMeta(filePath: string) {
           }
         } else {
           // Create file with empty content
-          const response = await fetch(`/api/files/${encodeURIComponent(fullPath)}`, {
+          const encodedPath = fullPath.split('/').map(encodeURIComponent).join('/');
+          const response = await fetch(`/api/files/${encodedPath}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -809,14 +819,25 @@ async function updateCommitMeta(filePath: string) {
           }
         }
         
-        // Reload the tree to show the new file/directory
-        await directoryTree?.load();
+        // Reload the tree to show the new file/directory while preserving expansion state
+        if (isDirectory) {
+          // For directories, expand the newly created directory
+          await directoryTree?.loadPreservingExpansion(fullPath);
+        } else {
+          // For files, just preserve existing expansion state
+          await directoryTree?.loadPreservingExpansion();
+        }
         
         // If we created a file, select it
         if (!isDirectory) {
           setTimeout(() => {
             directoryTree?.selectPath(fullPath);
           }, 100);
+        } else {
+          // If we created a directory, show create dialog for the new directory
+          setTimeout(() => {
+            directoryTree?.showCreateDialogForDirectory(fullPath);
+          }, 300);
         }
         
       } catch (error) {
@@ -1011,9 +1032,9 @@ async function updateCommitMeta(filePath: string) {
     
     editorRoot.appendChild(dialogElement);
     
-    // Focus name input
+    // Focus name input with a small delay to ensure dialog is rendered
     const nameInput = dialogElement.querySelector('#create-name') as HTMLInputElement;
-    nameInput.focus();
+    setTimeout(() => nameInput.focus(), 50);
     
     // Handle form submission
     const handleCreate = async () => {

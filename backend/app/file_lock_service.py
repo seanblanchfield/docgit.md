@@ -266,6 +266,7 @@ class FileLockService:
             logger.info(f"Lock refreshed for {file_path} by {owner}")
             return {
                 "success": True,
+                "lock_id": existing_lock["lock_id"],
                 "expires_at": existing_lock["expires_at"],
                 "status_code": 200
             }
