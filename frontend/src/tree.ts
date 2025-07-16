@@ -218,18 +218,16 @@ export class DirectoryTree {
       const getSelected = (): TreeNode | undefined => {
         return (this.tree.getSelectedNodes ? this.tree.getSelectedNodes()[0] : (this.tree.getSelectedNode ? this.tree.getSelectedNode() : undefined));
       };
-      
-      const selected: TreeNode | undefined = getSelected();
-      
-      if (!selected) {
-        return;
-      }
       switch (key) {
         case 'ArrowUp': {
           ev.preventDefault();
+          // Get fresh selected node
+          const currentSelected = getSelected();
+          if (!currentSelected) return;
+          
           let selEl = el.querySelector('.infinite-tree-selected') as HTMLElement | null;
           if (!selEl) {
-            selEl = el.querySelector(`[data-id="${CSS.escape(selected.id)}"]`) as HTMLElement | null;
+            selEl = el.querySelector(`[data-id="${CSS.escape(currentSelected.id)}"]`) as HTMLElement | null;
           }
           if (!selEl) break;
           
@@ -251,9 +249,13 @@ export class DirectoryTree {
         }
         case 'ArrowDown': {
           ev.preventDefault();
+          // Get fresh selected node
+          const currentSelected = getSelected();
+          if (!currentSelected) return;
+          
           let selEl = el.querySelector('.infinite-tree-selected') as HTMLElement | null;
           if (!selEl) {
-            selEl = el.querySelector(`[data-id="${CSS.escape(selected.id)}"]`) as HTMLElement | null;
+            selEl = el.querySelector(`[data-id="${CSS.escape(currentSelected.id)}"]`) as HTMLElement | null;
           }
           if (!selEl) break;
           
@@ -275,11 +277,15 @@ export class DirectoryTree {
         }
         case 'ArrowRight': {
           ev.preventDefault();
-          if (selected.isDirectory) {
-            if (!selected.state?.open) {
-              treeInstance.openNode(selected);
+          // Get fresh selected node
+          const currentSelected = getSelected();
+          if (!currentSelected) return;
+          
+          if (currentSelected.isDirectory) {
+            if (!currentSelected.state?.open) {
+              treeInstance.openNode(currentSelected);
             } else {
-              const firstChild = selected.children && selected.children[0];
+              const firstChild = currentSelected.children && currentSelected.children[0];
               if (firstChild) {
                 treeInstance.selectNode(firstChild);
               }
