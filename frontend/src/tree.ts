@@ -152,7 +152,7 @@ export class DirectoryTree {
     });
 
     this.tree.on('selectNode', (node: TreeNode) => {
-      if (!node || node.isDirectory) return;
+      if (!node || node.isDirectory || node.isCreateItem) return;
       this.lastSelectedId = node.id;
       this.onFileSelect(node);
     });
@@ -570,114 +570,20 @@ export class DirectoryTree {
 
 
   /**
-   * Show create file/directory dialog
+   * Show create file/directory dialog in content area
    */
   private showCreateDialog(parentPath: string): void {
     if (!this.onCreateFile) return;
     
-    // Create modal overlay
-    const overlay = document.createElement('div');
-    overlay.className = 'create-file-modal-overlay';
-    
-    // Create modal content
-    const modal = document.createElement('div');
-    modal.className = 'create-file-modal';
-    modal.innerHTML = `
-      <div class="modal-header">
-        <h3>Create New</h3>
-        <button class="modal-close" type="button">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label for="create-name">Name:</label>
-          <input type="text" id="create-name" class="form-input" placeholder="Enter name..." />
-        </div>
-        <div class="form-group">
-          <label>Type:</label>
-          <div class="radio-group">
-            <label class="radio-label">
-              <input type="radio" name="create-type" value="file" checked />
-              <span>File</span>
-            </label>
-            <label class="radio-label">
-              <input type="radio" name="create-type" value="directory" />
-              <span>Directory</span>
-            </label>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary modal-cancel">Cancel</button>
-        <button class="btn btn-primary modal-create">Create</button>
-      </div>
-    `;
-    
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
-    
-    // Focus name input
-    const nameInput = modal.querySelector('#create-name') as HTMLInputElement;
-    nameInput.focus();
-    
-    // Handle form submission
-    const handleCreate = async () => {
-      const name = nameInput.value.trim();
-      if (!name) {
-        nameInput.focus();
-        return;
-      }
-      
-      // Validate name
-      if (name.includes('/') || name.includes('\\') || name === '.' || name === '..') {
-        alert('Invalid name. Names cannot contain slashes or be "." or ".."');
-        nameInput.focus();
-        return;
-      }
-      
-      const typeRadio = modal.querySelector('input[name="create-type"]:checked') as HTMLInputElement;
-      const isDirectory = typeRadio.value === 'directory';
-      
-      try {
-        await this.onCreateFile!(parentPath, name, isDirectory);
-        document.body.removeChild(overlay);
-      } catch (error) {
-        console.error('Error creating file/directory:', error);
-        alert('Failed to create file/directory. Please try again.');
-      }
-    };
-    
-    // Event handlers
-    modal.querySelector('.modal-close')?.addEventListener('click', () => {
-      document.body.removeChild(overlay);
-    });
-    
-    modal.querySelector('.modal-cancel')?.addEventListener('click', () => {
-      document.body.removeChild(overlay);
-    });
-    
-    modal.querySelector('.modal-create')?.addEventListener('click', handleCreate);
-    
-    // Handle Enter key
-    nameInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        handleCreate();
+    // Dispatch event to main.ts to show create dialog in content area
+    const createEvent = new CustomEvent('showCreateDialog', {
+      detail: {
+        parentPath: parentPath,
+        onCreateFile: this.onCreateFile
       }
     });
     
-    // Handle Escape key
-    overlay.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        document.body.removeChild(overlay);
-      }
-    });
-    
-    // Close on overlay click
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) {
-        document.body.removeChild(overlay);
-      }
-    });
+    document.dispatchEvent(createEvent);
   }
 
   /**

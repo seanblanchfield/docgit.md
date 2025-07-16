@@ -1,7 +1,7 @@
 import { initContentEditor } from './content';
 import { DirectoryTree, TreeNode } from './tree';
 import { setupDrawer } from './drawer';
-import { humanizeTime } from './humanize';
+import { humanizeTime, humanizeFileName } from './humanize';
 import { lockService } from './lock';
 import './console-logger'; // Initialize console logging to server
 
@@ -28,6 +28,10 @@ interface CommitDetail {
 let currentFilePath: string | null = null;
 let lockRefreshInterval: (() => void) | null = null;
 let directoryTree: DirectoryTree | null = null;
+
+// Create dialog state
+let isShowingCreateDialog = false;
+let previousFilePathBeforeCreate: string | null = null;
 
 // Lock management functions
 async function acquireLockForFile(filePath: string, showNotification: boolean = true): Promise<{success: boolean, conflict?: any}> {
@@ -765,14 +769,71 @@ async function updateCommitMeta(filePath: string) {
     el: treeContainer,
     selectDefault: initialPath ? false : true,
     
-    onCreateFile: async (_parentPath: string, _name: string, _isDirectory: boolean) => {
-      // TODO: Implement API call to create file/directory
+    onCreateFile: async (parentPath: string, name: string, isDirectory: boolean) => {
+      // Construct the full path for the new file/directory
+      const fullPath = parentPath ? `${parentPath}/${name}` : name;
+      
+      try {
+        if (isDirectory) {
+          // Create directory
+          const response = await fetch('/api/directory', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              name: name,
+              message: `Create directory ${fullPath}`,
+              ...(parentPath && { parent_path: parentPath })
+            })
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to create directory: ${response.statusText}`);
+          }
+        } else {
+          // Create file with empty content
+          const response = await fetch(`/api/files/${encodeURIComponent(fullPath)}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              content: '',
+              message: `Create file ${fullPath}`
+            })
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to create file: ${response.statusText}`);
+          }
+        }
+        
+        // Reload the tree to show the new file/directory
+        await directoryTree?.load();
+        
+        // If we created a file, select it
+        if (!isDirectory) {
+          setTimeout(() => {
+            directoryTree?.selectPath(fullPath);
+          }, 100);
+        }
+        
+      } catch (error) {
+        console.error('Error creating file/directory:', error);
+        throw error; // Re-throw so the UI can handle it
+      }
     },
     
     onFileSelect: async (node: TreeNode) => {
       // Guard: Skip content loading for create nodes
       if (node.isCreateItem) {
         return;
+      }
+
+      // If create dialog is showing, dismiss it first
+      if (isShowingCreateDialog) {
+        hideCreateDialog();
       }
 
       // Persist current draft before navigation
@@ -874,6 +935,207 @@ async function updateCommitMeta(filePath: string) {
         console.warn('Failed to release lock on page unload:', error);
       }
     }
+  });
+
+  // Create dialog functionality
+  function showCreateDialogInContent(parentPath: string, onCreateFile: (parentPath: string, name: string, isDirectory: boolean) => Promise<void>) {
+    if (isShowingCreateDialog) return;
+    
+    isShowingCreateDialog = true;
+    previousFilePathBeforeCreate = currentFilePath;
+    
+    // Clear current file path to indicate we're not editing a file
+    currentFilePath = null;
+    
+    // Update URL to show create state
+    const pathSegment = parentPath ? `${parentPath}/` : '';
+    history.replaceState(null, '', `/${pathSegment}__create__`);
+    
+    // Hide status bar actions and show create-specific buttons
+    const statusActions = document.querySelector('.status-actions');
+    const modeControl = document.querySelector('.mode-control');
+    if (statusActions) statusActions.style.display = 'none';
+    if (modeControl) modeControl.style.display = 'none';
+    
+    // Hide the existing editor content
+    const editorRoot = document.querySelector('#editor-root') as HTMLElement;
+    const existingChildren = Array.from(editorRoot.children);
+    existingChildren.forEach(child => {
+      (child as HTMLElement).style.display = 'none';
+    });
+    
+    // Create the form content as a new element
+    const dialogElement = document.createElement('div');
+    dialogElement.className = 'create-dialog-overlay';
+    
+    // Humanize the parent path for display
+    const humanizedParentPath = parentPath ? 
+      humanizeFileName(parentPath.split('/').pop() || parentPath) : 
+      null;
+    
+    dialogElement.innerHTML = `
+      <div class="create-dialog-content">
+        <div class="create-dialog-header">
+          <h2>Create New File or Directory</h2>
+          ${humanizedParentPath ? `<div class="create-dialog-location">in <span class="directory-name">${humanizedParentPath}</span></div>` : '<div class="create-dialog-location">in <span class="directory-name">Root</span></div>'}
+          <p class="create-dialog-description">Enter a name for your new file or directory</p>
+        </div>
+        
+        <div class="create-form">
+          <div class="form-group">
+            <label for="create-name">Name:</label>
+            <input type="text" id="create-name" class="form-input" placeholder="Enter name..." />
+          </div>
+          
+          <div class="form-group">
+            <label>Type:</label>
+            <div class="radio-group">
+              <label class="radio-label">
+                <input type="radio" name="create-type" value="file" checked />
+                <span>File</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="create-type" value="directory" />
+                <span>Directory</span>
+              </label>
+            </div>
+          </div>
+          
+          <div class="create-actions">
+            <button class="btn btn-secondary create-cancel">Cancel</button>
+            <button class="btn btn-primary create-submit">Create</button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    editorRoot.appendChild(dialogElement);
+    
+    // Focus name input
+    const nameInput = dialogElement.querySelector('#create-name') as HTMLInputElement;
+    nameInput.focus();
+    
+    // Handle form submission
+    const handleCreate = async () => {
+      const name = nameInput.value.trim();
+      if (!name) {
+        nameInput.focus();
+        return;
+      }
+      
+      // Validate name
+      if (name.includes('/') || name.includes('\\') || name === '.' || name === '..') {
+        alert('Invalid name. Names cannot contain slashes or be "." or ".."');
+        nameInput.focus();
+        return;
+      }
+      
+      const typeRadio = dialogElement.querySelector('input[name="create-type"]:checked') as HTMLInputElement;
+      const isDirectory = typeRadio.value === 'directory';
+      
+      try {
+        await onCreateFile(parentPath, name, isDirectory);
+        hideCreateDialog();
+      } catch (error) {
+        console.error('Error creating file/directory:', error);
+        alert('Failed to create file/directory. Please try again.');
+      }
+    };
+    
+    // Handle cancel
+    const handleCancel = () => {
+      cancelCreateDialog();
+    };
+    
+    // Event handlers
+    dialogElement.querySelector('.create-cancel')?.addEventListener('click', handleCancel);
+    dialogElement.querySelector('.create-submit')?.addEventListener('click', handleCreate);
+    
+    // Handle Enter key
+    nameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleCreate();
+      }
+    });
+    
+    // Handle Escape key
+    document.addEventListener('keydown', handleEscapeKey);
+    
+    function handleEscapeKey(e: KeyboardEvent) {
+      if (e.key === 'Escape' && isShowingCreateDialog) {
+        e.preventDefault();
+        cancelCreateDialog();
+      }
+    }
+    
+    // Store the escape handler so we can remove it later
+    (editorRoot as any)._escapeHandler = handleEscapeKey;
+  }
+  
+  function hideCreateDialog() {
+    if (!isShowingCreateDialog) return;
+    
+    isShowingCreateDialog = false;
+    
+    // Remove escape key handler
+    const editorRoot = document.querySelector('#editor-root') as HTMLElement;
+    const escapeHandler = (editorRoot as any)._escapeHandler;
+    if (escapeHandler) {
+      document.removeEventListener('keydown', escapeHandler);
+      (editorRoot as any)._escapeHandler = null;
+    }
+    
+    // Remove the create dialog overlay
+    const dialogElement = editorRoot.querySelector('.create-dialog-overlay');
+    if (dialogElement) {
+      dialogElement.remove();
+    }
+    
+    // Restore the existing editor content
+    const existingChildren = Array.from(editorRoot.children);
+    existingChildren.forEach(child => {
+      (child as HTMLElement).style.display = '';
+    });
+    
+    // Restore status bar visibility
+    const statusActions = document.querySelector('.status-actions');
+    const modeControl = document.querySelector('.mode-control');
+    if (statusActions) statusActions.style.display = '';
+    if (modeControl) modeControl.style.display = '';
+    
+    // Note: We don't restore the previous file here because hideCreateDialog 
+    // is called from onFileSelect when the user clicks on a file.
+    // The file selection will handle loading the content.
+    
+    previousFilePathBeforeCreate = null;
+  }
+  
+  function cancelCreateDialog() {
+    if (!isShowingCreateDialog) return;
+    
+    // Store the previous file path before hiding the dialog
+    const prevPath = previousFilePathBeforeCreate;
+    
+    // First hide the dialog
+    hideCreateDialog();
+    
+    // Then restore previous file if any
+    if (prevPath && directoryTree) {
+      directoryTree.selectPath(prevPath);
+    } else {
+      // Clear editor and show welcome message
+      currentFilePath = null;
+      history.replaceState(null, '', '/');
+      contentEditor.replaceContent('# Welcome to Markdown Wiki\n\nSelect a file from the sidebar to edit.');
+      updateMode('read');
+    }
+  }
+  
+  // Listen for create dialog events from tree
+  document.addEventListener('showCreateDialog', (event: CustomEvent) => {
+    const { parentPath, onCreateFile } = event.detail;
+    showCreateDialogInContent(parentPath, onCreateFile);
   });
 
   // Initialize drawer toggle
