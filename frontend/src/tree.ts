@@ -154,6 +154,7 @@ export class DirectoryTree {
     this.tree.on('selectNode', (node: TreeNode) => {
       if (!node || node.isDirectory || node.isCreateItem) return;
       this.lastSelectedId = node.id;
+      this.updateVisualSelection(node.id);
       this.onFileSelect(node);
     });
 
@@ -168,6 +169,10 @@ export class DirectoryTree {
         setTimeout(() => {
           this.tree.selectNode(node);
         }, 0);
+      } else if (selected.length === 0) {
+        // Clear visual selection if no nodes are selected
+        const allItems = this.el.querySelectorAll('.infinite-tree-item');
+        allItems.forEach(item => item.classList.remove('infinite-tree-selected'));
       }
     });
 
@@ -227,7 +232,6 @@ export class DirectoryTree {
               const node = this.tree.getNodeById(id);
               if (node) {
                 this.tree.selectNode(node);
-                this.updateVisualSelection(id);
               }
             }
           }
@@ -252,7 +256,6 @@ export class DirectoryTree {
               const node = this.tree.getNodeById(id);
               if (node) {
                 this.tree.selectNode(node);
-                this.updateVisualSelection(id);
               }
             }
           }
