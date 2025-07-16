@@ -213,7 +213,13 @@ export class DirectoryTree {
     const treeInstance = this.tree;
     el.addEventListener('keydown', (ev) => {
       const key = ev.key;
-      const selected: TreeNode | undefined = (this.tree.getSelectedNodes ? this.tree.getSelectedNodes()[0] : (this.tree.getSelectedNode ? this.tree.getSelectedNode() : undefined));
+      
+      // Helper function to get currently selected node
+      const getSelected = (): TreeNode | undefined => {
+        return (this.tree.getSelectedNodes ? this.tree.getSelectedNodes()[0] : (this.tree.getSelectedNode ? this.tree.getSelectedNode() : undefined));
+      };
+      
+      const selected: TreeNode | undefined = getSelected();
       
       if (!selected) {
         return;
@@ -283,15 +289,17 @@ export class DirectoryTree {
         }
         case 'ArrowLeft': {
           ev.preventDefault();
-          if (selected.isDirectory && selected.state?.open) {
-            treeInstance.closeNode(selected);
+          // Get fresh selected node in case it changed
+          const currentSelected = getSelected();
+          if (!currentSelected) return;
+          
+          if (currentSelected.isDirectory && currentSelected.state?.open) {
+            treeInstance.closeNode(currentSelected);
             // Directly select and highlight the directory after closing
-            setTimeout(() => {
-              this.tree.selectNode(selected);
-              this.updateVisualSelection(selected.id);
-            }, 100);
+            this.tree.selectNode(currentSelected);
+            this.updateVisualSelection(currentSelected.id);
           } else {
-            const parentId = selected.id.substring(0, selected.id.lastIndexOf('/'));
+            const parentId = currentSelected.id.substring(0, currentSelected.id.lastIndexOf('/'));
             if (parentId) {
               const parent = treeInstance.getNodeById(parentId);
               if (parent) {
