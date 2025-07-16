@@ -1157,6 +1157,12 @@ async function updateCommitMeta(filePath: string) {
       contentEditor.replaceContent('# Welcome to Markdown Wiki\n\nSelect a file from the sidebar to edit.');
       updateMode('read');
     }
+    
+    // Restore focus to the tree view for keyboard navigation
+    const treeContainer = document.querySelector('[data-id="tree"]') as HTMLElement;
+    if (treeContainer) {
+      treeContainer.focus();
+    }
   }
   
   // Listen for create dialog events from tree
