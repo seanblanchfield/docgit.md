@@ -317,11 +317,28 @@ export class DirectoryTree {
           
           if (currentSelected.isDirectory) {
             if (!currentSelected.state?.open) {
+              console.log(`[TREE] ArrowRight: opening directory:`, currentSelected.id);
               treeInstance.openNode(currentSelected);
+              // After opening, select the first child
+              setTimeout(() => {
+                const refreshedNode = this.tree.getNodeById(currentSelected.id);
+                if (refreshedNode && refreshedNode.children && refreshedNode.children.length > 0) {
+                  const firstChild = refreshedNode.children[0];
+                  console.log(`[TREE] ArrowRight: selecting first child:`, firstChild.id);
+                  this.tree.selectNode(firstChild);
+                  // Clear manual selection since tree selection should work for children
+                  this.manualSelectedId = null;
+                } else {
+                  console.log(`[TREE] ArrowRight: no children found in expanded directory`);
+                }
+              }, 50);
             } else {
               const firstChild = currentSelected.children && currentSelected.children[0];
               if (firstChild) {
+                console.log(`[TREE] ArrowRight: selecting first child (already open):`, firstChild.id);
                 treeInstance.selectNode(firstChild);
+                // Clear manual selection since tree selection should work for children
+                this.manualSelectedId = null;
               }
             }
           }
