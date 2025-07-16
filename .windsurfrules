@@ -29,7 +29,7 @@ As each section of the spec is done, update it by annotating the corresponding h
 ## Testing
 You should do whatever you can to test your own work, and don't ask the user to do something you can just as easily do yourself.
 - Use `curl` to test that an endpoint is working as expected.
-- Use the puppeteer tool to test that a frontend feature looks correct.
+- Use the playwright tool to test that a frontend feature looks correct.
 - Restart the backend docker container if necessary
 - Debug the frontend by inserting browser console log messages  (console.log, console.info, console.warn, console.error,
   console.debug), which can be viewed by checking the backend container logs (they are all forwarded to the backend).
@@ -79,6 +79,6 @@ wiki/backend/
 
 
 ### Debugging
-- To debug the frontend, try to use puppeteer before asking the user to use the browser debugger.
+- To debug the frontend, try to use playwright before asking the user to use the browser debugger.
 - If you are having difficulty debugging the UI, ask the user to try the action for you and provide a screenshot.
 - If you need to narrow a frontend problem down, consider implementing debug logging.
