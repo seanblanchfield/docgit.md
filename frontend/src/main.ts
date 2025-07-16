@@ -60,7 +60,10 @@ async function acquireLockForFile(filePath: string, showNotification: boolean = 
 
 async function releaseLockForFile(filePath: string): Promise<void> {
   try {
-    await lockService.releaseLock(filePath);
+    // Only try to release if we actually have a lock for this file
+    if (lockService.hasLock(filePath)) {
+      await lockService.releaseLock(filePath);
+    }
     
     // Stop auto-refresh
     if (lockRefreshInterval) {
@@ -801,7 +804,10 @@ async function updateCommitMeta(filePath: string) {
             throw new Error(`Failed to create directory: ${response.statusText}`);
           }
         } else {
-          // Create file with empty content
+          // Create file with default heading from humanized filename
+          const humanizedName = humanizeFileName(name);
+          const defaultContent = `# ${humanizedName}\n\n`;
+          
           const encodedPath = fullPath.split('/').map(encodeURIComponent).join('/');
           const response = await fetch(`/api/files/${encodedPath}`, {
             method: 'PUT',
@@ -809,7 +815,7 @@ async function updateCommitMeta(filePath: string) {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              content: '',
+              content: defaultContent,
               message: `Create file ${fullPath}`
             })
           });

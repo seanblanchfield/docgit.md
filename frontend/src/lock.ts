@@ -25,7 +25,9 @@ export class LockService {
    */
   async checkLockStatus(filePath: string): Promise<LockResponse> {
     try {
-      const response = await fetch(`/api/lock/${encodeURIComponent(filePath)}`);
+      // Encode each path segment separately to handle special characters
+      const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
+      const response = await fetch(`/api/lock/${encodedPath}`);
       if (response.ok) {
         return await response.json();
       } else if (response.status === 404) {
@@ -45,7 +47,9 @@ export class LockService {
    */
   async acquireLock(filePath: string, owner: string): Promise<{ success: boolean; lock_id?: string; conflict?: LockConflictResponse }> {
     try {
-      const response = await fetch(`/api/lock/${encodeURIComponent(filePath)}`, {
+      // Encode each path segment separately to handle special characters
+      const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
+      const response = await fetch(`/api/lock/${encodedPath}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -81,7 +85,9 @@ export class LockService {
     }
 
     try {
-      const response = await fetch(`/api/lock/${encodeURIComponent(filePath)}/ping`, {
+      // Encode each path segment separately to handle special characters
+      const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
+      const response = await fetch(`/api/lock/${encodedPath}/ping`, {
         method: 'PUT',
         headers: {
           'X-Lock-ID': lockId,
@@ -112,7 +118,9 @@ export class LockService {
     }
 
     try {
-      const response = await fetch(`/api/lock/${encodeURIComponent(filePath)}`, {
+      // Encode each path segment separately to handle special characters
+      const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
+      const response = await fetch(`/api/lock/${encodedPath}`, {
         method: 'DELETE',
         headers: {
           'X-Lock-ID': lockId,
@@ -120,6 +128,10 @@ export class LockService {
       });
 
       if (response.ok) {
+        this.currentLocks.delete(filePath);
+        return true;
+      } else if (response.status === 404) {
+        // Lock doesn't exist, which is fine - clean up our local state
         this.currentLocks.delete(filePath);
         return true;
       } else {
