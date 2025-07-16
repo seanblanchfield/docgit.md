@@ -152,10 +152,16 @@ export class DirectoryTree {
     });
 
     this.tree.on('selectNode', (node: TreeNode) => {
-      if (!node || node.isDirectory || node.isCreateItem) return;
-      this.lastSelectedId = node.id;
+      if (!node || node.isCreateItem) return;
+      
+      // Always update visual selection for both files and directories
       this.updateVisualSelection(node.id);
-      this.onFileSelect(node);
+      
+      // Only update lastSelectedId and trigger onFileSelect for files
+      if (!node.isDirectory) {
+        this.lastSelectedId = node.id;
+        this.onFileSelect(node);
+      }
     });
 
     // Prevent deselecting the currently selected file by reselecting if deselect would leave none selected
