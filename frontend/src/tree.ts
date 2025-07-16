@@ -285,8 +285,7 @@ export class DirectoryTree {
           ev.preventDefault();
           if (selected.isDirectory && selected.state?.open) {
             treeInstance.closeNode(selected);
-            // Re-select the directory after closing to maintain highlighting
-            this.tree.selectNode(selected);
+            // The toggle handler will handle re-selection
           } else {
             const parentId = selected.id.substring(0, selected.id.lastIndexOf('/'));
             if (parentId) {
@@ -326,6 +325,13 @@ export class DirectoryTree {
         // Section being collapsed – if current leaf selection will be hidden, shift highlight to this visible parent
         if (this.lastSelectedId && this.lastSelectedId.startsWith(node.id + '/') && this.lastSelectedId !== node.id) {
           this.tree.selectNode(node); // directory selection does not overwrite lastSelectedId
+        } else {
+          // For keyboard navigation: if no selection or current selection is inside the closing directory,
+          // select the directory itself to maintain highlighting
+          const currentSelected = this.tree.getSelectedNodes?.()?.[0] || this.tree.getSelectedNode?.();
+          if (!currentSelected || currentSelected.id.startsWith(node.id + '/')) {
+            this.tree.selectNode(node);
+          }
         }
       }
     });
