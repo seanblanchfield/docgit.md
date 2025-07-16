@@ -50,7 +50,6 @@ export class DirectoryTree {
   }
 
   constructor(private options: DirectoryTreeOptions) {
-    console.log(`[TREE] DirectoryTree constructor called`);
     this.onFileSelect = options.onFileSelect;
     this.onCreateFile = options.onCreateFile;
     this.el = options.el;
@@ -82,11 +81,9 @@ export class DirectoryTree {
       if (!itemEl) return;
       if (!itemEl.classList.contains('infinite-tree-selected')) return;
       if (itemEl.hasAttribute('data-children')) return;
-      console.log(`[TREE] Early click handler: stopping propagation for selected item`);
       event.stopImmediatePropagation();
       
       // IMPORTANT: Still need to ensure focus happens even if we stop propagation
-      console.log(`[TREE] Early click handler: focusing tree element`);
       el.focus();
       
     }, true);
@@ -103,15 +100,8 @@ export class DirectoryTree {
       const nodeId = itemEl.getAttribute('data-id');
       if (!nodeId) return;
       
-      console.log(`[TREE] Click detected on item:`, nodeId);
-      
       const node: TreeNode | undefined = this.tree.getNodeById(nodeId);
-      if (!node) {
-        console.log(`[TREE] Click: node not found for:`, nodeId);
-        return;
-      }
-      
-      console.log(`[TREE] Click: node found:`, node.id, `isDirectory:`, node.isDirectory);
+      if (!node) return;
 
       // Handle create node clicks
       if (node.isCreateItem) {
@@ -166,36 +156,28 @@ export class DirectoryTree {
     });
 
     this.tree.on('selectNode', (node: TreeNode) => {
-      console.log(`[TREE] selectNode event triggered for:`, node ? node.id : 'null');
-      if (!node || node.isCreateItem) return;
+      if (!node) return;
       
-      // Always update visual selection for both files and directories
+      // Always update visual selection for files, directories, and create items
       this.updateVisualSelection(node.id);
-      console.log(`[TREE] selectNode: visual selection updated for:`, node.id);
       
-      // Only update lastSelectedId and trigger onFileSelect for files
-      if (!node.isDirectory) {
+      // Only update lastSelectedId and trigger onFileSelect for files (not directories or create items)
+      if (!node.isDirectory && !node.isCreateItem) {
         this.lastSelectedId = node.id;
         this.onFileSelect(node);
-        console.log(`[TREE] selectNode: file selected and callback triggered:`, node.id);
       }
     });
 
     // Prevent deselecting the currently selected file by reselecting if deselect would leave none selected
     this.tree.on('deselectNode', (node: TreeNode) => {
-      console.log(`[TREE] deselectNode event triggered for:`, node ? node.id : 'null');
-      
       const selected = this.tree.getSelectedNodes();
-      console.log(`[TREE] deselectNode: remaining selected nodes:`, selected.length);
       
       if (selected.length === 0 && node) {
-        console.log(`[TREE] deselectNode: re-selecting node to prevent empty selection:`, node.id);
         // re-select after microtask so internal deselect finishes
         setTimeout(() => {
           this.tree.selectNode(node);
         }, 0);
       } else if (selected.length === 0) {
-        console.log(`[TREE] deselectNode: clearing visual selection`);
         // Clear visual selection if no nodes are selected
         const allItems = this.el.querySelectorAll('.infinite-tree-item');
         allItems.forEach(item => item.classList.remove('infinite-tree-selected'));
@@ -210,19 +192,15 @@ export class DirectoryTree {
     
     // Auto-select first node if none is selected when tree gains focus
     el.addEventListener('focus', () => {
-      console.log(`[TREE] Focus: tree element gained focus`);
       const selected = (this.tree.getSelectedNodes ? this.tree.getSelectedNodes()[0] : (this.tree.getSelectedNode ? this.tree.getSelectedNode() : undefined));
-      console.log(`[TREE] Focus: current selection:`, selected ? selected.id : 'null');
       
       if (!selected) {
-        console.log(`[TREE] Focus: no selection, attempting to select first visible element`);
         const firstVisibleElement = el.querySelector('.infinite-tree-item') as HTMLElement;
         if (firstVisibleElement) {
           const firstId = firstVisibleElement.getAttribute('data-id');
           if (firstId) {
             const firstNode = this.tree.getNodeById(firstId);
             if (firstNode) {
-              console.log(`[TREE] Focus: selecting first node:`, firstNode.id);
               this.tree.selectNode(firstNode);
             }
           }
@@ -230,29 +208,13 @@ export class DirectoryTree {
       }
     });
     
-    // Debug: Add multiple event listeners to check what's happening
-    el.addEventListener('mousedown', () => {
-      console.log(`[TREE] MouseDown: detected on tree element`);
-    });
-    
-    el.addEventListener('mouseup', () => {
-      console.log(`[TREE] MouseUp: detected on tree element`);
-    });
-    
+    // Ensure tree gets focus when clicked
     el.addEventListener('click', () => {
-      console.log(`[TREE] Click: attempting to focus tree element`);
       el.focus();
-      console.log(`[TREE] Click: tree element focused, activeElement:`, document.activeElement === el);
     });
-    
-    // Also add capture phase listener to see if something is stopping propagation
-    el.addEventListener('click', () => {
-      console.log(`[TREE] Click (capture): detected on tree element`);
-    }, true);
     const treeInstance = this.tree;
     el.addEventListener('keydown', (ev) => {
       const key = ev.key;
-      console.log(`[TREE] Key pressed: ${key}`);
       
       // Helper function to get currently selected node
       const getSelected = (): TreeNode | undefined => {
@@ -260,68 +222,52 @@ export class DirectoryTree {
         if (this.manualSelectedId) {
           const manualNode = this.tree.getNodeById(this.manualSelectedId);
           if (manualNode) {
-            console.log(`[TREE] getSelected() returned (manual):`, `${manualNode.id} (isDirectory: ${manualNode.isDirectory})`);
             return manualNode;
           }
         }
         
         // Fall back to tree's selection
         const selected = (this.tree.getSelectedNodes ? this.tree.getSelectedNodes()[0] : (this.tree.getSelectedNode ? this.tree.getSelectedNode() : undefined));
-        console.log(`[TREE] getSelected() returned (tree):`, selected ? `${selected.id} (isDirectory: ${selected.isDirectory})` : 'null');
-        
-        // Debug: show current state
-        if (!selected && !this.manualSelectedId) {
-          alert(`DEBUG: getSelected() found no selection. manualSelectedId: ${this.manualSelectedId}, tree selection: ${selected ? selected.id : 'null'}`);
-        }
-        
         return selected;
       };
       switch (key) {
         case 'ArrowUp': {
           ev.preventDefault();
-          console.log(`[TREE] ArrowUp: starting`);
           // Get fresh selected node
           const currentSelected = getSelected();
-          if (!currentSelected) {
-            console.log(`[TREE] ArrowUp: no currentSelected, returning`);
-            alert(`DEBUG: ArrowUp - getSelected() returned null/undefined`);
-            return;
-          }
+          if (!currentSelected) return;
           
           let selEl = el.querySelector('.infinite-tree-selected') as HTMLElement | null;
-          console.log(`[TREE] ArrowUp: found .infinite-tree-selected element:`, !!selEl);
           if (!selEl) {
             selEl = el.querySelector(`[data-id="${CSS.escape(currentSelected.id)}"]`) as HTMLElement | null;
-            console.log(`[TREE] ArrowUp: found element by data-id:`, !!selEl);
           }
-          if (!selEl) {
-            console.log(`[TREE] ArrowUp: no selEl found, breaking`);
-            alert(`DEBUG: ArrowUp - no visual element found for ${currentSelected.id}`);
-            break;
-          }
+          if (!selEl) break;
           
           const allItems = Array.from(el.querySelectorAll('.infinite-tree-item')) as HTMLElement[];
           const currentIndex = allItems.indexOf(selEl);
-          console.log(`[TREE] ArrowUp: currentIndex:`, currentIndex, `out of`, allItems.length);
           
           if (currentIndex > 0) {
             const target = allItems[currentIndex - 1];
             const id = target.getAttribute('data-id');
-            console.log(`[TREE] ArrowUp: moving to:`, id);
             
             if (id) {
               const node = this.tree.getNodeById(id);
               if (node) {
-                console.log(`[TREE] ArrowUp: selecting node:`, node.id);
                 this.tree.selectNode(node);
-                // Clear manual selection when tree selection works
-                this.manualSelectedId = null;
-              } else {
-                console.log(`[TREE] ArrowUp: getNodeById returned null for:`, id);
+                
+                // Check if tree selection worked
+                const afterTreeSelect = (this.tree.getSelectedNodes ? this.tree.getSelectedNodes()[0] : (this.tree.getSelectedNode ? this.tree.getSelectedNode() : undefined));
+                
+                if (afterTreeSelect && afterTreeSelect.id === node.id) {
+                  // Tree selection worked, clear manual selection
+                  this.manualSelectedId = null;
+                } else {
+                  // Tree selection failed (likely for create items), use manual selection
+                  this.manualSelectedId = node.id;
+                  this.updateVisualSelection(node.id);
+                }
               }
             }
-          } else {
-            console.log(`[TREE] ArrowUp: already at top`);
           }
           break;
         }
@@ -348,6 +294,18 @@ export class DirectoryTree {
               const node = this.tree.getNodeById(id);
               if (node) {
                 this.tree.selectNode(node);
+                
+                // Check if tree selection worked
+                const afterTreeSelect = (this.tree.getSelectedNodes ? this.tree.getSelectedNodes()[0] : (this.tree.getSelectedNode ? this.tree.getSelectedNode() : undefined));
+                
+                if (afterTreeSelect && afterTreeSelect.id === node.id) {
+                  // Tree selection worked, clear manual selection
+                  this.manualSelectedId = null;
+                } else {
+                  // Tree selection failed (likely for create items), use manual selection
+                  this.manualSelectedId = node.id;
+                  this.updateVisualSelection(node.id);
+                }
               }
             }
           }
@@ -361,25 +319,20 @@ export class DirectoryTree {
           
           if (currentSelected.isDirectory) {
             if (!currentSelected.state?.open) {
-              console.log(`[TREE] ArrowRight: opening directory:`, currentSelected.id);
               treeInstance.openNode(currentSelected);
               // After opening, select the first child
               setTimeout(() => {
                 const refreshedNode = this.tree.getNodeById(currentSelected.id);
                 if (refreshedNode && refreshedNode.children && refreshedNode.children.length > 0) {
                   const firstChild = refreshedNode.children[0];
-                  console.log(`[TREE] ArrowRight: selecting first child:`, firstChild.id);
                   this.tree.selectNode(firstChild);
                   // Clear manual selection since tree selection should work for children
                   this.manualSelectedId = null;
-                } else {
-                  console.log(`[TREE] ArrowRight: no children found in expanded directory`);
                 }
               }, 50);
             } else {
               const firstChild = currentSelected.children && currentSelected.children[0];
               if (firstChild) {
-                console.log(`[TREE] ArrowRight: selecting first child (already open):`, firstChild.id);
                 treeInstance.selectNode(firstChild);
                 // Clear manual selection since tree selection should work for children
                 this.manualSelectedId = null;
@@ -390,56 +343,37 @@ export class DirectoryTree {
         }
         case 'ArrowLeft': {
           ev.preventDefault();
-          console.log(`[TREE] ArrowLeft: starting`);
           // Get fresh selected node in case it changed
           const currentSelected = getSelected();
-          if (!currentSelected) {
-            console.log(`[TREE] ArrowLeft: no currentSelected, returning`);
-            return;
-          }
+          if (!currentSelected) return;
           
           if (currentSelected.isDirectory && currentSelected.state?.open) {
-            console.log(`[TREE] ArrowLeft: closing directory:`, currentSelected.id);
             treeInstance.closeNode(currentSelected);
-            
-            // Check if selection was lost
-            const afterClose = getSelected();
-            console.log(`[TREE] ArrowLeft: selection after closeNode:`, afterClose ? afterClose.id : 'null');
             
             // Use setTimeout to ensure the close operation completes before selecting
             const directoryId = currentSelected.id;
             setTimeout(() => {
-              console.log(`[TREE] ArrowLeft: getting fresh node for:`, directoryId);
               const freshNode = this.tree.getNodeById(directoryId);
-              console.log(`[TREE] ArrowLeft: fresh node found:`, freshNode ? freshNode.id : 'null');
               
               if (freshNode) {
-                console.log(`[TREE] ArrowLeft: trying tree.selectNode:`, freshNode.id);
                 this.tree.selectNode(freshNode);
                 
                 // Check if tree selection worked
                 const afterTreeSelect = (this.tree.getSelectedNodes ? this.tree.getSelectedNodes()[0] : (this.tree.getSelectedNode ? this.tree.getSelectedNode() : undefined));
-                console.log(`[TREE] ArrowLeft: tree selection after selectNode:`, afterTreeSelect ? afterTreeSelect.id : 'null');
                 
                 // If tree selection failed, use manual selection
                 if (!afterTreeSelect) {
-                  console.log(`[TREE] ArrowLeft: tree selection failed, using manual selection:`, freshNode.id);
                   this.manualSelectedId = freshNode.id;
                 }
                 
                 this.updateVisualSelection(freshNode.id);
-                console.log(`[TREE] ArrowLeft: completed directory close and selection (timeout)`);
-              } else {
-                console.log(`[TREE] ArrowLeft: fresh node not found for:`, directoryId);
               }
             }, 20);
           } else {
-            console.log(`[TREE] ArrowLeft: navigating to parent`);
             const parentId = currentSelected.id.substring(0, currentSelected.id.lastIndexOf('/'));
             if (parentId) {
               const parent = treeInstance.getNodeById(parentId);
               if (parent) {
-                console.log(`[TREE] ArrowLeft: selecting parent:`, parent.id);
                 this.tree.selectNode(parent);
               }
             }
@@ -604,16 +538,13 @@ export class DirectoryTree {
         const node = this.tree.getNodeById(defaultPath);
         if (node) {
           setTimeout(() => {
-            console.log(`[TREE] load: auto-selecting default file:`, defaultPath);
             this.tree.selectNode(node);
             
             // Check if tree selection worked
             const afterTreeSelect = (this.tree.getSelectedNodes ? this.tree.getSelectedNodes()[0] : (this.tree.getSelectedNode ? this.tree.getSelectedNode() : undefined));
-            console.log(`[TREE] load: tree selection result:`, afterTreeSelect ? afterTreeSelect.id : 'null');
             
             // If tree selection failed, use manual selection
             if (!afterTreeSelect) {
-              console.log(`[TREE] load: tree selection failed, using manual selection:`, defaultPath);
               this.manualSelectedId = defaultPath;
             } else {
               // Clear manual selection if tree selection worked
@@ -622,7 +553,6 @@ export class DirectoryTree {
             
             // Ensure visual selection is updated
             this.updateVisualSelection(defaultPath);
-            console.log(`[TREE] load: completed default selection for:`, defaultPath);
           }, 0);
         }
       }
@@ -750,13 +680,9 @@ export class DirectoryTree {
   }
 
   public selectPath(id: string) {
-    console.log(`[TREE] selectPath called with:`, id);
     const node = this.tree.getNodeById(id);
-    if (!node) {
-      console.log(`[TREE] selectPath: node not found for:`, id);
-      return;
-    }
-    console.log(`[TREE] selectPath: node found:`, node.id);
+    if (!node) return;
+    
     // open ancestors
     const parts = id.split('/');
     let curr = '';
@@ -769,16 +695,13 @@ export class DirectoryTree {
     }
     
     // Use robust selection with fallback
-    console.log(`[TREE] selectPath: attempting to select:`, id);
     this.tree.selectNode(node);
     
     // Check if tree selection worked
     const afterTreeSelect = (this.tree.getSelectedNodes ? this.tree.getSelectedNodes()[0] : (this.tree.getSelectedNode ? this.tree.getSelectedNode() : undefined));
-    console.log(`[TREE] selectPath: tree selection result:`, afterTreeSelect ? afterTreeSelect.id : 'null');
     
     // If tree selection failed, use manual selection
     if (!afterTreeSelect) {
-      console.log(`[TREE] selectPath: tree selection failed, using manual selection:`, id);
       this.manualSelectedId = id;
     } else {
       // Clear manual selection if tree selection worked
@@ -787,7 +710,6 @@ export class DirectoryTree {
     
     // Ensure visual selection is updated
     this.updateVisualSelection(id);
-    console.log(`[TREE] selectPath: completed selection for:`, id);
   }
 
   /**
