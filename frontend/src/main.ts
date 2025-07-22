@@ -966,7 +966,10 @@ async function updateCommitMeta(filePath: string) {
 
   // Create dialog functionality
   function showCreateDialogInContent(parentPath: string, onCreateFile: (parentPath: string, name: string, isDirectory: boolean) => Promise<void>) {
-    if (isShowingCreateDialog) return;
+    // If a create dialog is already showing, hide it first so we can show the new one
+    if (isShowingCreateDialog) {
+      hideCreateDialog();
+    }
     
     isShowingCreateDialog = true;
     previousFilePathBeforeCreate = currentFilePath;
@@ -981,8 +984,10 @@ async function updateCommitMeta(filePath: string) {
     // Hide status bar actions and show create-specific buttons
     const statusActions = document.querySelector('.status-actions');
     const modeControl = document.querySelector('.mode-control');
+    const statusMeta = document.querySelector('.status-meta');
     if (statusActions) statusActions.style.display = 'none';
     if (modeControl) modeControl.style.display = 'none';
+    if (statusMeta) statusMeta.style.display = 'none';
     
     // Hide the existing editor content
     const editorRoot = document.querySelector('#editor-root') as HTMLElement;
@@ -1128,8 +1133,10 @@ async function updateCommitMeta(filePath: string) {
     // Restore status bar visibility
     const statusActions = document.querySelector('.status-actions');
     const modeControl = document.querySelector('.mode-control');
+    const statusMeta = document.querySelector('.status-meta');
     if (statusActions) statusActions.style.display = '';
     if (modeControl) modeControl.style.display = '';
+    if (statusMeta) statusMeta.style.display = '';
     
     // Note: We don't restore the previous file here because hideCreateDialog 
     // is called from onFileSelect when the user clicks on a file.
