@@ -1,6 +1,22 @@
 ## WIP
-Current phase: Create Dialog UX Improvement
-✅ **Current Task:** COMPLETED - Create dialog UX improvement with bug fix
+Current phase: File Deletion with Overflow Menu
+✅ **Current Task:** COMPLETED - File deletion with overflow menu
+
+_Implementation Steps:_
+- ✅ Examine current history button implementation
+- ✅ Design overflow menu component to replace history button  
+- ✅ Implement confirmation dialog for file deletion
+- ✅ Add backend API endpoint for file deletion (already existed)
+- ✅ Test file deletion functionality end-to-end
+
+**Implementation Summary:**
+- Successfully replaced history button with overflow menu (⋮) containing "View History" and "Delete File" options
+- Overflow menu dropdown shows on click with proper styling and positioning
+- Confirmation dialog displays file path and requires user confirmation before deletion
+- File deletion calls DELETE `/api/files/{path}` endpoint and handles success/error responses
+- After successful deletion, user is redirected to default content and tree refreshes to remove deleted file
+- Success notification confirms deletion completion
+- History functionality remains fully operational through the overflow menu
 
 _Implementation Steps:_
 - ✅ Create feature branch: `feature/create-dialog-content-area`

@@ -380,6 +380,18 @@ export class DirectoryTree {
           }
           break;
         }
+        case 'Enter': {
+          ev.preventDefault();
+          // Get fresh selected node
+          const currentSelected = getSelected();
+          if (!currentSelected) return;
+          
+          // If it's a create node, trigger the create dialog
+          if (currentSelected.isCreateItem) {
+            this.handleCreateNodeClick(currentSelected);
+          }
+          break;
+        }
         default:
           break;
       }

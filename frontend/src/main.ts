@@ -81,7 +81,7 @@ async function releaseLockForFile(filePath: string): Promise<void> {
 }
 
 // Generic notification helper
-function showNotification(type: 'lock-conflict' | 'lock-lost' | 'save-error', title: string, message: string): void {
+function showNotification(type: 'lock-conflict' | 'lock-lost' | 'save-error' | 'success', title: string, message: string): void {
   const notification = document.createElement('div');
   notification.className = `${type}-notification`;
   notification.innerHTML = `
@@ -161,7 +161,10 @@ async function main() {
   if (discardBtn) discardBtn.classList.add('hidden');
 
   const commitMetaEl = document.querySelector('[data-id="commit-meta"]') as HTMLElement | null;
-  const historyBtn = document.querySelector('[data-id="history-btn"]') as HTMLAnchorElement | null;
+  const overflowBtn = document.querySelector('[data-id="overflow-btn"]') as HTMLButtonElement | null;
+  const overflowDropdown = document.querySelector('[data-id="overflow-dropdown"]') as HTMLElement | null;
+  const historyBtn = document.querySelector('[data-id="history-btn"]') as HTMLButtonElement | null;
+  const deleteBtn = document.querySelector('[data-id="delete-btn"]') as HTMLButtonElement | null;
   const historyDrawer = document.querySelector('[data-id="history-drawer"]') as HTMLElement | null;
   const historyCloseBtn = document.querySelector('[data-id="history-close"]') as HTMLButtonElement | null;
   const historyList = document.querySelector('[data-id="history-list"]') as HTMLElement | null;
@@ -594,6 +597,12 @@ async function updateCommitMeta(filePath: string) {
   const discardConfirmBtn = document.querySelector('[data-id="discard-confirm"]') as HTMLButtonElement | null;
   const discardCancelBtn = document.querySelector('[data-id="discard-cancel"]') as HTMLButtonElement | null;
 
+  // Delete file handler
+  const deleteDialog = document.querySelector('[data-id="delete-dialog"]') as HTMLDialogElement | null;
+  const deleteFilePathEl = document.querySelector('[data-id="delete-file-path"]') as HTMLElement | null;
+  const deleteCancelBtn = document.querySelector('[data-id="delete-cancel"]') as HTMLButtonElement | null;
+  const deleteConfirmBtn = document.querySelector('[data-id="delete-confirm"]') as HTMLButtonElement | null;
+
   discardBtn?.addEventListener('click', () => {
     if (!dirty || !discardDialog) return;
     discardDialog.showModal();
@@ -618,10 +627,78 @@ async function updateCommitMeta(filePath: string) {
     discardDialog?.close();
   });
 
-  // History link event listener
+  // Delete dialog event listeners
+  deleteCancelBtn?.addEventListener('click', () => {
+    deleteDialog?.close();
+  });
+
+  deleteConfirmBtn?.addEventListener('click', async () => {
+    if (!currentFilePath || !deleteDialog) return;
+    
+    try {
+      deleteDialog.close();
+      
+      const response = await fetch(`/api/files/${encodeURIComponent(currentFilePath)}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        // File deleted successfully, navigate away from deleted file
+        // Clear the editor
+        currentFilePath = '';
+        currentMarkdown = '# Welcome to Markdown Wiki\n\nSelect a file from the sidebar to edit.';
+        baselineMarkdown = '';
+        
+        // Update the editor content
+        contentEditor.replaceContent(currentMarkdown);
+        
+        // Update the tree to remove the deleted file
+        await directoryTree?.reloadDirectory('');
+        
+        // Clear any notifications or status
+        showNotification('success', 'File Deleted', 'File deleted successfully');
+      } else {
+        const errorData = await response.json();
+        showNotification('save-error', 'Delete Failed', errorData.detail || 'Unknown error occurred');
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      showNotification('save-error', 'Delete Error', 'Error deleting file');
+    }
+  });
+
+  // Overflow menu event listeners
+  overflowBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    overflowDropdown?.classList.toggle('hidden');
+  });
+
+  // Close overflow menu when clicking outside
+  document.addEventListener('click', (e) => {
+    if (overflowDropdown && !overflowDropdown.contains(e.target as Node) && !overflowBtn?.contains(e.target as Node)) {
+      overflowDropdown.classList.add('hidden');
+    }
+  });
+
+  // History item event listener
   historyBtn?.addEventListener('click', (e) => {
     e.preventDefault();
+    overflowDropdown?.classList.add('hidden');
     toggleHistoryDrawer();
+  });
+
+  // Delete file event listener
+  deleteBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
+    overflowDropdown?.classList.add('hidden');
+    
+    if (!currentFilePath) return;
+    
+    // Show delete confirmation dialog
+    if (deleteDialog && deleteFilePathEl) {
+      deleteFilePathEl.textContent = currentFilePath;
+      deleteDialog.showModal();
+    }
   });
 
   historyCloseBtn?.addEventListener('click', () => {

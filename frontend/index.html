@@ -26,7 +26,19 @@
         <div class="status-right">
           <div class="status-meta">
             <span class="commit-meta draft-text hidden" data-id="commit-meta"></span>
-            <a href="#" class="history-link" data-id="history-btn">history</a>
+            <div class="overflow-menu" data-id="overflow-menu">
+              <button class="overflow-menu-btn" data-id="overflow-btn" aria-label="File actions">
+                <span class="hamburger-dots">
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                </span>
+              </button>
+              <div class="overflow-menu-dropdown hidden" data-id="overflow-dropdown">
+                <button class="overflow-menu-item" data-id="history-btn">View History</button>
+                <button class="overflow-menu-item delete-item" data-id="delete-btn">Delete File</button>
+              </div>
+            </div>
           </div>
           <div class="status-actions">
             <span class="draft-text hidden" data-id="draft-text">Draft</span>
@@ -71,6 +83,17 @@
       <div class="confirm-actions">
         <button value="cancel" data-id="discard-cancel" class="btn-secondary">Cancel</button>
         <button value="confirm" data-id="discard-confirm" class="btn-danger">Discard</button>
+      </div>
+    </form>
+  </dialog>
+  
+  <dialog id="delete-dialog" class="confirm-dialog" data-id="delete-dialog">
+    <form method="dialog" class="confirm-dialog-form">
+      <p>Are you sure you want to delete this file?</p>
+      <p class="delete-file-path" data-id="delete-file-path"></p>
+      <div class="confirm-actions">
+        <button value="cancel" data-id="delete-cancel" class="btn-secondary">Cancel</button>
+        <button value="confirm" data-id="delete-confirm" class="btn-danger">Delete</button>
       </div>
     </form>
   </dialog>
