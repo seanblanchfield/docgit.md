@@ -495,7 +495,7 @@ async function updateCommitMeta(filePath: string) {
   function normalizeMarkdown(content: string): string {
     // Normalize markdown content for comparison
     // Remove trailing whitespace and ensure consistent line endings
-    return content.trim().replace(/\r\n/g, '\n');
+    return (content || '').trim().replace(/\r\n/g, '\n');
   }
 
   // Check dirty flag every 2 s and update UI
@@ -510,9 +510,17 @@ async function updateCommitMeta(filePath: string) {
   // Auto-save draft every 10 s
   setInterval(() => {
     if (!dirty || !currentFilePath) return;
-    const key = `${draftPrefix}${currentFilePath}`;
     try {
-      localStorage.setItem(key, getCurrentContent());
+      // Use lockService to save draft with expiry if we have a lock
+      const lockId = lockService.getCurrentLockId(currentFilePath);
+      if (lockId) {
+        // Calculate expiry (5 minutes from now, matching server TTL)
+        const lockExpiry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+        lockService.saveDraft(currentFilePath, getCurrentContent(), lockExpiry);
+      } else {
+        // Save without expiry if no lock
+        lockService.saveDraft(currentFilePath, getCurrentContent());
+      }
     } catch (err) {
       console.warn('Failed to store draft:', err);
     }
@@ -975,7 +983,16 @@ async function updateCommitMeta(filePath: string) {
       // Persist current draft before navigation
       if (dirty && currentFilePath) {
         try {
-          localStorage.setItem(`${draftPrefix}${currentFilePath}`, getCurrentContent());
+          // Use lockService to save draft with expiry if we have a lock
+          const lockId = lockService.getCurrentLockId(currentFilePath);
+          if (lockId) {
+            // Calculate expiry (5 minutes from now, matching server TTL)
+            const lockExpiry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+            lockService.saveDraft(currentFilePath, getCurrentContent(), lockExpiry);
+          } else {
+            // Save without expiry if no lock
+            lockService.saveDraft(currentFilePath, getCurrentContent());
+          }
         } catch (err) {
           console.warn('Failed to store draft before navigation:', err);
         }
@@ -1010,9 +1027,10 @@ async function updateCommitMeta(filePath: string) {
         console.warn('Failed to update URL', err);
       }
 
-      const draftKey = `${draftPrefix}${currentFilePath}`;
       const serverContent = await fetchFileContent(node.id);
-      const draftContent = localStorage.getItem(draftKey);
+      // Use lockService to get draft content (handles cleanup and format conversion)
+      const draftData = lockService.getDraftData(currentFilePath);
+      const draftContent = draftData?.content;
       const contentToLoad = draftContent ?? serverContent;
       currentMarkdown = contentToLoad;
       contentEditor.replaceContent(contentToLoad);
