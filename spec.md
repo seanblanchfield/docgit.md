@@ -1,6 +1,39 @@
 ## WIP
-Current phase: File Deletion with Overflow Menu
-✅ **Current Task:** COMPLETED - File deletion with overflow menu
+Current phase: Directory Deletion via Create Dialog
+✅ **Current Task:** COMPLETED - Directory deletion for empty directories
+
+_Implementation Steps:_
+- ✅ Update spec.md Work in Progress section with new directory deletion task
+- ✅ Examine current tree.ts implementation to understand create nodes
+- ✅ Modify create node to show plus/minus symbols for empty directories
+- ✅ Update create dialog to include delete option for empty directories
+- ✅ Implement directory deletion functionality
+- ✅ Test directory deletion feature end-to-end
+
+**Implementation Summary:**
+- Successfully enhanced create nodes to display both plus (+) and minus (−) symbols for empty directories
+- Modified `tree.ts` to detect empty directories and set `isEmpty` flag on create nodes
+- Updated create dialog to conditionally show "Delete Directory" button for empty directories only
+- Implemented directory deletion workflow with confirmation dialog and proper error handling
+- Directory deletion uses existing backend API endpoint `DELETE /api/files/{path}` which supports both files and directories
+- After successful deletion, tree refreshes, navigation returns to welcome state, and success notification displays
+- Feature preserves all existing functionality while adding the new delete capability only where appropriate
+
+**Feature Requirements Met:**
+- ✅ Empty directories show create node with both plus (+) and minus (−) symbols  
+- ✅ Clicking create node for empty directory opens dialog with delete option
+- ✅ Delete option only appears when directory is empty and conditionally displayed
+- ✅ Successfully deleting directory removes it from tree and updates file system
+- ✅ Non-empty directories continue to show only plus (+) symbol as before
+- ✅ Native confirmation dialog prevents accidental deletions (consistent with app's other dialogs)
+- ✅ Proper error handling and user feedback throughout the workflow
+- ✅ **Dialog UX Fix**: Replaced system `confirm()` dialog with native app dialog matching existing design patterns
+- ✅ **Path Resolution Fix**: Fixed backend API path issue where directory deletion was using display name instead of full filesystem path
+
+---
+
+**COMPLETED PHASE: File Deletion with Overflow Menu**
+✅ **Previous Task:** COMPLETED - File deletion with overflow menu
 
 _Implementation Steps:_
 - ✅ Examine current history button implementation

@@ -639,6 +639,13 @@ async function updateCommitMeta(filePath: string) {
   const deleteCancelBtn = document.querySelector('[data-id="delete-cancel"]') as HTMLButtonElement | null;
   const deleteConfirmBtn = document.querySelector('[data-id="delete-confirm"]') as HTMLButtonElement | null;
 
+  // Delete directory handler
+  const deleteDirectoryDialog = document.querySelector('[data-id="delete-directory-dialog"]') as HTMLDialogElement | null;
+  const deleteDirectoryPathEl = document.querySelector('[data-id="delete-directory-path"]') as HTMLElement | null;
+  const deleteDirectoryRealPathEl = document.querySelector('[data-id="delete-directory-real-path"]') as HTMLInputElement | null;
+  const deleteDirectoryCancelBtn = document.querySelector('[data-id="delete-directory-cancel"]') as HTMLButtonElement | null;
+  const deleteDirectoryConfirmBtn = document.querySelector('[data-id="delete-directory-confirm"]') as HTMLButtonElement | null;
+
   discardBtn?.addEventListener('click', () => {
     if (!dirty || !discardDialog) return;
     discardDialog.showModal();
@@ -704,6 +711,56 @@ async function updateCommitMeta(filePath: string) {
     } catch (error) {
       console.error('Error deleting file:', error);
       showNotification('save-error', 'Delete Error', 'Error deleting file');
+    }
+  });
+
+  // Delete directory dialog event listeners
+  deleteDirectoryCancelBtn?.addEventListener('click', () => {
+    deleteDirectoryDialog?.close();
+  });
+
+  deleteDirectoryConfirmBtn?.addEventListener('click', async () => {
+    if (!deleteDirectoryDialog || !deleteDirectoryRealPathEl) return;
+    
+    const directoryPath = deleteDirectoryRealPathEl.value;
+    if (!directoryPath) return;
+    
+    try {
+      deleteDirectoryDialog.close();
+      
+      const encodedPath = directoryPath.split('/').map(encodeURIComponent).join('/');
+      const response = await fetch(`/api/files/${encodedPath}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to delete directory: ${response.statusText}`);
+      }
+      
+      // Directory deleted successfully
+      // Hide create dialog if it's showing
+      if (isShowingCreateDialog) {
+        hideCreateDialog();
+      }
+      
+      // Reload the tree to remove the deleted directory
+      await directoryTree?.loadPreservingExpansion();
+      
+      // Navigate to a default state
+      currentFilePath = null;
+      history.replaceState(null, '', '/');
+      contentEditor.replaceContent('# Welcome to Markdown Wiki\n\nSelect a file from the sidebar to edit.');
+      updateMode('read');
+      
+      // Show success notification
+      showNotification('success', 'Directory Deleted', 'Empty directory deleted successfully');
+      
+    } catch (error) {
+      console.error('Error deleting directory:', error);
+      showNotification('save-error', 'Delete Error', 'Failed to delete directory. Please try again.');
     }
   });
 
@@ -1099,7 +1156,7 @@ async function updateCommitMeta(filePath: string) {
   });
 
   // Create dialog functionality
-  function showCreateDialogInContent(parentPath: string, onCreateFile: (parentPath: string, name: string, isDirectory: boolean) => Promise<void>) {
+  function showCreateDialogInContent(parentPath: string, onCreateFile: (parentPath: string, name: string, isDirectory: boolean) => Promise<void>, isEmpty: boolean = false) {
     // If a create dialog is already showing, hide it first so we can show the new one
     if (isShowingCreateDialog) {
       hideCreateDialog();
@@ -1144,7 +1201,7 @@ async function updateCommitMeta(filePath: string) {
         <div class="create-dialog-header">
           <h2>Create New File or Directory</h2>
           ${humanizedParentPath ? `<div class="create-dialog-location">in <span class="directory-name">${humanizedParentPath}</span></div>` : '<div class="create-dialog-location">in <span class="directory-name">Root</span></div>'}
-          <p class="create-dialog-description">Enter a name for your new file or directory</p>
+          <p class="create-dialog-description">Enter a name for your new file or directory${isEmpty && parentPath ? ', or delete this empty directory' : ''}</p>
         </div>
         
         <div class="create-form">
@@ -1170,6 +1227,7 @@ async function updateCommitMeta(filePath: string) {
           <div class="create-actions">
             <button class="btn btn-secondary create-cancel">Cancel</button>
             <button class="btn btn-primary create-submit">Create</button>
+            ${isEmpty && parentPath ? '<button class="btn btn-danger create-delete">Delete Directory</button>' : ''}
           </div>
         </div>
       </div>
@@ -1213,9 +1271,27 @@ async function updateCommitMeta(filePath: string) {
       cancelCreateDialog();
     };
     
+    // Handle delete directory
+    const handleDelete = async () => {
+      if (!isEmpty || !parentPath) {
+        console.error('Delete attempted on non-empty directory or root');
+        return;
+      }
+      
+      // Show native delete directory dialog
+      if (deleteDirectoryDialog && deleteDirectoryPathEl && deleteDirectoryRealPathEl) {
+        deleteDirectoryPathEl.textContent = humanizedParentPath || parentPath;
+        deleteDirectoryRealPathEl.value = parentPath; // Store the real path for API call
+        deleteDirectoryDialog.showModal();
+      }
+    };
+    
     // Event handlers
     dialogElement.querySelector('.create-cancel')?.addEventListener('click', handleCancel);
     dialogElement.querySelector('.create-submit')?.addEventListener('click', handleCreate);
+    if (isEmpty && parentPath) {
+      dialogElement.querySelector('.create-delete')?.addEventListener('click', handleDelete);
+    }
     
     // Handle Enter key
     nameInput.addEventListener('keydown', (e) => {
@@ -1308,8 +1384,8 @@ async function updateCommitMeta(filePath: string) {
   
   // Listen for create dialog events from tree
   document.addEventListener('showCreateDialog', (event: CustomEvent) => {
-    const { parentPath, onCreateFile } = event.detail;
-    showCreateDialogInContent(parentPath, onCreateFile);
+    const { parentPath, isEmpty, onCreateFile } = event.detail;
+    showCreateDialogInContent(parentPath, onCreateFile, isEmpty);
   });
 
   // Initialize drawer toggle

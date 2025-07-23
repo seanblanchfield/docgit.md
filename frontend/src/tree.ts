@@ -8,6 +8,7 @@ export interface TreeNode {
   isDirectory: boolean;
   children?: TreeNode[];
   isCreateItem?: boolean; // Flag for create items
+  isEmpty?: boolean; // Flag for empty directories (used with create items)
   state?: {
     depth?: number;
     open?: boolean;
@@ -454,6 +455,15 @@ export class DirectoryTree {
     // Deep clone the nodes to avoid mutation issues
     const clonedNodes = JSON.parse(JSON.stringify(nodes));
     
+    // Helper function to check if a directory is empty (no actual content, only filtered files like .gitkeep)
+    const isDirectoryEmpty = (node: TreeNode): boolean => {
+      if (!node.isDirectory || !node.children) return false;
+      
+      // A directory is considered empty if it has no non-create-item children
+      const nonCreateChildren = node.children.filter(child => !child.isCreateItem);
+      return nonCreateChildren.length === 0;
+    };
+    
     // Recursively add create items to each directory
     const processNode = (node: TreeNode): TreeNode => {
       // Skip if already a create item
@@ -480,11 +490,15 @@ export class DirectoryTree {
         );
         
         if (!hasCreateItem) {
+          // Check if directory is empty to determine create node appearance
+          const isEmpty = isDirectoryEmpty(processedNode);
+          
           const createItem: TreeNode = {
             id: `${node.id}/__create__`,
-            name: '+',
+            name: isEmpty ? '+ −' : '+',  // Show both plus and minus for empty directories
             isDirectory: false,
-            isCreateItem: true
+            isCreateItem: true,
+            isEmpty: isEmpty  // Store empty state for later use
           };
           processedNode.children.push(createItem);
         }
@@ -526,7 +540,7 @@ export class DirectoryTree {
       parentPath = node.id.replace('/__create__', '');
     }
     
-    this.showCreateDialog(parentPath);
+    this.showCreateDialog(parentPath, node.isEmpty || false);
   }
 
   async load() {
@@ -830,13 +844,14 @@ export class DirectoryTree {
   /**
    * Show create file/directory dialog in content area
    */
-  private showCreateDialog(parentPath: string): void {
+  private showCreateDialog(parentPath: string, isEmpty: boolean = false): void {
     if (!this.onCreateFile) return;
     
     // Dispatch event to main.ts to show create dialog in content area
     const createEvent = new CustomEvent('showCreateDialog', {
       detail: {
         parentPath: parentPath,
+        isEmpty: isEmpty,
         onCreateFile: this.onCreateFile
       }
     });
@@ -855,7 +870,9 @@ export class DirectoryTree {
       return;
     }
     
-    this.showCreateDialog(directoryPath);
+    // Check if directory is empty
+    const isEmpty = !node.children || node.children.filter(child => !child.isCreateItem).length === 0;
+    this.showCreateDialog(directoryPath, isEmpty);
   }
 
   /**

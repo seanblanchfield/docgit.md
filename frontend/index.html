@@ -98,6 +98,18 @@
     </form>
   </dialog>
   
+  <dialog id="delete-directory-dialog" class="confirm-dialog" data-id="delete-directory-dialog">
+    <form method="dialog" class="confirm-dialog-form">
+      <p>Are you sure you want to delete this empty directory?</p>
+      <p class="delete-directory-path" data-id="delete-directory-path"></p>
+      <input type="hidden" data-id="delete-directory-real-path" />
+      <div class="confirm-actions">
+        <button value="cancel" data-id="delete-directory-cancel" class="btn-secondary">Cancel</button>
+        <button value="confirm" data-id="delete-directory-confirm" class="btn-danger">Delete Directory</button>
+      </div>
+    </form>
+  </dialog>
+  
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
