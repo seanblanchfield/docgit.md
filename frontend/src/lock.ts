@@ -62,7 +62,9 @@ export class LockService {
         this.currentLocks.set(filePath, data.lock_id);
         return { success: true, lock_id: data.lock_id };
       } else if (response.status === 423) {
-        const conflict: LockConflictResponse = await response.json();
+        const rawConflict = await response.json();
+        // Handle nested detail structure from backend
+        const conflict: LockConflictResponse = rawConflict.detail || rawConflict;
         return { success: false, conflict };
       } else {
         console.error(`Failed to acquire lock for ${filePath}:`, response.statusText);

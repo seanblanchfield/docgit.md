@@ -29,6 +29,9 @@ let currentFilePath: string | null = null;
 let lockRefreshInterval: (() => void) | null = null;
 let directoryTree: DirectoryTree | null = null;
 
+// Generate unique session ID for this browser session
+const SESSION_ID = 'session_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now().toString(36);
+
 // Create dialog state
 let isShowingCreateDialog = false;
 let previousFilePathBeforeCreate: string | null = null;
@@ -36,8 +39,10 @@ let previousFilePathBeforeCreate: string | null = null;
 // Lock management functions
 async function acquireLockForFile(filePath: string, showNotification: boolean = true): Promise<{success: boolean, conflict?: any}> {
   try {
-    const result = await lockService.acquireLock(filePath, 'user');
+    console.log(`[LOCK DEBUG] Session ${SESSION_ID} attempting to acquire lock for: ${filePath}`);
+    const result = await lockService.acquireLock(filePath, SESSION_ID);
     if (result.success) {
+      console.log(`[LOCK DEBUG] Successfully acquired lock for: ${filePath}, lock_id: ${result.lock_id}`);
       // Start auto-refresh for this lock
       if (lockRefreshInterval) {
         lockRefreshInterval();
@@ -46,6 +51,7 @@ async function acquireLockForFile(filePath: string, showNotification: boolean = 
       
       return {success: true};
     } else if (result.conflict) {
+      console.log(`[LOCK DEBUG] Lock conflict for: ${filePath}, owned by: ${result.conflict.lock_info.owner}`);
       // Show lock conflict notification only if requested
       if (showNotification) {
         showLockConflictNotification(result.conflict);
@@ -60,9 +66,15 @@ async function acquireLockForFile(filePath: string, showNotification: boolean = 
 
 async function releaseLockForFile(filePath: string): Promise<void> {
   try {
+    console.log(`[LOCK DEBUG] Attempting to release lock for: ${filePath}`);
+    console.log(`[LOCK DEBUG] hasLock check result: ${lockService.hasLock(filePath)}`);
+    
     // Only try to release if we actually have a lock for this file
     if (lockService.hasLock(filePath)) {
+      console.log(`[LOCK DEBUG] Releasing lock for: ${filePath}`);
       await lockService.releaseLock(filePath);
+    } else {
+      console.log(`[LOCK DEBUG] No local lock found for: ${filePath}, skipping release`);
     }
     
     // Stop auto-refresh
@@ -426,7 +438,7 @@ async function updateCommitMeta(filePath: string) {
   const contentEditor = await initContentEditor('#editor-root', currentMarkdown);
 
   // After editor is ready, set accurate baseline to avoid false dirty state
-  baselineMarkdown = contentEditor.getMarkdown() || currentMarkdown;
+  baselineMarkdown = currentMarkdown;
   showDraft(false);
 
   // --- Unsaved indicator & local draft handling ---
@@ -472,10 +484,18 @@ async function updateCommitMeta(filePath: string) {
     return contentEditor.getMarkdown() || '';
   }
 
+  function normalizeMarkdown(content: string): string {
+    // Normalize markdown content for comparison
+    // Remove trailing whitespace and ensure consistent line endings
+    return content.trim().replace(/\r\n/g, '\n');
+  }
+
   // Check dirty flag every 2 s and update UI
   setInterval(() => {
     const content = getCurrentContent();
-    dirty = content !== baselineMarkdown;
+    const normalizedContent = normalizeMarkdown(content);
+    const normalizedBaseline = normalizeMarkdown(baselineMarkdown);
+    dirty = normalizedContent !== normalizedBaseline;
     showDraft(dirty);
   }, 2000);
 
@@ -608,7 +628,7 @@ async function updateCommitMeta(filePath: string) {
     discardDialog.showModal();
   });
 
-  discardConfirmBtn?.addEventListener('click', () => {
+  discardConfirmBtn?.addEventListener('click', async () => {
     // Revert to baseline
     contentEditor.replaceContent(baselineMarkdown);
     rawTextarea.value = baselineMarkdown;
@@ -619,8 +639,12 @@ async function updateCommitMeta(filePath: string) {
       persistModified();
       const itemEl = document.querySelector(`.infinite-tree-item[data-id="${CSS.escape(currentFilePath)}"]`);
       if (itemEl) itemEl.classList.remove('modified');
+      
+      // Release the lock since we're no longer editing
+      await releaseLockForFile(currentFilePath);
     }
     showDraft(false);
+    discardDialog?.close();
   });
 
   discardCancelBtn?.addEventListener('click', () => {
@@ -980,14 +1004,21 @@ async function updateCommitMeta(filePath: string) {
 
       const draftKey = `${draftPrefix}${currentFilePath}`;
       const serverContent = await fetchFileContent(node.id);
-      baselineMarkdown = serverContent;
       const draftContent = localStorage.getItem(draftKey);
       const contentToLoad = draftContent ?? serverContent;
       currentMarkdown = contentToLoad;
       contentEditor.replaceContent(contentToLoad);
       rawTextarea.value = contentToLoad; // keep RAW view in sync
-      dirty = draftContent !== null && draftContent !== serverContent;
-      showDraft(dirty);
+      
+      // Set baseline to the server content (not the draft content)
+      baselineMarkdown = serverContent;
+      
+      // Only show draft mode if there's actual draft content that differs from server
+      // Use normalized comparison to avoid false positives from formatting differences
+      const hasDraftChanges = draftContent !== null && 
+        normalizeMarkdown(draftContent) !== normalizeMarkdown(serverContent);
+      dirty = hasDraftChanges;
+      showDraft(hasDraftChanges);
       // If this file was previously marked modified, ensure class persists
       if (modifiedFiles.has(currentFilePath)) {
         const itemEl = document.querySelector(`.infinite-tree-item[data-id="${CSS.escape(currentFilePath)}"]`);
