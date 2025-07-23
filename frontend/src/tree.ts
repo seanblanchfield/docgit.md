@@ -770,7 +770,7 @@ export class DirectoryTree {
 
     try {
       const lockResponse = await lockService.checkLockStatus(filePath);
-      const ownedByMe = lockService.hasLock(filePath);
+      const ownedByMe = await lockService.isOwnedByCurrentSession(filePath);
       
       node.lockStatus = {
         locked: lockResponse.locked,

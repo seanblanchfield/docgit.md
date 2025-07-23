@@ -29,8 +29,8 @@ let currentFilePath: string | null = null;
 let lockRefreshInterval: (() => void) | null = null;
 let directoryTree: DirectoryTree | null = null;
 
-// Generate unique session ID for this browser session
-const SESSION_ID = 'session_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now().toString(36);
+// Use generic owner identifier for locks (authentication will be added later)
+const LOCK_OWNER = 'user';
 
 // Create dialog state
 let isShowingCreateDialog = false;
@@ -39,8 +39,15 @@ let previousFilePathBeforeCreate: string | null = null;
 // Lock management functions
 async function acquireLockForFile(filePath: string, showNotification: boolean = true): Promise<{success: boolean, conflict?: any}> {
   try {
-    console.log(`[LOCK DEBUG] Session ${SESSION_ID} attempting to acquire lock for: ${filePath}`);
-    const result = await lockService.acquireLock(filePath, SESSION_ID);
+    console.log(`[LOCK DEBUG] Attempting to acquire lock for: ${filePath}`);
+    
+    // Check if we already own this lock implicitly
+    if (await lockService.isOwnedByCurrentSession(filePath)) {
+      console.log(`[LOCK DEBUG] Already own lock for: ${filePath} (implicit detection)`);
+      return {success: true};
+    }
+    
+    const result = await lockService.acquireLock(filePath, LOCK_OWNER);
     if (result.success) {
       console.log(`[LOCK DEBUG] Successfully acquired lock for: ${filePath}, lock_id: ${result.lock_id}`);
       // Start auto-refresh for this lock
@@ -67,10 +74,11 @@ async function acquireLockForFile(filePath: string, showNotification: boolean = 
 async function releaseLockForFile(filePath: string): Promise<void> {
   try {
     console.log(`[LOCK DEBUG] Attempting to release lock for: ${filePath}`);
-    console.log(`[LOCK DEBUG] hasLock check result: ${lockService.hasLock(filePath)}`);
+    const hasLock = await lockService.isOwnedByCurrentSession(filePath);
+    console.log(`[LOCK DEBUG] hasLock check result: ${hasLock}`);
     
     // Only try to release if we actually have a lock for this file
-    if (lockService.hasLock(filePath)) {
+    if (hasLock) {
       console.log(`[LOCK DEBUG] Releasing lock for: ${filePath}`);
       await lockService.releaseLock(filePath);
     } else {
@@ -200,8 +208,8 @@ async function updateCommitMeta(filePath: string) {
   if (!commitMetaEl) return;
   
   // Check lock status first
-    const lockStatus = await lockService.checkLockStatus(filePath);
-  const ownedByMe = lockService.hasLock(filePath);
+  const lockStatus = await lockService.checkLockStatus(filePath);
+  const ownedByMe = await lockService.isOwnedByCurrentSession(filePath);
   const isLockedByOther = lockStatus.locked && !ownedByMe;
 
   if (isLockedByOther) {
@@ -1054,7 +1062,7 @@ async function updateCommitMeta(filePath: string) {
       
       // Also update button states based on current lock status
       const lockStatus = await lockService.checkLockStatus(currentFilePath);
-      const ownedByMe = lockService.hasLock(currentFilePath);
+      const ownedByMe = await lockService.isOwnedByCurrentSession(currentFilePath);
       const isLockedByOther = lockStatus.locked && !ownedByMe;
       updateButtonStates(isLockedByOther);
     }

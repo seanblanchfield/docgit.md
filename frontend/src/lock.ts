@@ -19,6 +19,14 @@ export interface LockConflictResponse {
 
 export class LockService {
   private currentLocks = new Map<string, string>(); // path -> lock_id
+  private draftPrefix = 'draft:';
+
+  /**
+   * Check if current browser has a draft for the given file path
+   */
+  private hasDraftForFile(filePath: string): boolean {
+    return localStorage.getItem(this.draftPrefix + filePath) !== null;
+  }
 
   /**
    * Check if a file is locked
@@ -148,6 +156,26 @@ export class LockService {
 
   /**
    * Check if we own the lock for a file
+   * Uses implicit detection: if file is locked and we have a local draft, we own it
+   */
+  async hasLockImplicit(filePath: string): Promise<boolean> {
+    // First check explicit tracking
+    if (this.currentLocks.has(filePath)) {
+      return true;
+    }
+    
+    // Check implicit ownership via localStorage draft
+    const lockStatus = await this.checkLockStatus(filePath);
+    if (lockStatus.locked && this.hasDraftForFile(filePath)) {
+      // File is locked and we have a draft - we must own the lock
+      return true;
+    }
+    
+    return false;
+  }
+
+  /**
+   * Check if we own the lock for a file (synchronous version for backward compatibility)
    */
   hasLock(filePath: string): boolean {
     return this.currentLocks.has(filePath);
@@ -178,6 +206,29 @@ export class LockService {
    */
   getCurrentLockId(filePath: string): string | null {
     return this.currentLocks.get(filePath) || null;
+  }
+
+  /**
+   * Check if a locked file is owned by current session (with implicit detection)
+   */
+  async isOwnedByCurrentSession(filePath: string): Promise<boolean> {
+    // First check explicit tracking
+    if (this.currentLocks.has(filePath)) {
+      return true;
+    }
+    
+    // Check implicit ownership via localStorage draft
+    const lockStatus = await this.checkLockStatus(filePath);
+    if (lockStatus.locked && this.hasDraftForFile(filePath)) {
+      // File is locked and we have a draft - we must own the lock
+      // Add to our local tracking for future reference
+      if (lockStatus.lock_info?.lock_id) {
+        this.currentLocks.set(filePath, lockStatus.lock_info.lock_id);
+      }
+      return true;
+    }
+    
+    return false;
   }
 }
 
