@@ -39,17 +39,17 @@ let previousFilePathBeforeCreate: string | null = null;
 // Lock management functions
 async function acquireLockForFile(filePath: string, showNotification: boolean = true): Promise<{success: boolean, conflict?: any}> {
   try {
-    console.log(`[LOCK DEBUG] Attempting to acquire lock for: ${filePath}`);
+
     
     // Check if we already own this lock implicitly
     if (await lockService.isOwnedByCurrentSession(filePath)) {
-      console.log(`[LOCK DEBUG] Already own lock for: ${filePath} (implicit detection)`);
+
       return {success: true};
     }
     
     const result = await lockService.acquireLock(filePath, LOCK_OWNER);
     if (result.success) {
-      console.log(`[LOCK DEBUG] Successfully acquired lock for: ${filePath}, lock_id: ${result.lock_id}`);
+
       // Start auto-refresh for this lock
       if (lockRefreshInterval) {
         lockRefreshInterval();
@@ -58,7 +58,7 @@ async function acquireLockForFile(filePath: string, showNotification: boolean = 
       
       return {success: true};
     } else if (result.conflict) {
-      console.log(`[LOCK DEBUG] Lock conflict for: ${filePath}, owned by: ${result.conflict.lock_info.owner}`);
+
       // Show lock conflict notification only if requested
       if (showNotification) {
         showLockConflictNotification(result.conflict);
@@ -73,16 +73,16 @@ async function acquireLockForFile(filePath: string, showNotification: boolean = 
 
 async function releaseLockForFile(filePath: string): Promise<void> {
   try {
-    console.log(`[LOCK DEBUG] Attempting to release lock for: ${filePath}`);
+
     const hasLock = await lockService.isOwnedByCurrentSession(filePath);
-    console.log(`[LOCK DEBUG] hasLock check result: ${hasLock}`);
+
     
     // Only try to release if we actually have a lock for this file
     if (hasLock) {
-      console.log(`[LOCK DEBUG] Releasing lock for: ${filePath}`);
+
       await lockService.releaseLock(filePath);
     } else {
-      console.log(`[LOCK DEBUG] No local lock found for: ${filePath}, skipping release`);
+
     }
     
     // Stop auto-refresh
@@ -498,12 +498,26 @@ async function updateCommitMeta(filePath: string) {
     return (content || '').trim().replace(/\r\n/g, '\n');
   }
 
+
+
+  function normalizeForComparison(content: string): string {
+    return content
+      .trim()
+      .replace(/(<br\s*\/?>\n*)*$/gi, '') // Remove trailing <br> tags with optional newlines
+      .replace(/(<p\s*\/?>\n*)*$/gi, '')  // Remove trailing <p> tags with optional newlines
+      .trim();
+  }
   // Check dirty flag every 2 s and update UI
   setInterval(() => {
     const content = getCurrentContent();
-    const normalizedContent = normalizeMarkdown(content);
-    const normalizedBaseline = normalizeMarkdown(baselineMarkdown);
-    dirty = normalizedContent !== normalizedBaseline;
+    
+    // Use normalized content comparison with HTML tag stripping to avoid false positives
+    const normalizedContent = normalizeForComparison(content);
+    const normalizedBaseline = normalizeForComparison(baselineMarkdown);
+    
+    const isDirty = normalizedContent !== normalizedBaseline;
+    
+    dirty = isDirty;
     showDraft(dirty);
   }, 2000);
 
@@ -652,22 +666,30 @@ async function updateCommitMeta(filePath: string) {
   });
 
   discardConfirmBtn?.addEventListener('click', async () => {
-    // Revert to baseline
-    contentEditor.replaceContent(baselineMarkdown);
-    rawTextarea.value = baselineMarkdown;
-    dirty = false;
-    if (currentFilePath) {
-      localStorage.removeItem(`${draftPrefix}${currentFilePath}`);
-      modifiedFiles.delete(currentFilePath);
-      persistModified();
-      const itemEl = document.querySelector(`.infinite-tree-item[data-id="${CSS.escape(currentFilePath)}"]`);
-      if (itemEl) itemEl.classList.remove('modified');
+    try {
+      // Revert editor to baseline content
+      contentEditor.replaceContent(baselineMarkdown);
+      rawTextarea.value = baselineMarkdown;
+      currentMarkdown = baselineMarkdown;
       
-      // Release the lock since we're no longer editing
-      await releaseLockForFile(currentFilePath);
+      dirty = false;
+      if (currentFilePath) {
+        localStorage.removeItem(`${draftPrefix}${currentFilePath}`);
+        modifiedFiles.delete(currentFilePath);
+        persistModified();
+        const itemEl = document.querySelector(`.infinite-tree-item[data-id="${CSS.escape(currentFilePath)}"]`);
+        if (itemEl) itemEl.classList.remove('modified');
+        
+        // Release the lock since we're no longer editing
+        await releaseLockForFile(currentFilePath);
+      }
+      showDraft(false);
+      discardDialog?.close();
+      
+      console.log('[DISCARD] Reverted', currentFilePath, 'to baseline');
+    } catch (error) {
+      console.error('[DISCARD] Error:', error);
     }
-    showDraft(false);
-    discardDialog?.close();
   });
 
   discardCancelBtn?.addEventListener('click', () => {
@@ -753,7 +775,7 @@ async function updateCommitMeta(filePath: string) {
       currentFilePath = null;
       history.replaceState(null, '', '/');
       contentEditor.replaceContent('# Welcome to Markdown Wiki\n\nSelect a file from the sidebar to edit.');
-      updateMode('read');
+      await updateMode('read');
       
       // Show success notification
       showNotification('success', 'Directory Deleted', 'Empty directory deleted successfully');
@@ -839,7 +861,7 @@ async function updateCommitMeta(filePath: string) {
   let currentMode: Mode = (localStorage.getItem('editorMode') as Mode) || 'read';
 
   // Function to update button states based on lock status
-  function updateButtonStates(isLockedByOther: boolean) {
+  async function updateButtonStates(isLockedByOther: boolean) {
     const editButtons = document.querySelectorAll<HTMLButtonElement>('.mode-btn[data-mode="wysiwyg"], .mode-btn[data-mode="raw"]');
     
     editButtons.forEach(btn => {
@@ -856,12 +878,20 @@ async function updateCommitMeta(filePath: string) {
     
     // If currently in an edit mode and file becomes locked, switch to read mode
     if (isLockedByOther && (currentMode === 'wysiwyg' || currentMode === 'raw')) {
-      updateMode('read');
+      await updateMode('read');
     }
   }
 
-  function updateMode(mode: Mode) {
-  
+  async function updateMode(mode: Mode) {
+    // If transitioning from read mode to an edit mode, acquire lock first
+    if (currentMode === 'read' && (mode === 'wysiwyg' || mode === 'raw') && currentFilePath) {
+      const lockResult = await acquireLockForFile(currentFilePath, true);
+      if (!lockResult.success) {
+        // Lock acquisition failed, stay in read mode
+
+        return;
+      }
+    }
 
     // If leaving RAW, push textarea content into editor
     if (currentMode === 'raw' && mode !== 'raw') {
@@ -913,25 +943,25 @@ async function updateCommitMeta(filePath: string) {
 
   // Attach listeners
   document.querySelectorAll<HTMLButtonElement>('.mode-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const mode = btn.dataset.mode as Mode;
-      updateMode(mode);
+      await updateMode(mode);
     });
   });
 
   // Keyboard shortcut Ctrl+E cycles modes
-  document.addEventListener('keydown', (e) => {
+  document.addEventListener('keydown', async (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'e') {
       e.preventDefault();
       const order: Mode[] = ['read', 'wysiwyg', 'raw'];
       const idx = order.indexOf(currentMode);
       const nextMode = order[(idx + 1) % order.length] as Mode;
-      updateMode(nextMode);
+      await updateMode(nextMode);
     }
   });
 
   // Apply initial mode
-  updateMode(currentMode);
+  await updateMode(currentMode);
 
   // Find tree container
     const treeContainer = document.querySelector('[data-id="tree"]');
@@ -1064,17 +1094,10 @@ async function updateCommitMeta(filePath: string) {
       
       // Always reset to read mode when navigating to a new file
       // This prevents unintentional lock acquisition from persisted editor mode
-      updateMode('read');
+      await updateMode('read');
       
-      // Try to acquire lock for the selected file (suppress notification on file load)
-      const lockResult = await acquireLockForFile(currentFilePath, false);
-      if (!lockResult.success) {
-
-        updateButtonStates(true); // Disable edit buttons
-      } else {
-
-        updateButtonStates(false); // Enable edit buttons
-      }
+      // Enable edit buttons by default - lock will be acquired when user enters edit mode
+      updateButtonStates(false);
 
       // Update browser path to current file (SPA deep link)
       try {
@@ -1090,6 +1113,8 @@ async function updateCommitMeta(filePath: string) {
       const draftContent = draftData?.content;
       const contentToLoad = draftContent ?? serverContent;
       currentMarkdown = contentToLoad;
+      
+      // Load content into editor
       contentEditor.replaceContent(contentToLoad);
       rawTextarea.value = contentToLoad; // keep RAW view in sync
       
@@ -1098,10 +1123,17 @@ async function updateCommitMeta(filePath: string) {
       
       // Only show draft mode if there's actual draft content that differs from server
       // Use normalized comparison to avoid false positives from formatting differences
-      const hasDraftChanges = draftContent !== null && 
+      // Also ensure we have meaningful content differences, not just whitespace/formatting
+      const hasDraftChanges = draftContent !== null && draftContent !== undefined &&
+        draftContent.trim() !== serverContent.trim() &&
         normalizeMarkdown(draftContent) !== normalizeMarkdown(serverContent);
       dirty = hasDraftChanges;
-      showDraft(hasDraftChanges);
+      
+      // Defer showDraft to avoid orange flash on file selection
+      // Only apply modified styling if we're confident there are real changes
+      setTimeout(() => {
+        showDraft(hasDraftChanges);
+      }, 0);
       // If this file was previously marked modified, ensure class persists
       if (modifiedFiles.has(currentFilePath)) {
         const itemEl = document.querySelector(`.infinite-tree-item[data-id="${CSS.escape(currentFilePath)}"]`);
@@ -1355,7 +1387,7 @@ async function updateCommitMeta(filePath: string) {
     previousFilePathBeforeCreate = null;
   }
   
-  function cancelCreateDialog() {
+  async function cancelCreateDialog() {
     if (!isShowingCreateDialog) return;
     
     // Store the previous file path before hiding the dialog
@@ -1372,7 +1404,7 @@ async function updateCommitMeta(filePath: string) {
       currentFilePath = null;
       history.replaceState(null, '', '/');
       contentEditor.replaceContent('# Welcome to Markdown Wiki\n\nSelect a file from the sidebar to edit.');
-      updateMode('read');
+      await updateMode('read');
     }
     
     // Restore focus to the tree view for keyboard navigation
