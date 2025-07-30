@@ -1,6 +1,85 @@
 ## WIP
-Current phase: Directory Deletion via Create Dialog
-✅ **Current Task:** COMPLETED - Directory deletion for empty directories
+Current phase: Local Draft/Server Conflict Handling Strategy
+🔄 **Current Task:** Design robust local draft/server conflict detection and resolution
+
+### Problem Analysis: Local Draft vs Server State Conflicts
+
+**Scenario:**
+1. User A starts editing `file.md`, acquires server lock, makes changes auto-saved to localStorage
+2. Server lock expires (user goes to lunch, closes browser, network issues, etc.)
+3. User B edits `file.md`, saves changes to server (creates new Git commit)
+4. User A returns with stale local draft but no server lock
+5. **Critical Question:** Can User A resume their changes, or must they be discarded?
+
+**Current System Limitations:**
+- Content comparison only tells us drafts are "different", not which is "newer"
+- No way to detect if server has been modified since draft was created
+- Risk of data loss (discarding valid user work) vs data corruption (overwriting newer server changes)
+- Without merge capability, must choose: local draft OR server version
+
+### Selected Approach: Git Commit Hash-Based Conflict Detection
+
+**Implementation Strategy:**
+We will implement a Git commit hash-based approach for robust local draft/server conflict detection. This leverages the existing Git infrastructure and provides reliable, immutable conflict detection.
+
+**Core Mechanism:**
+```typescript
+interface DraftData {
+  content: string;
+  baseCommitHash: string; // Git commit hash when draft was created
+  timestamp: number;      // For user-facing "draft age" information
+}
+
+interface FileTreeNode {
+  // ... existing properties
+  gitHash?: string; // Current HEAD commit hash for this file
+}
+```
+
+**Conflict Detection Logic:**
+1. When user starts editing, store current HEAD commit hash as `baseCommitHash` in draft
+2. Directory tree API includes current `gitHash` for each file
+3. On file selection, compare draft's `baseCommitHash` with current server `gitHash`
+4. If hashes differ → draft is stale → **discard draft** (no merge/diff for now)
+5. If hashes match → draft is current → safe to resume editing
+
+**Key Design Decisions:**
+- **No merge/diff capability**: If server has advanced, user's local changes are discarded
+- **Simple conflict resolution**: "Your changes are outdated and will be lost"
+- **Accurate modified indicators**: Only show file as modified if draft exists AND is based on current server version
+- **Robust auto-save**: Only save drafts if trimmed content differs from server's trimmed content
+- **Timer management**: Cancel all auto-save timers immediately when user discards changes
+
+### Implementation Priority [COMPLETED]
+1. ✅ Design chosen conflict detection mechanism (Git commit hash-based approach)
+2. ✅ **COMPLETED:** Implement chosen conflict detection mechanism
+3. ✅ Create conflict resolution UI/UX
+4. ✅ Update localStorage draft structure
+5. ✅ Modify file selection logic to check for conflicts
+6. ✅ Add server API endpoints for metadata queries
+7. ✅ Comprehensive testing of conflict scenarios
+
+### Implementation Details [COMPLETED]:
+- ✅ **Updated localStorage draft structure** to include `baseCommitHash` field
+- ✅ **Modified file tree API** to include git hash for each file in TreeNode schema
+- ✅ **Implemented conflict detection logic** comparing draft baseCommitHash vs current gitHash
+- ✅ **Created conflict resolution UI** with confirmation dialog for stale drafts
+- ✅ **Enhanced auto-save logic** to only save drafts when content differs from server
+- ✅ **Comprehensive testing** - All conflict scenarios tested and validated
+
+### Key Features Implemented:
+- **Git commit hash-based conflict detection**: Drafts store the base commit hash when created
+- **Automatic stale draft detection**: Compares stored base hash with current file git hash
+- **User-friendly conflict resolution**: Clear dialog explaining the conflict with commit hash details
+- **Robust auto-save**: Only saves meaningful changes to prevent unnecessary draft storage
+- **Graceful handling**: Legacy drafts without base commit hash are handled safely
+- **Performance optimized**: Conflict detection only runs when git hashes are available
+
+---
+
+**COMPLETED PHASES:**
+
+✅ **Previous Task:** COMPLETED - Directory deletion for empty directories
 
 _Implementation Steps:_
 - ✅ Update spec.md Work in Progress section with new directory deletion task

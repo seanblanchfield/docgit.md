@@ -21,6 +21,7 @@ export interface DraftData {
   content: string;
   lastModified: string; // ISO timestamp
   lockExpiry?: string;   // ISO timestamp when associated lock expires
+  baseCommitHash?: string; // Git commit hash when draft was created
 }
 
 export class LockService {
@@ -152,17 +153,18 @@ export class LockService {
   }
 
   /**
-   * Save draft data with expiry information
+   * Save draft data with expiry and base commit hash information
    */
-  saveDraft(filePath: string, content: string, lockExpiry?: string): void {
+  saveDraft(filePath: string, content: string, lockExpiry?: string, baseCommitHash?: string): void {
     const draftData: DraftData = {
       content,
       lastModified: new Date().toISOString(),
-      lockExpiry
+      lockExpiry,
+      baseCommitHash
     };
     
     localStorage.setItem(this.draftPrefix + filePath, JSON.stringify(draftData));
-    console.log(`[LOCK DEBUG] Saved draft for ${filePath}${lockExpiry ? ` with expiry ${lockExpiry}` : ''}`);
+    console.log(`[LOCK DEBUG] Saved draft for ${filePath}${lockExpiry ? ` with expiry ${lockExpiry}` : ''}${baseCommitHash ? ` with base commit ${baseCommitHash.substring(0, 8)}` : ''}`);
   }
 
   /**
@@ -209,7 +211,7 @@ export class LockService {
         // Update any existing draft with lock expiry information
         const existingDraft = this.getDraftData(filePath);
         if (existingDraft) {
-          this.saveDraft(filePath, existingDraft.content, data.expires_at);
+          this.saveDraft(filePath, existingDraft.content, data.expires_at, existingDraft.baseCommitHash);
         }
         
         return { success: true, lock_id: data.lock_id };
@@ -254,7 +256,7 @@ export class LockService {
         if (existingDraft) {
           // Calculate new expiry (5 minutes from now, matching server TTL)
           const newExpiry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-          this.saveDraft(filePath, existingDraft.content, newExpiry);
+          this.saveDraft(filePath, existingDraft.content, newExpiry, existingDraft.baseCommitHash);
         }
         return true;
       } else {
@@ -424,6 +426,51 @@ export class LockService {
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = null;
+    }
+  }
+
+  /**
+   * Check if a draft is stale (baseCommitHash differs from current server git hash)
+   * Returns { isStale: boolean, currentHash?: string, baseHash?: string }
+   */
+  async checkDraftConflict(filePath: string, currentGitHash?: string): Promise<{ isStale: boolean; currentHash?: string; baseHash?: string }> {
+    const draft = this.getDraftData(filePath);
+    if (!draft || !draft.baseCommitHash) {
+      // No draft or no base commit hash - not stale
+      return { isStale: false };
+    }
+
+    // If currentGitHash is provided, use it. Otherwise, we'd need to fetch it from the server
+    if (!currentGitHash) {
+      console.warn('[LOCK DEBUG] checkDraftConflict called without currentGitHash - cannot determine staleness');
+      return { isStale: false };
+    }
+
+    const isStale = draft.baseCommitHash !== currentGitHash;
+    return {
+      isStale,
+      currentHash: currentGitHash,
+      baseHash: draft.baseCommitHash
+    };
+  }
+
+  /**
+   * Discard a stale draft and remove it from localStorage
+   */
+  discardStaleDraft(filePath: string): void {
+    localStorage.removeItem(this.draftPrefix + filePath);
+    console.log(`[LOCK DEBUG] Discarded stale draft for ${filePath}`);
+    
+    // Update modifiedFiles to remove this path
+    try {
+      const modifiedFiles = new Set<string>(JSON.parse(localStorage.getItem('modifiedFiles') || '[]'));
+      if (modifiedFiles.has(filePath)) {
+        modifiedFiles.delete(filePath);
+        localStorage.setItem('modifiedFiles', JSON.stringify([...modifiedFiles]));
+        console.log(`[LOCK DEBUG] Removed ${filePath} from modifiedFiles after discarding stale draft`);
+      }
+    } catch (error) {
+      console.warn('[LOCK DEBUG] Error updating modifiedFiles after discarding stale draft:', error);
     }
   }
 }

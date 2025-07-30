@@ -31,6 +31,10 @@ class GitService:
         - Ensures an initial commit exists if the repo is new/empty.
         """
         try:
+            # Configure Git to trust this repository directory (fixes Docker ownership issues)
+            import subprocess
+            subprocess.run(['git', 'config', '--global', '--add', 'safe.directory', str(self.repo_path)], 
+                          check=False, capture_output=True)
             if not self.repo_path.exists():
                 self.repo_path.mkdir(parents=True, exist_ok=True)
                 self.repo = Repo.init(self.repo_path)
@@ -56,7 +60,13 @@ class GitService:
                 
                 self.repo.index.add([str(readme_path)])
                 # Check if there's anything to commit (e.g. if marker was already there and committed)
-                if self.repo.index.diff(None) or created_marker : # Diff against empty tree or if we just created marker
+                # Check if there are staged changes or if we just created the marker
+                try:
+                    has_staged_changes = bool(self.repo.index.diff(self.repo.head.commit))
+                except GitCommandError:
+                    # If we can't diff against HEAD, assume we need to commit
+                    has_staged_changes = True
+                if has_staged_changes or created_marker:
                     self.repo.index.commit("Initial repository setup", author=self.author, committer=self.author)
                     print(f"Created initial commit in repository at {self.repo_path}.")
                 if created_marker:
@@ -534,13 +544,37 @@ class GitService:
                 # if not children_nodes:
                 #     children_nodes = None
 
+            # Get git hash for files (not directories)
+            git_hash = None
+            if item_path.is_file():
+                git_hash = self._get_file_git_hash(str(item_relative_path_to_repo))
+
             node = TreeNode(
                 id=str(item_relative_path_to_repo),
                 name=item_path.name,
-                children=children_nodes
+                children=children_nodes,
+                gitHash=git_hash
             )
             tree_nodes.append(node)
             
         return tree_nodes
+
+    def _get_file_git_hash(self, file_path_relative_to_repo: str) -> Optional[str]:
+        """
+        Get the latest commit hash for a specific file.
+        Returns the SHA of the latest commit that modified this file.
+        """
+        if not self.repo:
+            return None
+            
+        try:
+            # Get the most recent commit that modified this file
+            commits = list(self.repo.iter_commits(paths=file_path_relative_to_repo, max_count=1))
+            if commits:
+                return commits[0].hexsha
+            return None
+        except (GitCommandError, Exception) as e:
+            print(f"Error getting git hash for file {file_path_relative_to_repo}: {e}")
+            return None
 
     # All core Git operations for Phase 2 backend API implemented.

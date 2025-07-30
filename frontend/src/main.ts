@@ -26,6 +26,7 @@ interface CommitDetail {
 
 // Global state for lock management
 let currentFilePath: string | null = null;
+let currentFileGitHash: string | null = null; // Track current file's git hash for conflict detection
 let lockRefreshInterval: (() => void) | null = null;
 let directoryTree: DirectoryTree | null = null;
 
@@ -123,6 +124,20 @@ function showNotification(type: 'lock-conflict' | 'lock-lost' | 'save-error' | '
 function showLockConflictNotification(conflict: any): void {
   const message = `File is locked by ${conflict.detail.lock_info.owner}. You cannot edit this file until the lock is released.`;
   showNotification('lock-conflict', 'File Locked', message);
+}
+
+async function showDraftConflictDialog(filePath: string, baseHash?: string, currentHash?: string): Promise<boolean> {
+  const fileName = filePath.split('/').pop() || filePath;
+  const baseShort = baseHash?.substring(0, 8) || 'unknown';
+  const currentShort = currentHash?.substring(0, 8) || 'unknown';
+  
+  const message = `Your local draft for "${fileName}" is based on an older version of the file.\n\n` +
+    `Draft base: ${baseShort}\n` +
+    `Current version: ${currentShort}\n\n` +
+    `The server has newer changes. Your draft changes will be lost if you continue.\n\n` +
+    `Do you want to discard your draft and load the current version?`;
+  
+  return confirm(message);
 }
 
 // Set up lock service callback for when locks are lost
@@ -524,16 +539,27 @@ async function updateCommitMeta(filePath: string) {
   // Auto-save draft every 10 s
   setInterval(() => {
     if (!dirty || !currentFilePath) return;
+    
+    // Only save draft if content actually differs from server content
+    const currentContent = getCurrentContent();
+    const currentTrimmed = currentContent.trim();
+    const baselineTrimmed = baselineMarkdown.trim();
+    
+    if (currentTrimmed === baselineTrimmed) {
+      // Content is the same as server - no need to save draft
+      return;
+    }
+    
     try {
       // Use lockService to save draft with expiry if we have a lock
       const lockId = lockService.getCurrentLockId(currentFilePath);
       if (lockId) {
         // Calculate expiry (5 minutes from now, matching server TTL)
         const lockExpiry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-        lockService.saveDraft(currentFilePath, getCurrentContent(), lockExpiry);
+        lockService.saveDraft(currentFilePath, currentContent, lockExpiry, currentFileGitHash || undefined);
       } else {
         // Save without expiry if no lock
-        lockService.saveDraft(currentFilePath, getCurrentContent());
+        lockService.saveDraft(currentFilePath, currentContent, undefined, currentFileGitHash || undefined);
       }
     } catch (err) {
       console.warn('Failed to store draft:', err);
@@ -1070,15 +1096,22 @@ async function updateCommitMeta(filePath: string) {
       // Persist current draft before navigation
       if (dirty && currentFilePath) {
         try {
-          // Use lockService to save draft with expiry if we have a lock
-          const lockId = lockService.getCurrentLockId(currentFilePath);
-          if (lockId) {
-            // Calculate expiry (5 minutes from now, matching server TTL)
-            const lockExpiry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-            lockService.saveDraft(currentFilePath, getCurrentContent(), lockExpiry);
-          } else {
-            // Save without expiry if no lock
-            lockService.saveDraft(currentFilePath, getCurrentContent());
+          // Only save draft if content actually differs from server content
+          const currentContent = getCurrentContent();
+          const currentTrimmed = currentContent.trim();
+          const baselineTrimmed = baselineMarkdown.trim();
+          
+          if (currentTrimmed !== baselineTrimmed) {
+            // Content differs from server - save draft
+            const lockId = lockService.getCurrentLockId(currentFilePath);
+            if (lockId) {
+              // Calculate expiry (5 minutes from now, matching server TTL)
+              const lockExpiry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+              lockService.saveDraft(currentFilePath, currentContent, lockExpiry, currentFileGitHash || undefined);
+            } else {
+              // Save without expiry if no lock
+              lockService.saveDraft(currentFilePath, currentContent, undefined, currentFileGitHash || undefined);
+            }
           }
         } catch (err) {
           console.warn('Failed to store draft before navigation:', err);
@@ -1091,6 +1124,7 @@ async function updateCommitMeta(filePath: string) {
       }
 
       currentFilePath = node.id;
+      currentFileGitHash = node.gitHash || null; // Store git hash for conflict detection
       
       // Always reset to read mode when navigating to a new file
       // This prevents unintentional lock acquisition from persisted editor mode
@@ -1105,6 +1139,21 @@ async function updateCommitMeta(filePath: string) {
         history.replaceState(null, '', `/${encoded}`);
       } catch (err) {
         console.warn('Failed to update URL', err);
+      }
+
+      // Check for draft conflicts before loading content
+      if (currentFileGitHash) {
+        const conflictResult = await lockService.checkDraftConflict(currentFilePath, currentFileGitHash);
+        if (conflictResult.isStale) {
+          console.log(`[CONFLICT] Draft for ${currentFilePath} is stale (base: ${conflictResult.baseHash?.substring(0, 8)}, current: ${conflictResult.currentHash?.substring(0, 8)})`);
+          
+          // Show conflict resolution dialog
+          const discardDraft = await showDraftConflictDialog(currentFilePath, conflictResult.baseHash, conflictResult.currentHash);
+          if (discardDraft) {
+            lockService.discardStaleDraft(currentFilePath);
+            console.log(`[CONFLICT] Discarded stale draft for ${currentFilePath}`);
+          }
+        }
       }
 
       const serverContent = await fetchFileContent(node.id);

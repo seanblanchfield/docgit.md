@@ -9,6 +9,7 @@ export interface TreeNode {
   children?: TreeNode[];
   isCreateItem?: boolean; // Flag for create items
   isEmpty?: boolean; // Flag for empty directories (used with create items)
+  gitHash?: string; // Git commit hash for this file (files only)
   state?: {
     depth?: number;
     open?: boolean;

@@ -54,6 +54,7 @@ class TreeNode(BaseModel):
     id: str  # Typically the full path relative to the repo root
     name: str  # The file or folder name
     children: Optional[List['TreeNode']] = None # Recursive definition for children
+    gitHash: Optional[str] = None  # Git commit hash for this file (files only, not directories)
 
 # If you need to update models for self-referencing Pydantic models in older Pydantic versions
 # you might need `TreeNode.update_forward_refs()` after the class definition.
