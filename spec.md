@@ -1,9 +1,14 @@
 ## WIP
 Current phase: LocalStorage and Lock System Bug Fixes
-🔄 **Current Task:** Fix localStorage structure and lock persistence issues
+✅ **Completed Task:** Fixed draft conflict dialog to automatically discard stale drafts
 
-### Identified Issues:
-1. **localStorage missing base git hash**: Draft data doesn't contain baseCommitHash for conflict resolution
+### Recent Completion:
+- ✅ **Removed draft conflict dialog**: Changed showDraftConflictDialog to automatically discard stale local drafts
+- ✅ **Automatic conflict resolution**: Local versions are now immediately overwritten without user intervention
+- ✅ **Code cleanup**: Removed unused showDraftConflictDialog function from main.ts
+
+### Remaining Issues:
+1. **localStorage missing base git hash**: Draft data doesn't contain baseCommitHash for conflict resolution  
 2. **Lock persistence fails on refresh**: Lock status not properly restored after page reload  
 3. **Unused git hash field**: Tree API still returns empty git hash field that should be removed
 
@@ -73,14 +78,14 @@ interface FileTreeNode {
 - ✅ **Updated localStorage draft structure** to include `baseCommitHash` field
 - ✅ **Modified file tree API** to include git hash for each file in TreeNode schema
 - ✅ **Implemented conflict detection logic** comparing draft baseCommitHash vs current gitHash
-- ✅ **Created conflict resolution UI** with confirmation dialog for stale drafts
+- ✅ **Implemented automatic conflict resolution** - stale drafts are automatically discarded without user dialogs
 - ✅ **Enhanced auto-save logic** to only save drafts when content differs from server
 - ✅ **Comprehensive testing** - All conflict scenarios tested and validated
 
 ### Key Features Implemented:
 - **Git commit hash-based conflict detection**: Drafts store the base commit hash when created
 - **Automatic stale draft detection**: Compares stored base hash with current file git hash
-- **User-friendly conflict resolution**: Clear dialog explaining the conflict with commit hash details
+- **Automatic conflict resolution**: Stale drafts are automatically discarded without user interaction
 - **Robust auto-save**: Only saves meaningful changes to prevent unnecessary draft storage
 - **Graceful handling**: Legacy drafts without base commit hash are handled safely
 - **Performance optimized**: Conflict detection only runs when git hashes are available

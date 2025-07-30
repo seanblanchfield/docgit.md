@@ -126,19 +126,6 @@ function showLockConflictNotification(conflict: any): void {
   showNotification('lock-conflict', 'File Locked', message);
 }
 
-async function showDraftConflictDialog(filePath: string, baseHash?: string, currentHash?: string): Promise<boolean> {
-  const fileName = filePath.split('/').pop() || filePath;
-  const baseShort = baseHash?.substring(0, 8) || 'unknown';
-  const currentShort = currentHash?.substring(0, 8) || 'unknown';
-  
-  const message = `Your local draft for "${fileName}" is based on an older version of the file.\n\n` +
-    `Draft base: ${baseShort}\n` +
-    `Current version: ${currentShort}\n\n` +
-    `The server has newer changes. Your draft changes will be lost if you continue.\n\n` +
-    `Do you want to discard your draft and load the current version?`;
-  
-  return confirm(message);
-}
 
 // Set up lock service callback for when locks are lost
 lockService.onLockLost = (filePath: string) => {
@@ -1209,12 +1196,9 @@ async function updateCommitMeta(filePath: string) {
         if (conflictResult.isStale) {
           console.log(`[CONFLICT] Draft for ${currentFilePath} is stale (base: ${conflictResult.baseHash?.substring(0, 8)}, current: ${conflictResult.currentHash?.substring(0, 8)})`);
           
-          // Show conflict resolution dialog
-          const discardDraft = await showDraftConflictDialog(currentFilePath, conflictResult.baseHash, conflictResult.currentHash);
-          if (discardDraft) {
-            lockService.discardStaleDraft(currentFilePath);
-            console.log(`[CONFLICT] Discarded stale draft for ${currentFilePath}`);
-          }
+          // Automatically discard stale draft and load current version
+          lockService.discardStaleDraft(currentFilePath);
+          console.log(`[CONFLICT] Automatically discarded stale draft for ${currentFilePath}`);
         }
       }
 
