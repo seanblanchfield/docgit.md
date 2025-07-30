@@ -210,14 +210,7 @@ async function main() {
       
       console.log(`[GIT HASH] Updated current file git hash: ${currentFileGitHash?.substring(0, 8) || 'null'}`);
       
-      // Also update the tree node if it exists
-      if (directoryTree) {
-        const node = directoryTree.tree.getNodeById(currentFilePath);
-        if (node && !node.isDirectory) {
-          node.gitHash = currentFileGitHash || undefined;
-          directoryTree.tree.updateNode(node);
-        }
-      }
+      // Git hash fetched successfully (no longer stored in tree nodes)
     } catch (error) {
       console.error(`[GIT HASH] Error fetching git hash for ${currentFilePath}:`, error);
     }
@@ -1178,13 +1171,10 @@ async function updateCommitMeta(filePath: string) {
       }
 
       currentFilePath = node.id;
-      currentFileGitHash = node.gitHash || null; // Store git hash for conflict detection
+      currentFileGitHash = null; // Git hash will be fetched separately
       
-      // If gitHash is not available (because we only fetch hashes for draft files),
-      // fetch it now for conflict detection if needed
-      if (!currentFileGitHash) {
-        await fetchGitHashForCurrentFile();
-      }
+      // Fetch git hash for conflict detection
+      await fetchGitHashForCurrentFile();
       
       // Update any existing draft with the correct git hash if it's missing
       if (currentFileGitHash) {
@@ -1199,8 +1189,11 @@ async function updateCommitMeta(filePath: string) {
       // This prevents unintentional lock acquisition from persisted editor mode
       await updateMode('read');
       
-      // Enable edit buttons by default - lock will be acquired when user enters edit mode
-      updateButtonStates(false);
+      // Check lock status and update button states accordingly
+      const lockStatus = await lockService.checkLockStatus(currentFilePath);
+      const ownedByMe = await lockService.isOwnedByCurrentSession(currentFilePath);
+      const isLockedByOther = lockStatus.locked && !ownedByMe;
+      updateButtonStates(isLockedByOther);
 
       // Update browser path to current file (SPA deep link)
       try {

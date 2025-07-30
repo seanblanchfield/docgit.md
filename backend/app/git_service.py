@@ -546,17 +546,10 @@ class GitService:
                 # if not children_nodes:
                 #     children_nodes = None
 
-            # Get git hash for files (not directories) from pre-fetched hashes (if provided)
-            git_hash = None
-            if item_path.is_file() and file_git_hashes is not None:
-                relative_path_str = str(item_relative_path_to_repo)
-                git_hash = file_git_hashes.get(relative_path_str)
-
             node = TreeNode(
                 id=str(item_relative_path_to_repo),
                 name=item_path.name,
-                children=children_nodes,
-                gitHash=git_hash
+                children=children_nodes
             )
             tree_nodes.append(node)
             

@@ -1,6 +1,16 @@
 ## WIP
-Current phase: Local Draft/Server Conflict Handling Strategy
-🔄 **Current Task:** Design robust local draft/server conflict detection and resolution
+Current phase: LocalStorage and Lock System Bug Fixes
+🔄 **Current Task:** Fix localStorage structure and lock persistence issues
+
+### Identified Issues:
+1. **localStorage missing base git hash**: Draft data doesn't contain baseCommitHash for conflict resolution
+2. **Lock persistence fails on refresh**: Lock status not properly restored after page reload  
+3. **Unused git hash field**: Tree API still returns empty git hash field that should be removed
+
+### Implementation Plan:
+- Fix localStorage draft structure to include baseCommitHash field
+- Implement lock state persistence across browser refreshes
+- Clean up unused git hash field from tree API response
 
 ### Problem Analysis: Local Draft vs Server State Conflicts
 

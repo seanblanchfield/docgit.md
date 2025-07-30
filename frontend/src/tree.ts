@@ -9,7 +9,6 @@ export interface TreeNode {
   children?: TreeNode[];
   isCreateItem?: boolean; // Flag for create items
   isEmpty?: boolean; // Flag for empty directories (used with create items)
-  gitHash?: string; // Git commit hash for this file (files only)
   state?: {
     depth?: number;
     open?: boolean;
@@ -743,6 +742,12 @@ export class DirectoryTree {
     
     // Ensure visual selection is updated
     this.updateVisualSelection(id);
+    
+    // Trigger onFileSelect callback for files (same logic as click handler)
+    if (!node.isDirectory && !node.isCreateItem) {
+      this.lastSelectedId = node.id;
+      this.onFileSelect(node);
+    }
   }
 
   /**
@@ -966,8 +971,8 @@ export class DirectoryTree {
       const gitHashes: Record<string, string | null> = await response.json();
       console.log('[GIT HASH] Received git hashes:', gitHashes);
       
-      // Update tree nodes with git hashes
-      this.updateTreeNodesWithGitHashes(gitHashes);
+      // Git hashes loaded but no longer stored in tree nodes
+      console.log(`[GIT HASH] Loaded ${Object.keys(gitHashes).length} git hashes for draft files`);
       
     } catch (error) {
       console.error('[GIT HASH] Error loading git hashes for draft files:', error);
@@ -992,29 +997,6 @@ export class DirectoryTree {
     return draftPaths;
   }
   
-  /**
-   * Update tree nodes with git hashes from the API response
-   */
-  private updateTreeNodesWithGitHashes(gitHashes: Record<string, string | null>): void {
-    // Recursively update all nodes in the tree
-    const updateNode = (node: TreeNode): void => {
-      if (!node.isDirectory && gitHashes.hasOwnProperty(node.id)) {
-        node.gitHash = gitHashes[node.id] || undefined;
-        console.log(`[GIT HASH] Updated ${node.id} with hash: ${node.gitHash?.substring(0, 8) || 'null'}`);
-        
-        // Update the node in the tree to trigger any necessary re-rendering
-        this.tree.updateNode(node);
-      }
-      
-      // Recursively update children
-      if (node.children) {
-        node.children.forEach(updateNode);
-      }
-    };
-    
-    const rootNodes = this.tree.getChildren() || [];
-    rootNodes.forEach(updateNode);
-  }
 
   private addIsDirectory = (node: any): any => {
     const isDirectory = Array.isArray(node.children) && node.children.length > 0;
