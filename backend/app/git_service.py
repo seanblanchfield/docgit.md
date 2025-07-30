@@ -499,7 +499,8 @@ class GitService:
         Builds a hierarchical tree of files and folders from the specified path in the repository.
         Paths are relative to the repository root.
         Excludes the .git directory.
-        Returns a list of TreeNode objects.
+        Returns a list of TreeNode objects WITHOUT git hashes for optimal performance.
+        Git hashes should be fetched separately using get_file_git_hashes().
         """
         if not self.repo:
             raise RuntimeError("Repository is not initialized.")
@@ -513,10 +514,11 @@ class GitService:
 
         return self._build_tree_recursive(absolute_start_path, self.repo_path)
 
-    def _build_tree_recursive(self, current_absolute_path: Path, repo_root_path: Path) -> List[TreeNode]:
+    def _build_tree_recursive(self, current_absolute_path: Path, repo_root_path: Path, file_git_hashes: Optional[Dict[str, str]] = None) -> List[TreeNode]:
         """
         Helper method to recursively build the tree structure.
         Returns a list of TreeNode objects for the contents of current_absolute_path.
+        If file_git_hashes is provided, includes git hashes; otherwise sets them to None for performance.
         """
         tree_nodes: List[TreeNode] = []
         
@@ -537,17 +539,18 @@ class GitService:
             
             children_nodes: Optional[List[TreeNode]] = None
             if item_path.is_dir():
-                children_nodes = self._build_tree_recursive(item_path, repo_root_path)
+                children_nodes = self._build_tree_recursive(item_path, repo_root_path, file_git_hashes)
                 # If a folder is empty, children_nodes will be an empty list.
                 # For the TreeNode schema (Optional[List['TreeNode']] = None),
                 # an empty list is valid. If we want to explicitly use None for empty folders:
                 # if not children_nodes:
                 #     children_nodes = None
 
-            # Get git hash for files (not directories)
+            # Get git hash for files (not directories) from pre-fetched hashes (if provided)
             git_hash = None
-            if item_path.is_file():
-                git_hash = self._get_file_git_hash(str(item_relative_path_to_repo))
+            if item_path.is_file() and file_git_hashes is not None:
+                relative_path_str = str(item_relative_path_to_repo)
+                git_hash = file_git_hashes.get(relative_path_str)
 
             node = TreeNode(
                 id=str(item_relative_path_to_repo),
@@ -559,10 +562,119 @@ class GitService:
             
         return tree_nodes
 
+    def _get_all_file_git_hashes(self, root_path: Path) -> Dict[str, str]:
+        """
+        Get the latest commit hash for ALL files in the repository using an optimized approach.
+        Returns a dictionary mapping file paths to their latest commit hashes.
+        Much more efficient than calling _get_file_git_hash for each file individually.
+        """
+        if not self.repo:
+            return {}
+            
+        try:
+            file_hashes = {}
+            
+            # Get all files that exist in the current working directory
+            all_files = set()
+            for file_path in root_path.rglob('*'):
+                if file_path.is_file() and '.git' not in file_path.parts:
+                    relative_path = str(file_path.relative_to(self.repo_path))
+                    all_files.add(relative_path)
+            
+            # Use git log --name-status to get files and their latest commits more efficiently
+            # We'll process commits in batches to avoid loading the entire history at once
+            batch_size = 500
+            commits_processed = 0
+            
+            # Continue until we've found hashes for all files or processed a reasonable number of commits
+            for commit in self.repo.iter_commits():
+                if commits_processed >= batch_size * 20:  # Process up to 10,000 commits
+                    break
+                    
+                # Get files modified in this commit
+                try:
+                    for file_path in commit.stats.files.keys():
+                        if file_path in all_files and file_path not in file_hashes:
+                            file_hashes[file_path] = commit.hexsha
+                except Exception:
+                    # Skip commits that can't be processed
+                    continue
+                    
+                commits_processed += 1
+                
+                # Early exit if we've found hashes for all files
+                if len(file_hashes) >= len(all_files):
+                    break
+            
+            print(f"[GIT HASH DEBUG] Found hashes for {len(file_hashes)} out of {len(all_files)} files after processing {commits_processed} commits")
+            return file_hashes
+                
+        except Exception as e:
+            print(f"Error getting git hashes for files: {e}")
+            return {}
+
+    def get_file_git_hashes(self, file_paths: List[str]) -> Dict[str, Optional[str]]:
+        """
+        Get the latest commit hash for a specific list of files efficiently.
+        Returns a dictionary mapping file paths to their latest commit hashes.
+        This is optimized for getting hashes for a small subset of files (e.g., files with drafts).
+        """
+        if not self.repo or not file_paths:
+            return {}
+            
+        try:
+            file_hashes = {}
+            
+            # For a small number of files, individual queries might be acceptable
+            # But let's still try to optimize by checking recent commits first
+            if len(file_paths) <= 20:  # For small sets, use individual queries
+                for file_path in file_paths:
+                    try:
+                        commits = list(self.repo.iter_commits(paths=file_path, max_count=1))
+                        file_hashes[file_path] = commits[0].hexsha if commits else None
+                    except (GitCommandError, Exception):
+                        file_hashes[file_path] = None
+            else:
+                # For larger sets, use the batch approach but only for requested files
+                file_paths_set = set(file_paths)
+                commits_processed = 0
+                
+                for commit in self.repo.iter_commits():
+                    if commits_processed >= 1000:  # Limit search depth
+                        break
+                        
+                    try:
+                        for file_path in commit.stats.files.keys():
+                            if file_path in file_paths_set and file_path not in file_hashes:
+                                file_hashes[file_path] = commit.hexsha
+                    except Exception:
+                        continue
+                        
+                    commits_processed += 1
+                    
+                    # Early exit if we've found all requested files
+                    if len(file_hashes) >= len(file_paths):
+                        break
+                
+                # Fill in None for files not found in Git history
+                for file_path in file_paths:
+                    if file_path not in file_hashes:
+                        file_hashes[file_path] = None
+                        
+            return file_hashes
+                
+        except Exception as e:
+            print(f"Error getting git hashes for files {file_paths}: {e}")
+            # Return None for all requested files on error
+            return {file_path: None for file_path in file_paths}
+
     def _get_file_git_hash(self, file_path_relative_to_repo: str) -> Optional[str]:
         """
         Get the latest commit hash for a specific file.
         Returns the SHA of the latest commit that modified this file.
+        
+        NOTE: This method is kept for backward compatibility but is inefficient
+        when called for multiple files. Use get_file_git_hashes instead.
         """
         if not self.repo:
             return None

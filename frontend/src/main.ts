@@ -183,8 +183,45 @@ async function fetchLatestCommit(filePath: string): Promise<CommitDetail | null>
   }
 }
 
-
 async function main() {
+  
+  // Function to fetch git hash for the current file when needed
+  async function fetchGitHashForCurrentFile(): Promise<void> {
+    if (!currentFilePath) return;
+    
+    try {
+      console.log(`[GIT HASH] Fetching git hash for current file: ${currentFilePath}`);
+      
+      const response = await fetch('/api/git-hashes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify([currentFilePath]),
+      });
+      
+      if (!response.ok) {
+        console.warn(`[GIT HASH] Failed to fetch git hash for ${currentFilePath}: ${response.statusText}`);
+        return;
+      }
+      
+      const gitHashes: Record<string, string | null> = await response.json();
+      currentFileGitHash = gitHashes[currentFilePath] || null;
+      
+      console.log(`[GIT HASH] Updated current file git hash: ${currentFileGitHash?.substring(0, 8) || 'null'}`);
+      
+      // Also update the tree node if it exists
+      if (directoryTree) {
+        const node = directoryTree.tree.getNodeById(currentFilePath);
+        if (node && !node.isDirectory) {
+          node.gitHash = currentFileGitHash || undefined;
+          directoryTree.tree.updateNode(node);
+        }
+      }
+    } catch (error) {
+      console.error(`[GIT HASH] Error fetching git hash for ${currentFilePath}:`, error);
+    }
+  }
   // Initialize content editor
   const draftText = document.querySelector('[data-id="draft-text"]') as HTMLElement | null;
   const saveBtn = document.querySelector('[data-id="save-btn"]') as HTMLButtonElement | null;
@@ -540,6 +577,12 @@ async function updateCommitMeta(filePath: string) {
   setInterval(() => {
     if (!dirty || !currentFilePath) return;
     
+    // Don't save draft if we don't have the git hash yet (prevents drafts without baseCommitHash)
+    if (!currentFileGitHash) {
+      console.log(`[DRAFT] Skipping auto-save for ${currentFilePath} - waiting for git hash`);
+      return;
+    }
+    
     // Only save draft if content actually differs from server content
     const currentContent = getCurrentContent();
     const currentTrimmed = currentContent.trim();
@@ -556,10 +599,10 @@ async function updateCommitMeta(filePath: string) {
       if (lockId) {
         // Calculate expiry (5 minutes from now, matching server TTL)
         const lockExpiry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-        lockService.saveDraft(currentFilePath, currentContent, lockExpiry, currentFileGitHash || undefined);
+        lockService.saveDraft(currentFilePath, currentContent, lockExpiry, currentFileGitHash);
       } else {
         // Save without expiry if no lock
-        lockService.saveDraft(currentFilePath, currentContent, undefined, currentFileGitHash || undefined);
+        lockService.saveDraft(currentFilePath, currentContent, undefined, currentFileGitHash);
       }
     } catch (err) {
       console.warn('Failed to store draft:', err);
@@ -917,6 +960,17 @@ async function updateCommitMeta(filePath: string) {
 
         return;
       }
+      
+      // After acquiring lock, ensure any existing draft has the correct git hash
+      if (currentFileGitHash) {
+        const existingDraft = lockService.getDraftData(currentFilePath);
+        if (existingDraft && !existingDraft.baseCommitHash) {
+          console.log(`[GIT HASH] Updating draft after lock acquisition for ${currentFilePath} with base commit hash: ${currentFileGitHash.substring(0, 8)}`);
+          const lockId = lockService.getCurrentLockId(currentFilePath);
+          const lockExpiry = lockId ? new Date(Date.now() + 5 * 60 * 1000).toISOString() : undefined;
+          lockService.saveDraft(currentFilePath, existingDraft.content, lockExpiry, currentFileGitHash);
+        }
+      }
     }
 
     // If leaving RAW, push textarea content into editor
@@ -1126,6 +1180,21 @@ async function updateCommitMeta(filePath: string) {
       currentFilePath = node.id;
       currentFileGitHash = node.gitHash || null; // Store git hash for conflict detection
       
+      // If gitHash is not available (because we only fetch hashes for draft files),
+      // fetch it now for conflict detection if needed
+      if (!currentFileGitHash) {
+        await fetchGitHashForCurrentFile();
+      }
+      
+      // Update any existing draft with the correct git hash if it's missing
+      if (currentFileGitHash) {
+        const existingDraft = lockService.getDraftData(currentFilePath);
+        if (existingDraft && !existingDraft.baseCommitHash) {
+          console.log(`[GIT HASH] Updating existing draft for ${currentFilePath} with base commit hash: ${currentFileGitHash.substring(0, 8)}`);
+          lockService.saveDraft(currentFilePath, existingDraft.content, existingDraft.lockExpiry, currentFileGitHash);
+        }
+      }
+      
       // Always reset to read mode when navigating to a new file
       // This prevents unintentional lock acquisition from persisted editor mode
       await updateMode('read');
@@ -1141,7 +1210,7 @@ async function updateCommitMeta(filePath: string) {
         console.warn('Failed to update URL', err);
       }
 
-      // Check for draft conflicts before loading content
+      // Check for draft conflicts before loading content (only if we have a git hash)
       if (currentFileGitHash) {
         const conflictResult = await lockService.checkDraftConflict(currentFilePath, currentFileGitHash);
         if (conflictResult.isStale) {

@@ -123,6 +123,23 @@ async def get_directory_tree_endpoint(
         print(f"Unexpected error in get_directory_tree_endpoint: {type(e).__name__} - {e}")
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred while building the directory tree: {str(e)}")
 
+@app.post("/api/git-hashes", response_model=dict)
+async def get_git_hashes(
+    file_paths: List[str],  # List of file paths to get git hashes for
+    gs: GitService = Depends(get_git_service)
+):
+    """
+    Get git commit hashes for a specific list of files.
+    This is optimized for getting hashes only for files that need them (e.g., files with drafts).
+    Returns a dictionary mapping file paths to their latest commit hashes.
+    """
+    try:
+        git_hashes = gs.get_file_git_hashes(file_paths)
+        return git_hashes
+    except Exception as e:
+        print(f"Unexpected error in get_git_hashes: {type(e).__name__} - {e}")
+        raise HTTPException(status_code=500, detail=f"An error occurred while fetching git hashes: {str(e)}")
+
 @app.get("/api/files/{file_path:path}", response_model=schemas.FileContentResponse)
 async def get_file_contents(
     file_path: str, # Path parameter

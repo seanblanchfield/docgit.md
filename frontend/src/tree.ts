@@ -555,6 +555,9 @@ export class DirectoryTree {
     // Step 2: Add create items at the end of each directory and at the root
     const dataWithCreateItems = this.addCreateItems(sorted);
     this.tree.loadData(dataWithCreateItems);
+    
+    // Step 3: Load git hashes for files with drafts only (performance optimization)
+    await this.loadGitHashesForDraftFiles();
 
 
 
@@ -623,6 +626,9 @@ export class DirectoryTree {
       // Add create items
       const dataWithCreateItems = this.addCreateItems(sorted);
       this.tree.loadData(dataWithCreateItems);
+      
+      // Load git hashes for files with drafts only
+      await this.loadGitHashesForDraftFiles();
       
       // Use a small delay to ensure the tree has processed the new data
       await new Promise(resolve => setTimeout(resolve, 50));
@@ -925,6 +931,89 @@ export class DirectoryTree {
         </div>
       </div>
     `;
+  }
+
+  /**
+   * Load git hashes only for files that have drafts in localStorage
+   * This optimization prevents loading git hashes for all files on initial tree load
+   */
+  private async loadGitHashesForDraftFiles(): Promise<void> {
+    try {
+      // Get all file paths that have drafts in localStorage
+      const draftFilePaths = this.getDraftFilePaths();
+      
+      if (draftFilePaths.length === 0) {
+        console.log('[GIT HASH] No draft files found, skipping git hash lookup');
+        return;
+      }
+      
+      console.log(`[GIT HASH] Loading git hashes for ${draftFilePaths.length} draft files:`, draftFilePaths);
+      
+      // Fetch git hashes for draft files only
+      const response = await fetch('/api/git-hashes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(draftFilePaths),
+      });
+      
+      if (!response.ok) {
+        console.error('[GIT HASH] Failed to fetch git hashes:', response.statusText);
+        return;
+      }
+      
+      const gitHashes: Record<string, string | null> = await response.json();
+      console.log('[GIT HASH] Received git hashes:', gitHashes);
+      
+      // Update tree nodes with git hashes
+      this.updateTreeNodesWithGitHashes(gitHashes);
+      
+    } catch (error) {
+      console.error('[GIT HASH] Error loading git hashes for draft files:', error);
+    }
+  }
+  
+  /**
+   * Get file paths that have drafts stored in localStorage
+   */
+  private getDraftFilePaths(): string[] {
+    const draftPrefix = 'draft:';
+    const draftPaths: string[] = [];
+    
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(draftPrefix)) {
+        const filePath = key.substring(draftPrefix.length);
+        draftPaths.push(filePath);
+      }
+    }
+    
+    return draftPaths;
+  }
+  
+  /**
+   * Update tree nodes with git hashes from the API response
+   */
+  private updateTreeNodesWithGitHashes(gitHashes: Record<string, string | null>): void {
+    // Recursively update all nodes in the tree
+    const updateNode = (node: TreeNode): void => {
+      if (!node.isDirectory && gitHashes.hasOwnProperty(node.id)) {
+        node.gitHash = gitHashes[node.id] || undefined;
+        console.log(`[GIT HASH] Updated ${node.id} with hash: ${node.gitHash?.substring(0, 8) || 'null'}`);
+        
+        // Update the node in the tree to trigger any necessary re-rendering
+        this.tree.updateNode(node);
+      }
+      
+      // Recursively update children
+      if (node.children) {
+        node.children.forEach(updateNode);
+      }
+    };
+    
+    const rootNodes = this.tree.getChildren() || [];
+    rootNodes.forEach(updateNode);
   }
 
   private addIsDirectory = (node: any): any => {
