@@ -6,6 +6,7 @@ Current phase: LocalStorage and Lock System Bug Fixes
 - ✅ **Removed draft conflict dialog**: Changed showDraftConflictDialog to automatically discard stale local drafts
 - ✅ **Automatic conflict resolution**: Local versions are now immediately overwritten without user intervention
 - ✅ **Code cleanup**: Removed unused showDraftConflictDialog function from main.ts
+- ✅ **Updated gitignore**: Added Python __pycache__ files to .gitignore
 
 ### Remaining Issues:
 1. **localStorage missing base git hash**: Draft data doesn't contain baseCommitHash for conflict resolution  

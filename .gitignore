@@ -15,3 +15,8 @@ wiki/data/repo/
 
 # Ignore locks directory
 data/locks/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
