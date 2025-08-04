@@ -271,21 +271,7 @@ async function updateCommitMeta(filePath: string) {
   commitMetaEl.classList.remove('hidden');
 }
 
-  // Function to fetch full commit history for a file
-  async function fetchCommitHistory(filePath: string): Promise<CommitDetail[]> {
-    try {
-      const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
-      const response = await fetch(`/api/history/${encodedPath}`);
-      if (!response.ok) {
-        console.error('Failed to fetch commit history:', response.statusText);
-        return [];
-      }
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching commit history:', error);
-      return [];
-    }
-  }
+  
 
   // Function to render commit history in the drawer
   function renderCommitHistory(commits: CommitDetail[]) {
