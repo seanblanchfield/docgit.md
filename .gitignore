@@ -16,6 +16,10 @@ wiki/data/repo/
 # Ignore locks directory
 data/locks/
 
+# Ignore log file contents but keep directory structure
+data/logs/*
+!data/logs/.gitkeep
+
 # Python cache files
 __pycache__/
 *.py[cod]

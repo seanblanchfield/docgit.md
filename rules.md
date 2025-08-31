@@ -8,13 +8,13 @@
 - **ALWAYS** use the special commands for workflow management
 
 ## Quick Reference
-| Command | Purpose |
-|---------|----------|
-| `goal <name>` | Start new work → creates WIP + branch |
-| `status` | Show TODO/DONE overview |
-| `next` | Show priority task |
-| `complete` | Finish work → marks done + merges + cleanup |
-| `commands` | List all available commands |
+| User Intent | AI Action |
+|-------------|-----------|
+| "new goal", "new feature", "start feature", "I want to work on..." | Start new work → creates WIP + branch |
+| "what's the status", "show me progress", "what's done" | Show TODO/DONE overview |
+| "what's next", "what should I work on", "priority task" | Show priority task |
+| "I'm done", "finish up", "complete this", "ready to merge" | Finish work → marks done + merges + cleanup |
+| "what can you do", "help", "available actions" | List all available workflow actions |
 
 ## Project Structure
 
@@ -187,10 +187,13 @@ Frontend console messages (console.log, console.info, console.warn, console.erro
 **Option 1: Dedicated Frontend Log File**
 ```bash
 # View frontend logs in real-time (recommended)
-docker-compose exec backend tail -f /app/logs/frontend.log
+tail -f data/logs/frontend.log
 
 # View recent frontend logs
-docker-compose exec backend tail -20 /app/logs/frontend.log
+tail -20 data/logs/frontend.log
+
+# Alternative: Access via container
+docker-compose exec backend tail -f /app/logs/frontend.log
 ```
 
 **Option 2: Backend Container Logs**

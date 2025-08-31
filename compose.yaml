@@ -9,7 +9,7 @@ services:
       - ./backend:/app # Mount backend code for live reload during dev
       - ./data/repo:/data/repo # Mount git repo data
       - lock_data:/locks # Mount lock files storage
-      - ./logs:/app/logs # Mount logs directory for frontend.log access
+      - ./data/logs:/app/logs # Mount logs directory for frontend.log access
     environment:
       - GIT_REPO_PATH=/data/repo
       # - GIT_AUTHOR_NAME="Wiki User" # Can be set here or in spec
