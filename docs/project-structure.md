@@ -50,13 +50,26 @@
 |------|---------|-------------|
 | `src/main.ts` | Application entry point | Initializes editor, tree, drawer, and lock management. Handles file selection, mode switching, and save operations. |
 | `src/content.ts` | Markdown editor integration | Wraps Milkdown editor with custom configuration for WYSIWYG markdown editing. |
-| `src/tree.ts` | Directory tree component | Implements file tree using infinite-tree library with create/edit functionality and lock status indicators. |
+| `src/tree/` | Directory tree component | Modular directory tree implementation. See details below. |
 | `src/drawer.ts` | Sidebar drawer functionality | Handles resizable drawer with persistence, mobile behavior, and toggle functionality. |
 | `src/lock.ts` | Lock service client | Frontend lock management: acquisition, refresh, release, status checking, and conflict handling. |
 | `src/humanize.ts` | Time/name formatting utilities | Humanizes timestamps and file names for better UX. |
 | `src/styles.css` | Application styles | Complete CSS for layout, components, editor modes, lock states, and responsive design. |
 | `index.html` | HTML template | Single-page application shell with editor container, tree drawer, and status elements. |
 | `package.json` | Node.js configuration | Vite, TypeScript, Milkdown, infinite-tree, and other frontend dependencies. Uses pnpm package manager. |
+
+### Tree Module Directory (`frontend/src/tree/`)
+
+| File | Purpose | Key Details |
+|------|---------|-------------|
+| `index.ts` | Main `DirectoryTree` class | Orchestrates the tree modules, exposing a clean public API. |
+| `data.ts` | Data fetching and processing | Handles loading directory data from the backend and preparing it for the tree. |
+| `renderer.ts` | Custom row rendering | Generates the HTML for each tree node, including icons and state indicators. |
+| `eventHandlers.ts` | DOM event handling | Manages all user interactions with the tree, such as clicks and keyboard navigation. |
+| `state.ts` | State management | Manages the tree's internal state, like expanded and selected nodes. |
+| `lock.ts` | File lock integration | Handles visual indicators for locked files within the tree. |
+| `createItem.ts` | Create-item logic | Manages the temporary "create file/folder" nodes in the tree. |
+| `types.ts` | Type definitions | Contains all TypeScript interfaces and types for the tree module. |
 
 ## Docker Directory (`docker/`)
 

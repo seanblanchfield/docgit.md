@@ -1,5 +1,6 @@
 import { initContentEditor } from './content';
-import { DirectoryTree, TreeNode } from './tree';
+import { DirectoryTree } from './tree';
+import { TreeNode } from './tree/types';
 import { setupDrawer } from './drawer';
 import { humanizeTime, humanizeFileName } from './humanize';
 import { lockService } from './lock';
@@ -154,6 +155,21 @@ async function fetchFileContent(filePath: string): Promise<string> {
   }
 }
 
+async function fetchCommitHistory(filePath: string): Promise<CommitDetail[]> {
+  try {
+    const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
+    const response = await fetch(`/api/history/${encodedPath}`);
+    if (!response.ok) {
+      console.warn(`Could not fetch commit history for '${filePath}': ${response.status} ${response.statusText}`);
+      return [];
+    }
+    return await response.json();
+  } catch (error) {
+    console.warn(`Error fetching commit history for '${filePath}':`, error);
+    return [];
+  }
+}
+
 async function fetchLatestCommit(filePath: string): Promise<CommitDetail | null> {
   try {
     const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
@@ -257,7 +273,7 @@ async function updateCommitMeta(filePath: string) {
   if (!commit) {
     commitMetaEl.classList.add('hidden');
     commitMetaEl.textContent = '';
-    commitMetaEl.title = '';
+    (commitMetaEl as HTMLElement).style.color = '';
     return;
   }
 
@@ -284,7 +300,7 @@ async function updateCommitMeta(filePath: string) {
 
     const historyHTML = commits.map(commit => {
       const relativeTime = humanizeTime(commit.date);
-      const shortSha = commit.sha.substring(0, 7);
+      const shortSha = (commit.sha || '').substring(0, 7);
 
       return `
         <div class="history-item" data-sha="${commit.sha}">
@@ -369,12 +385,18 @@ async function updateCommitMeta(filePath: string) {
     if (!diffView || !diffTitle || !historyList) return;
     
     // Update diff title
-    const shortSha = commitSha.substring(0, 7);
-    diffTitle.textContent = `${shortSha}: ${commitMessage}`;
+    const shortSha = (commitSha || '').substring(0, 7);
+    if (diffTitle) {
+      diffTitle.textContent = `${shortSha}: ${commitMessage}`;
+    }
     
     // Hide history list and show diff view
-    historyList.classList.add('hidden');
-    diffView.classList.remove('hidden');
+    if (historyList) {
+      historyList.classList.add('hidden');
+    }
+    if (diffView) {
+      diffView.classList.remove('hidden');
+    }
     
     // Load diff content
     loadDiffContent(filePath, commitSha);
@@ -654,12 +676,14 @@ async function updateCommitMeta(filePath: string) {
       
       // Add green color feedback to indicate successful save
       if (commitMetaEl) {
-        commitMetaEl.style.color = '#22c55e'; // Green color
-        commitMetaEl.style.transition = 'color 0.3s ease';
+        if (commitMetaEl instanceof HTMLElement) {
+          commitMetaEl.style.color = '#22c55e'; // Green color
+          commitMetaEl.style.transition = 'color 0.3s ease';
+        }
         
         // Remove green color after 3 seconds
         setTimeout(() => {
-          if (commitMetaEl) {
+          if (commitMetaEl && commitMetaEl instanceof HTMLElement) {
             commitMetaEl.style.color = '';
           }
         }, 3000);
@@ -877,8 +901,8 @@ async function updateCommitMeta(filePath: string) {
   // Create raw textarea for Raw mode
   const rawTextarea = document.createElement('textarea');
   rawTextarea.id = 'raw-editor';
-  rawTextarea.style.display = 'none';
-  rawTextarea.style.width = '100%';
+  (rawTextarea as HTMLElement).style.display = 'none';
+  (rawTextarea as HTMLElement).style.width = '100%';
   // Auto height handled via autoResize function
   const editorRoot = document.querySelector('#editor-root') as HTMLElement;
   const milkdownElement = editorRoot.querySelector('.milkdown') as HTMLElement | null;
@@ -887,8 +911,8 @@ async function updateCommitMeta(filePath: string) {
 
   // Auto-resize raw textarea
   function autoResize(el: HTMLTextAreaElement) {
-    el.style.height = 'auto';
-    el.style.height = el.scrollHeight + 'px';
+    (el as HTMLElement).style.height = 'auto';
+    (el as HTMLElement).style.height = el.scrollHeight + 'px';
   }
   rawTextarea.addEventListener('input', () => autoResize(rawTextarea));
 
@@ -948,11 +972,11 @@ async function updateCommitMeta(filePath: string) {
 
     // Apply mode effects
     if (mode === 'read') {
-      rawTextarea.style.display = 'none';
+      (rawTextarea as HTMLElement).style.display = 'none';
       if (milkdownElement) {
-        milkdownElement.style.pointerEvents = 'none';
-        milkdownElement.style.display = '';
-        milkdownElement.classList.add('readonly');
+        (milkdownElement as HTMLElement).style.pointerEvents = 'none';
+        (milkdownElement as HTMLElement).style.display = 'none';
+        (milkdownElement as HTMLElement).classList.add('readonly');
       }
       contentEditor.setEditable(false);
       contentEditor.cleanupForRead();
@@ -961,18 +985,18 @@ async function updateCommitMeta(filePath: string) {
       currentMarkdown = contentEditor.getMarkdown() || currentMarkdown;
       rawTextarea.value = currentMarkdown;
       autoResize(rawTextarea);
-      rawTextarea.style.display = 'block';
+      (rawTextarea as HTMLElement).style.display = 'block';
       contentEditor.setEditable(false);
       if (milkdownElement) {
         milkdownElement.style.pointerEvents = 'none';
-        milkdownElement.style.display = 'none';
+        (milkdownElement as HTMLElement).style.display = 'none';
       }
     } else {
       // wysiwyg
-      rawTextarea.style.display = 'none';
+      (rawTextarea as HTMLElement).style.display = 'none';
       if (milkdownElement) {
-        milkdownElement.style.pointerEvents = '';
-        milkdownElement.style.display = '';
+        (milkdownElement as HTMLElement).style.pointerEvents = '';
+        (milkdownElement as HTMLElement).style.display = '';
         milkdownElement.classList.remove('readonly');
       }
       contentEditor.setEditable(true);
@@ -1496,8 +1520,9 @@ async function updateCommitMeta(filePath: string) {
   }
   
   // Listen for create dialog events from tree
-  document.addEventListener('showCreateDialog', (event: CustomEvent) => {
-    const { parentPath, isEmpty, onCreateFile } = event.detail;
+  document.addEventListener('showCreateDialog', (event: Event) => {
+    const customEvent = event as CustomEvent;
+    const { parentPath, isEmpty, onCreateFile } = customEvent.detail;
     showCreateDialogInContent(parentPath, onCreateFile, isEmpty);
   });
 
