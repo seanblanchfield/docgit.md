@@ -90,25 +90,37 @@ async def log_console_message(console_msg: schemas.ConsoleMessage, request: Requ
     client_ip = request.client.host if request.client else "unknown"
     user_agent = console_msg.user_agent or request.headers.get("user-agent", "unknown")
     
-    # Create structured log message
-    log_prefix = f"[BROWSER-CONSOLE] [{console_msg.level.upper()}] [{client_ip}]"
-    log_message = f"{log_prefix} {console_msg.message}"
+    # Create structured log message for container logs (with full context)
+    container_log_prefix = f"[BROWSER-CONSOLE] [{console_msg.level.upper()}] [{client_ip}]"
+    container_log_message = f"{container_log_prefix} {console_msg.message}"
     
     # Add additional context if available
     if console_msg.url:
-        log_message += f" | URL: {console_msg.url}"
+        container_log_message += f" | URL: {console_msg.url}"
     if console_msg.stack_trace:
-        log_message += f" | Stack: {console_msg.stack_trace}"
+        container_log_message += f" | Stack: {console_msg.stack_trace}"
     
-    # Log to dedicated frontend logger based on level
+    # Create clean log message for frontend.log file (without prefix and IP)
+    clean_log_message = console_msg.message
+    if console_msg.url:
+        clean_log_message += f" | URL: {console_msg.url}"
+    if console_msg.stack_trace:
+        clean_log_message += f" | Stack: {console_msg.stack_trace}"
+    
+    # Log to dedicated frontend logger (clean format for file)
     if console_msg.level in ["error"]:
-        frontend_logger.error(log_message)
+        frontend_logger.error(clean_log_message)
+        # Also log to main logger for container logs with full context
+        logger.error(container_log_message)
     elif console_msg.level in ["warn"]:
-        frontend_logger.warning(log_message)
+        frontend_logger.warning(clean_log_message)
+        logger.warning(container_log_message)
     elif console_msg.level in ["info", "log"]:  # Treat console.log as info level
-        frontend_logger.info(log_message)
+        frontend_logger.info(clean_log_message)
+        logger.info(container_log_message)
     else:  # debug or other levels
-        frontend_logger.debug(log_message)
+        frontend_logger.debug(clean_log_message)
+        logger.debug(container_log_message)
     
     # Return response with server timestamp
     return schemas.ConsoleLogResponse(
