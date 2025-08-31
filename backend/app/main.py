@@ -3,13 +3,44 @@ from typing import List, Optional
 import asyncio
 import logging
 from datetime import datetime
+from pathlib import Path
 from . import schemas
 from .schemas import TreeNode # Added for the directory tree endpoint
 from .config import settings
 from .git_service import GitService
 from .file_lock_service import lock_service
 
+# Configure logging
 logger = logging.getLogger(__name__)
+
+# Create dedicated frontend console logger
+frontend_logger = logging.getLogger('frontend_console')
+frontend_logger.setLevel(logging.DEBUG)
+
+# Create frontend.log file handler
+log_dir = Path('/app/logs')
+log_dir.mkdir(exist_ok=True)
+frontend_log_handler = logging.FileHandler(log_dir / 'frontend.log')
+frontend_log_handler.setLevel(logging.DEBUG)
+
+# Create formatter for frontend logs
+frontend_formatter = logging.Formatter(
+    '%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+frontend_log_handler.setFormatter(frontend_formatter)
+
+# Add handler to frontend logger
+frontend_logger.addHandler(frontend_log_handler)
+
+# Also add console handler to see frontend logs in docker logs
+frontend_console_handler = logging.StreamHandler()
+frontend_console_handler.setLevel(logging.INFO)  # Show info and above in console
+frontend_console_handler.setFormatter(frontend_formatter)
+frontend_logger.addHandler(frontend_console_handler)
+
+# Prevent propagation to avoid duplicate logs
+frontend_logger.propagate = False
 
 # Instantiate GitService with configuration from settings
 git_service = GitService(
@@ -69,15 +100,15 @@ async def log_console_message(console_msg: schemas.ConsoleMessage, request: Requ
     if console_msg.stack_trace:
         log_message += f" | Stack: {console_msg.stack_trace}"
     
-    # Log to server console based on level
+    # Log to dedicated frontend logger based on level
     if console_msg.level in ["error"]:
-        logger.error(log_message)
+        frontend_logger.error(log_message)
     elif console_msg.level in ["warn"]:
-        logger.warning(log_message)
+        frontend_logger.warning(log_message)
     elif console_msg.level in ["info", "log"]:  # Treat console.log as info level
-        logger.info(log_message)
+        frontend_logger.info(log_message)
     else:  # debug or other levels
-        logger.debug(log_message)
+        frontend_logger.debug(log_message)
     
     # Return response with server timestamp
     return schemas.ConsoleLogResponse(

@@ -1,0 +1,11 @@
+2025-08-31 11:46:00 - INFO - [BROWSER-CONSOLE] [LOG] [172.18.0.4] Test log message - improved logging setup | URL: http://localhost:8080/01_start.md
+2025-08-31 11:46:00 - ERROR - [BROWSER-CONSOLE] [ERROR] [172.18.0.4] Test error message - improved logging setup | URL: http://localhost:8080/01_start.md
+2025-08-31 11:46:00 - WARNING - [BROWSER-CONSOLE] [WARN] [172.18.0.4] Test warning message - improved logging setup | URL: http://localhost:8080/01_start.md
+2025-08-31 11:46:00 - INFO - [BROWSER-CONSOLE] [INFO] [172.18.0.4] Test info message - improved logging setup | URL: http://localhost:8080/01_start.md
+2025-08-31 11:46:00 - DEBUG - [BROWSER-CONSOLE] [DEBUG] [172.18.0.4] Test debug message - improved logging setup | URL: http://localhost:8080/01_start.md
+2025-08-31 11:46:00 - INFO - [BROWSER-CONSOLE] [LOG] [172.18.0.4] Object test: {
+  "user": "test",
+  "action": "logging"
+} | URL: http://localhost:8080/01_start.md
+2025-08-31 11:48:10 - ERROR - [BROWSER-CONSOLE] [ERROR] [172.18.0.4] Caught test error: {} | URL: http://localhost:8080/01_start.md
+2025-08-31 11:48:10 - ERROR - [BROWSER-CONSOLE] [ERROR] [172.18.0.4] Unhandled Promise Rejection: Test unhandled promise rejection | URL: http://localhost:8080/01_start.md

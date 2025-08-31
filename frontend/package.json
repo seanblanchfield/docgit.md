@@ -4,7 +4,8 @@
   "type": "module",
   "packageManager": "pnpm@8.15.9",
   "scripts": {
-    "start": "vite --host 0.0.0.0"
+    "start": "vite --host 0.0.0.0",
+    "build": "vite build"
   },
   "dependencies": {
     "@milkdown/core": "^7.12.1",

@@ -140,6 +140,7 @@ Key files: `app/main.py` (FastAPI app), `app/git_service.py` (Git operations), `
 - This script wraps npm commands to run them inside a Docker container with the appropriate environment and volume mounts.
 - **Example:** To install a package: `./run-node.sh install <package-name>`
 - **Example:** To run a script: `./run-node.sh run <script-name>`
+- **Example:** To build the frontend: `./run-node.sh run build`
 
 ### Technology Stack
 - **Build Tool**: Vite with TypeScript
@@ -156,7 +157,32 @@ View current dependencies: `cat frontend/package.json | jq .dependencies`
 - To debug the frontend, try to use playwright before asking the user to use the browser debugger
 - If you are having difficulty debugging the UI, ask the user to try the action for you and provide a screenshot
 - If you need to narrow a frontend problem down, consider implementing debug logging
-- Console logs are forwarded to backend container logs: `docker-compose logs backend`
+
+#### Frontend Console Logs
+Frontend console messages (console.log, console.info, console.warn, console.error, console.debug) are automatically forwarded to the backend and logged in multiple places:
+
+**Option 1: Dedicated Frontend Log File**
+```bash
+# View frontend logs in real-time (recommended)
+docker-compose exec backend tail -f /app/logs/frontend.log
+
+# View recent frontend logs
+docker-compose exec backend tail -20 /app/logs/frontend.log
+```
+
+**Option 2: Backend Container Logs**
+```bash
+# View all backend logs including frontend console messages
+docker-compose logs backend --tail=20
+
+# Follow backend logs in real-time
+docker-compose logs backend -f
+```
+
+**Log Format:**
+- Frontend logs include timestamp, log level, client IP, message, URL, and stack traces for errors
+- All JavaScript errors (including unhandled promise rejections) are automatically captured
+- Objects are properly JSON-formatted in the logs
 
 ### Backend Debugging
 - Use FastAPI's automatic documentation at `/docs` endpoint
