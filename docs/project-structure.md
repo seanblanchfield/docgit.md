@@ -46,17 +46,30 @@
 
 ## Frontend Directory (`frontend/`)
 
+The frontend source code in `src/` is organized into the following subdirectories based on functionality:
+
+| Directory | Purpose |
+|-----------|---------|
+| `components/` | Reusable UI components. |
+| `services/` | Modules for communicating with external APIs (e.g., the backend). |
+| `tree/` | The self-contained, modular directory tree component. |
+| `types/` | Global TypeScript type definitions. |
+| `utils/` | General-purpose utility functions. |
+
+### Key Files
+
 | File | Purpose | Key Details |
 |------|---------|-------------|
-| `src/main.ts` | Application entry point | Initializes editor, tree, drawer, and lock management. Handles file selection, mode switching, and save operations. |
-| `src/content.ts` | Markdown editor integration | Wraps Milkdown editor with custom configuration for WYSIWYG markdown editing. |
+| `src/main.ts` | Application entry point | Initializes all components, services, and event listeners. |
+| `src/components/editor.ts` | Markdown editor component | Wraps the Milkdown editor for WYSIWYG markdown editing. Formerly `content.ts`. |
+| `src/components/drawer.ts` | Sidebar drawer component | Handles the resizable and collapsible sidebar drawer. |
+| `src/services/lock.ts` | Lock service client | Manages file locking by communicating with the backend API. |
+| `src/utils/humanize.ts` | Formatting utilities | Provides functions to humanize file names and timestamps. |
+| `src/types/infinite-tree.d.ts` | Type definitions | Contains TypeScript type declarations for the `infinite-tree` library. |
 | `src/tree/` | Directory tree component | Modular directory tree implementation. See details below. |
-| `src/drawer.ts` | Sidebar drawer functionality | Handles resizable drawer with persistence, mobile behavior, and toggle functionality. |
-| `src/lock.ts` | Lock service client | Frontend lock management: acquisition, refresh, release, status checking, and conflict handling. |
-| `src/humanize.ts` | Time/name formatting utilities | Humanizes timestamps and file names for better UX. |
-| `src/styles.css` | Application styles | Complete CSS for layout, components, editor modes, lock states, and responsive design. |
-| `index.html` | HTML template | Single-page application shell with editor container, tree drawer, and status elements. |
-| `package.json` | Node.js configuration | Vite, TypeScript, Milkdown, infinite-tree, and other frontend dependencies. Uses pnpm package manager. |
+| `src/styles.css` | Application styles | Global CSS for layout, components, and responsive design. |
+| `index.html` | HTML template | The single-page application shell. |
+| `package.json` | Node.js configuration | Defines dependencies and build scripts. Uses pnpm. |
 
 ### Tree Module Directory (`frontend/src/tree/`)
 

@@ -1,10 +1,9 @@
-import { initContentEditor } from './content';
+import { initContentEditor } from './components/editor';
 import { DirectoryTree } from './tree';
 import { TreeNode } from './tree/types';
-import { setupDrawer } from './drawer';
-import { humanizeTime, humanizeFileName } from './humanize';
-import { lockService } from './lock';
-import './console-logger'; // Initialize console logging to server
+import { setupDrawer } from './components/drawer';
+import { humanizeTime, humanizeFileName } from './utils/humanize';
+import { lockService } from './services/lock';
 
 
 import '@milkdown/crepe/theme/common/style.css';

@@ -1,5 +1,5 @@
 import { TreeNode } from './types';
-import { humanizeFileName } from '../humanize';
+import { humanizeFileName } from '../utils/humanize';
 
 export function filterHiddenFiles(nodes: any[]): any[] {
   return nodes

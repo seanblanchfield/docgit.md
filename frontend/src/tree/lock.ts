@@ -1,5 +1,5 @@
 import { TreeNode } from './types';
-import { lockService } from '../lock';
+import { lockService } from '../services/lock';
 
 /**
  * Update visual indicators for a node based on lock status
