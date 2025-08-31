@@ -60,12 +60,35 @@ ls -1 WIP/TODO_* | head -n 1  # Next priority task
 2. **Work**: Make commits, update WIP file with progress
 3. **Finish**: `complete` → marks DONE + merges + cleanup
 
+## Project Scope Management
+
+### CRITICAL: Never Expand Scope During Work
+- **Assume project is working**: At the start of each piece of work, expect that the project is in a fully working state
+- **Recent changes broke it**: If something breaks, it is the work since the last commit that broke it
+- **Stay in scope**: Under no circumstances should you expand the scope of work to change how other aspects of the project work in an attempt to fix errors
+- **Root cause is likely recent**: What seems like a fundamental error outside the current scope is most likely caused by recent changes within scope
+
+### When Fundamental Issues Block Progress
+If convinced that there is a genuine fundamental error outside the current scope of work that is blocking progress:
+1. **Prepare an argument**: Document why you believe the issue is outside scope
+2. **Present evidence**: Show how recent changes couldn't have caused the issue
+3. **Request explicit confirmation**: Ask the user for explicit permission to expand scope
+4. **Wait for approval**: Do not proceed with out-of-scope changes without user confirmation
+
+### Scope Discipline Benefits
+- **Faster debugging**: Focus on recent changes first
+- **Cleaner commits**: Changes stay focused on the intended feature
+- **Reduced complexity**: Avoid cascading changes across the codebase
+- **Better tracking**: WIP files remain accurate to actual work done
+
 ## Common Mistakes to Avoid
 - ❌ Working on main branch without WIP file
 - ❌ Creating multiple TODO files for same feature  
 - ❌ Forgetting to update WIP file progress
 - ❌ Merging without marking WIP as DONE
 - ❌ Not using feature branches for new work
+- ❌ **Expanding scope when encountering errors**
+- ❌ **Assuming fundamental issues without evidence**
 
 ## If Things Go Wrong
 - **Lost track**: Run `status` and `explain`
