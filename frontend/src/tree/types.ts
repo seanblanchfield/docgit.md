@@ -22,6 +22,7 @@ export interface TreeNode {
 export interface DirectoryTreeOptions {
   el: HTMLElement;
   onFileSelect: (node: TreeNode) => void;
-  onCreateFile?: (parentPath: string, name: string, isDirectory: boolean) => Promise<void>;
+  onCreateFile: (parentPath: string, name: string, isDirectory: boolean) => Promise<void>;
+  onDeleteDirectory: (path: string) => Promise<void>;
   selectDefault?: boolean; // true by default
 }

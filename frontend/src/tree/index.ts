@@ -1,3 +1,4 @@
+declare module 'infinite-tree';
 import InfiniteTree from 'infinite-tree';
 import { DirectoryTreeOptions, TreeNode } from './types';
 import { customRowRenderer } from './renderer';
@@ -23,11 +24,11 @@ export class DirectoryTree {
       rowRenderer: (node: TreeNode) => customRowRenderer(this.tree, node)
     });
 
-    setupEventHandlers(this.tree, this.el, this.options.onFileSelect);
+    setupEventHandlers(this.tree, this.el, this.options.onFileSelect, this.options.onCreateFile, this.options.onDeleteDirectory);
   }
 
-  async load() {
-    const treeDataRaw = await fetchDirectoryTreeData();
+  async load(path?: string) {
+    const treeDataRaw = await fetchDirectoryTreeData(path);
     const treeData = Array.isArray(treeDataRaw)
       ? treeDataRaw.map(addIsDirectory)
       : treeDataRaw;

@@ -80,7 +80,7 @@ class RefreshLockResponse(BaseModel):
 
 # File operations schemas
 class CreateDirectoryRequest(BaseModel):
-    name: str  # Directory name
+    path: str  # Full path of the directory to create
     message: Optional[str] = None  # Optional commit message
 
 class CreateDirectoryResponse(BaseModel):

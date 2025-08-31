@@ -2,7 +2,7 @@ import { TreeNode } from './types';
 import { handleCreateNodeClick } from './createItem';
 import { updateVisualSelection } from './state';
 
-export function setupEventHandlers(treeInstance: any, el: HTMLElement, onFileSelect: (node: TreeNode) => void) {
+export function setupEventHandlers(treeInstance: any, el: HTMLElement, onFileSelect: (node: TreeNode) => void, onCreateFile: (parentPath: string, name: string, isDirectory: boolean) => Promise<void>, onDeleteDirectory: (path: string) => Promise<void>) {
   let lastSelectedId: string | null = null;
   let manualSelectedId: string | null = null;
 
@@ -47,7 +47,7 @@ export function setupEventHandlers(treeInstance: any, el: HTMLElement, onFileSel
     if (node.isCreateItem) {
       event.preventDefault();
       event.stopPropagation();
-      handleCreateNodeClick(node);
+      handleCreateNodeClick(node, onCreateFile, onDeleteDirectory);
       return;
     }
 
@@ -330,7 +330,7 @@ export function setupEventHandlers(treeInstance: any, el: HTMLElement, onFileSel
 
         // If it's a create node, trigger the create dialog
         if (currentSelected.isCreateItem) {
-          handleCreateNodeClick(currentSelected);
+          handleCreateNodeClick(currentSelected, onCreateFile, onDeleteDirectory);
         }
         break;
       }

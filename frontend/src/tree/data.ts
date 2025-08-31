@@ -25,9 +25,10 @@ export function sortNodes(nodes: any[]): any[] {
     }));
 }
 
-export async function fetchDirectoryTreeData(): Promise<TreeNode[]> {
+export async function fetchDirectoryTreeData(path?: string): Promise<TreeNode[]> {
   try {
-    const response = await fetch('/api/files/tree');
+    const url = path ? `/api/files/tree?path=${encodeURIComponent(path)}` : '/api/files/tree';
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }

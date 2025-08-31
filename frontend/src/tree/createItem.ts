@@ -77,13 +77,14 @@ export function addCreateItems(nodes: TreeNode[]): TreeNode[] {
 /**
  * Show create file/directory dialog in content area
  */
-function showCreateDialog(parentPath: string, isEmpty: boolean = false, onCreateFile: (parentPath: string, name: string, isDirectory: boolean) => Promise<void>): void {
+function showCreateDialog(parentPath: string, isEmpty: boolean = false, onCreateFile: (parentPath: string, name: string, isDirectory: boolean) => Promise<void>, onDeleteDirectory?: (path: string) => Promise<void>): void {
   // Dispatch event to main.ts to show create dialog in content area
   const createEvent = new CustomEvent('showCreateDialog', {
     detail: {
       parentPath: parentPath,
       isEmpty: isEmpty,
-      onCreateFile: onCreateFile
+      onCreateFile: onCreateFile,
+      onDeleteDirectory: onDeleteDirectory
     }
   });
 
@@ -93,7 +94,7 @@ function showCreateDialog(parentPath: string, isEmpty: boolean = false, onCreate
 /**
  * Handle click on a create node
  */
-export function handleCreateNodeClick(node: TreeNode, onCreateFile?: (parentPath: string, name: string, isDirectory: boolean) => Promise<void>): void {
+export function handleCreateNodeClick(node: TreeNode, onCreateFile?: (parentPath: string, name: string, isDirectory: boolean) => Promise<void>, onDeleteDirectory?: (path: string) => Promise<void>): void {
   if (!onCreateFile) return;
 
   // Determine the parent path from the create node ID
@@ -104,13 +105,13 @@ export function handleCreateNodeClick(node: TreeNode, onCreateFile?: (parentPath
     parentPath = node.id.replace('/__create__', '');
   }
 
-  showCreateDialog(parentPath, node.isEmpty || false, onCreateFile);
+  showCreateDialog(parentPath, node.isEmpty || false, onCreateFile, onDeleteDirectory);
 }
 
 /**
  * Show create dialog for a specific directory (public method)
  */
-export function showCreateDialogForDirectory(directoryPath: string, tree: any, onCreateFile?: (parentPath: string, name: string, isDirectory: boolean) => Promise<void>): void {
+export function showCreateDialogForDirectory(directoryPath: string, tree: any, onCreateFile?: (parentPath: string, name: string, isDirectory: boolean) => Promise<void>, onDeleteDirectory?: (path: string) => Promise<void>): void {
   if (!onCreateFile) return;
   // Check if the directory exists in the tree
   const node = tree.getNodeById(directoryPath);
@@ -121,5 +122,5 @@ export function showCreateDialogForDirectory(directoryPath: string, tree: any, o
 
   // Check if directory is empty
   const isEmpty = !node.children || node.children.filter((child: TreeNode) => !child.isCreateItem).length === 0;
-  showCreateDialog(directoryPath, isEmpty, onCreateFile);
+  showCreateDialog(directoryPath, isEmpty, onCreateFile, onDeleteDirectory);
 }

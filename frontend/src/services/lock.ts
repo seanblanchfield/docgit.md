@@ -24,6 +24,8 @@ export interface DraftData {
   baseCommitHash?: string; // Git commit hash when draft was created
 }
 
+import { notificationService } from './notification.service';
+
 export class LockService {
   private currentLocks = new Map<string, string>(); // path -> lock_id
   private draftPrefix = 'draft:';
@@ -364,17 +366,13 @@ export class LockService {
       const success = await this.refreshLock(filePath);
       if (!success) {
         clearInterval(interval);
-        this.onLockLost?.(filePath);
+        notificationService.showLockLost(filePath);
       }
     }, 4 * 60 * 1000); // 4 minutes
 
     return () => clearInterval(interval);
   }
 
-  /**
-   * Callback for when a lock is lost (expired or released by server)
-   */
-  onLockLost?: (filePath: string) => void;
 
   /**
    * Get the current lock ID for a file

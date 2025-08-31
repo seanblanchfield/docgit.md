@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Header, BackgroundTasks, Request
+from fastapi import FastAPI, Depends, HTTPException, Header, BackgroundTasks, Request, Query
 from typing import List, Optional
 import asyncio
 import logging
@@ -520,29 +520,20 @@ async def check_lock_status(
 @app.post("/api/directory", response_model=schemas.CreateDirectoryResponse)
 async def create_directory(
     request_body: schemas.CreateDirectoryRequest,
-    parent_path: Optional[str] = None,  # Query parameter for parent directory
     gs: GitService = Depends(get_git_service)
 ):
     """
     Create a new directory in the repository.
-    - **request_body**: JSON body with directory name and optional commit message.
-    - **parent_path**: Optional parent directory path. Defaults to repository root.
+    - **request_body**: JSON body with the full path of the directory to create.
     """
     try:
-        # Validate directory name
-        if not request_body.name or not request_body.name.strip():
-            raise HTTPException(status_code=400, detail="Directory name cannot be empty")
-        
-        # Remove any path separators from name to prevent path traversal
-        clean_name = request_body.name.strip().replace("/", "").replace("\\", "")
-        if not clean_name:
-            raise HTTPException(status_code=400, detail="Invalid directory name")
-        
-        # Build full directory path
-        if parent_path:
-            full_path = f"{parent_path.rstrip('/')}/{clean_name}"
-        else:
-            full_path = clean_name
+        full_path = request_body.path.strip()
+        if not full_path:
+            raise HTTPException(status_code=400, detail="Path cannot be empty")
+
+        # Basic validation to prevent path traversal
+        if '..' in full_path.split('/'):
+            raise HTTPException(status_code=400, detail="Invalid path")
         
         # Check if directory already exists
         dir_absolute_path = gs.repo_path / full_path
@@ -615,46 +606,50 @@ async def delete_file(
         raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")
 
 
-@app.delete("/api/directory/{dir_path:path}", response_model=schemas.DeleteItemResponse)
+@app.delete("/api/directory", response_model=schemas.DeleteItemResponse)
 async def delete_directory(
-    dir_path: str,
-    commit_message: Optional[str] = None,  # Query parameter for commit message
+    path: str = Query(..., description="The path to the directory to delete"),
     gs: GitService = Depends(get_git_service)
 ):
     """
-    Delete a directory from the repository.
-    - **dir_path**: The path to the directory, relative to the repository root.
-    - **commit_message**: Optional commit message. Defaults to "Delete [dir_path]".
+    Delete an empty directory from the repository.
+    - **path**: The path to the directory, relative to the repository root.
     """
     try:
-        # Check if directory exists
-        dir_absolute_path = gs.repo_path / dir_path
+        dir_absolute_path = gs.repo_path / path
         if not dir_absolute_path.exists():
-            raise HTTPException(status_code=404, detail=f"Directory '{dir_path}' not found")
+            raise HTTPException(status_code=404, detail=f"Directory '{path}' not found")
         
         if not dir_absolute_path.is_dir():
-            raise HTTPException(status_code=400, detail=f"'{dir_path}' is not a directory")
+            raise HTTPException(status_code=400, detail=f"'{path}' is not a directory")
+
+        # Check if the directory is empty or contains only a .gitkeep file
+        dir_contents = list(dir_absolute_path.iterdir())
+        if dir_contents:
+            # If there's more than one file, it's not empty
+            # If there's one file and it's not .gitkeep, it's not empty
+            if len(dir_contents) > 1 or dir_contents[0].name != '.gitkeep':
+                raise HTTPException(status_code=400, detail=f"Directory '{path}' is not empty")
+
+        message = f"Delete empty directory '{path}'"
         
-        # Use default commit message if not provided
-        message = commit_message or f"Delete directory '{dir_path}'"
-        
-        # Delete the directory using GitService
-        commit_sha = gs.delete_item(dir_path, message)
+        commit_sha = gs.delete_item(path, message)
         
         if commit_sha is None:
+            # This might happen if the directory was not tracked or an error occurred
+            # We can treat it as a success if the directory is gone
+            if not dir_absolute_path.exists():
+                return schemas.DeleteItemResponse(message=f"Directory '{path}' deleted successfully.", commit_sha=None, path=path)
             raise HTTPException(status_code=500, detail="Failed to delete directory")
-        
-        return schemas.DeleteItemResponse(
-            message=message,
-            commit_sha=commit_sha,
-            path=dir_path
-        )
-        
+
+        return schemas.DeleteItemResponse(message=f"Directory '{path}' deleted successfully.", commit_sha=commit_sha, path=path)
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error deleting directory '{dir_path}': {e}")
+        logger.error(f"Error deleting directory '{path}': {e}")
         raise HTTPException(status_code=500, detail=f"Failed to delete directory: {str(e)}")
+
+
 
 
 @app.put("/api/file/{file_path:path}/move", response_model=schemas.MoveFileResponse)
