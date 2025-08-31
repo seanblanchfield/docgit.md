@@ -11,7 +11,7 @@ frontend/.pnpm-store/
 
 
 # Ignore the embedded Git repository for wiki data
-wiki/data/repo/
+data/repo/
 
 # Ignore locks directory
 data/locks/
