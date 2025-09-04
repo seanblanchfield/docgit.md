@@ -16,6 +16,8 @@ import './utils/console-logger';
 
 let directoryTree: DirectoryTree | null = null;
 let modifiedFiles = new Set<string>();
+let isLoadingFile = false; // Flag to prevent draft saving during file loading
+let loadingContentHash = ''; // Hash of content being loaded to detect spurious changes
 
 async function releaseLockForFile(filePath: string): Promise<void> {
   try {
@@ -62,7 +64,7 @@ function showNotification(type: 'lock-conflict' | 'lock-lost' | 'save-error' | '
 }
 
 async function main() {
-    function updateButtonStates() {
+  function updateButtonStates() {
     const isFileOpen = !!appState.currentFilePath;
     const isDirty = appState.isDirty;
 
@@ -121,11 +123,15 @@ async function main() {
   }
 
   function saveDraftToLocalStorage() {
-    if (!appState.currentFilePath) return;
+    if (!appState.currentFilePath || isLoadingFile) return;
 
     try {
       const currentContent = appState.currentMode === 'raw' ? rawTextarea.value : contentEditor.getMarkdown();
-      const hasChanged = currentContent.trim() !== appState.baselineMarkdown.trim();
+      
+      // Use the same normalization as onEdit for consistent comparison
+      const normalizedCurrent = normalizeContent(currentContent);
+      const normalizedBaseline = normalizeContent(appState.baselineMarkdown);
+      const hasChanged = normalizedCurrent !== normalizedBaseline;
 
       if (hasChanged) {
         const lockId = lockService.getCurrentLockId(appState.currentFilePath);
@@ -137,8 +143,52 @@ async function main() {
     }
   }
 
+  // Helper function to normalize content for robust comparison
+  const normalizeContent = (content: string): string => {
+    return content
+      // Convert HTML entities to characters (hex and decimal)
+      .replace(/&#x([0-9A-Fa-f]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+      .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
+      // Convert named HTML entities
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      // Normalize line endings
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      // Normalize whitespace characters to single spaces
+      .replace(/[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]/g, ' ')
+      // Remove trailing HTML elements that editor might add
+      .replace(/\s*<br\s*\/?>\s*$/gi, '')
+      .replace(/\s*<\/?\w+[^>]*>\s*$/g, '')
+      // Trim trailing and leading whitespace and newlines
+      .replace(/^\s+|\s+$/g, '');
+  };
+
   const onEdit = (markdown: string) => {
-    const hasChanged = markdown.trim() !== appState.baselineMarkdown.trim();
+    // Skip processing if file is still loading
+    if (isLoadingFile) {
+      return;
+    }
+    
+    // Normalize both contents before comparison to handle HTML entity differences
+    const normalizedMarkdown = normalizeContent(markdown);
+    const normalizedBaseline = normalizeContent(appState.baselineMarkdown);
+    
+    // Check if this matches the content we just loaded (to prevent spurious changes)
+    if (loadingContentHash) {
+      if (normalizedMarkdown === loadingContentHash) {
+        return;
+      } else {
+        return; // Ignore any content that doesn't match what we just loaded
+      }
+    }
+    
+    const hasChanged = normalizedMarkdown !== normalizedBaseline;
+    
     if (hasChanged) {
       setDirty(true);
       saveDraftToLocalStorage(); // Save draft on actual change
@@ -173,7 +223,6 @@ async function main() {
     try {
       appState.currentFileGitHash = await apiService.fetchGitHash(appState.currentFilePath);
       if (appState.currentFileGitHash) {
-        console.log(`[GIT HASH] Fetched git hash for ${appState.currentFilePath}: ${appState.currentFileGitHash.substring(0, 8)}`);
       }
     } catch (error) {
       console.warn(`Could not fetch git hash for ${appState.currentFilePath}:`, error);
@@ -244,7 +293,6 @@ async function main() {
       if (appState.currentFileGitHash) {
         const existingDraft = lockService.getDraftData(appState.currentFilePath);
         if (existingDraft && !existingDraft.baseCommitHash && appState.currentFileGitHash) {
-          console.log(`[GIT HASH] Updating draft after lock acquisition for ${appState.currentFilePath} with base commit hash: ${appState.currentFileGitHash.substring(0, 8)}`);
           const lockId = lockService.getCurrentLockId(appState.currentFilePath);
           const lockExpiry = lockId ? new Date(Date.now() + 5 * 60 * 1000).toISOString() : undefined;
           lockService.saveDraft(appState.currentFilePath, existingDraft.content, lockExpiry, appState.currentFileGitHash);
@@ -411,6 +459,8 @@ async function main() {
         await releaseLockForFile(appState.currentFilePath);
       }
 
+      isLoadingFile = true; // Prevent draft saving during file loading
+      
       const serverContent = await apiService.fetchFileContent(node.id);
       const gitHash = await apiService.fetchGitHash(node.id);
       setCurrentFile(node.id, serverContent, gitHash);
@@ -419,9 +469,18 @@ async function main() {
 
       if (appState.currentFileGitHash) {
         const existingDraft = lockService.getDraftData(appState.currentFilePath!);
+        // Only update existing drafts that have actual content changes, not just missing baseCommitHash
         if (existingDraft && !existingDraft.baseCommitHash && appState.currentFileGitHash) {
-          console.log(`[GIT HASH] Updating existing draft for ${appState.currentFilePath} with base commit hash: ${appState.currentFileGitHash.substring(0, 8)}`);
-          lockService.saveDraft(appState.currentFilePath!, existingDraft.content, existingDraft.lockExpiry, appState.currentFileGitHash);
+          // Check if the draft content actually differs from server content
+          const hasActualChanges = existingDraft.content.trim() !== serverContent.trim() &&
+            existingDraft.content.replace(/\r\n/g, '\n').trim() !== serverContent.replace(/\r\n/g, '\n').trim();
+          
+          if (hasActualChanges) {
+            lockService.saveDraft(appState.currentFilePath!, existingDraft.content, existingDraft.lockExpiry, appState.currentFileGitHash);
+          } else {
+            // Draft content matches server content - discard it as it's not a real change
+            lockService.discardDraft(appState.currentFilePath!);
+          }
         }
       }
 
@@ -447,14 +506,30 @@ async function main() {
       const draftData = lockService.getDraftData(appState.currentFilePath!);
       const draftContent = draftData?.content;
       const contentToLoad = draftContent ?? appState.baselineMarkdown;
+      
       appState.currentMarkdown = contentToLoad;
-
-      contentEditor.replaceContent(contentToLoad);
+      
+      // Store normalized content hash to detect spurious editor changes
+      loadingContentHash = normalizeContent(contentToLoad);
+      
+      // Wait for content replacement to complete before proceeding
+      await contentEditor.replaceContent(contentToLoad);
+      
+      // Verify the editor actually has the correct content
+      const editorContent = contentEditor.getMarkdown();
+      
+      if (normalizeContent(editorContent) !== loadingContentHash) {
+        // Try to force content replacement again
+        await contentEditor.replaceContent(contentToLoad);
+      }
+      
       rawTextarea.value = contentToLoad;
 
+      // Use the same robust normalization for draft comparison
       const hasDraftChanges = draftContent !== null && draftContent !== undefined &&
-        draftContent.trim() !== appState.baselineMarkdown.trim() &&
-        draftContent.replace(/\r\n/g, '\n').trim() !== appState.baselineMarkdown.replace(/\r\n/g, '\n').trim();
+        normalizeContent(draftContent) !== normalizeContent(appState.baselineMarkdown);
+      
+      
       setDirty(hasDraftChanges);
 
       setTimeout(() => {
@@ -470,6 +545,14 @@ async function main() {
       if (appState.currentFilePath) {
         updateCommitMeta(appState.currentFilePath);
       }
+      
+      // Now that content replacement is complete, we can safely re-enable edit detection
+      isLoadingFile = false;
+      
+      // Clear the content hash after a longer delay to allow all async editor callbacks to complete
+      setTimeout(() => {
+        loadingContentHash = '';
+      }, 500);
     }
   });
   setDirectoryTree(directoryTree);

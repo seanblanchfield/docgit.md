@@ -4,7 +4,7 @@ import { listener, listenerCtx } from '@milkdown/plugin-listener';
 import { Slice } from 'prosemirror-model';
 
 export interface ContentEditor {
-  replaceContent(markdown: string): void;
+  replaceContent(markdown: string): Promise<void>;
   getMarkdown(): string;
   setEditable(editable: boolean): void;
   cleanupForRead(): void;
@@ -31,19 +31,26 @@ export async function initContentEditor(
   await crepe.create();
 
   return {
-    replaceContent(markdown: string) {
-      crepe.editor.action((ctx) => {
-        const view = ctx.get(editorViewCtx);
-        const parser = ctx.get(parserCtx);
-        const doc = parser(markdown);
-        if (!doc) return;
-        view.dispatch(
-          view.state.tr.replace(
-            0,
-            view.state.doc.content.size,
-            new Slice(doc.content, 0, 0)
-          )
-        );
+    async replaceContent(markdown: string): Promise<void> {
+      return new Promise((resolve) => {
+        crepe.editor.action((ctx) => {
+          const view = ctx.get(editorViewCtx);
+          const parser = ctx.get(parserCtx);
+          const doc = parser(markdown);
+          if (!doc) {
+            resolve();
+            return;
+          }
+          view.dispatch(
+            view.state.tr.replace(
+              0,
+              view.state.doc.content.size,
+              new Slice(doc.content, 0, 0)
+            )
+          );
+          // Use requestAnimationFrame to ensure DOM updates complete
+          requestAnimationFrame(() => resolve());
+        });
       });
     },
     getMarkdown(): string {

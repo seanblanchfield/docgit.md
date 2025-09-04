@@ -2,7 +2,7 @@
 
 ## CRITICAL RULES
 - **ALWAYS** create a WIP file before starting any significant work
-- **NEVER** work directly on main branch - use `goal <name>` to create feature branches
+- **NEVER** work directly on main branch - create feature branches
 - **ALWAYS** update WIP files as you progress
 - **NEVER** merge without completing the WIP file (rename TODO_ to DONE_)
 - **NEVER** merge a feature branch into `main` without explicit user approval
@@ -158,9 +158,9 @@ View current dependencies: `cat frontend/package.json | jq .dependencies`
 #### Frontend Console Logs
 Frontend console messages (console.log, console.info, console.warn, console.error, console.debug) are automatically forwarded to the backend and logged in multiple places:
 
-**Option 1: Dedicated Frontend Log File**
+**Option 1: Dedicated Browser Console Log File**
 ```bash
-# View frontend logs in real-time (recommended)
+# View browser console logs in real-time (recommended)
 tail -f data/logs/frontend.log
 
 # View recent frontend logs
