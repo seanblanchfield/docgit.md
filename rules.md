@@ -5,6 +5,7 @@
 - **NEVER** work directly on main branch - use `goal <name>` to create feature branches
 - **ALWAYS** update WIP files as you progress
 - **NEVER** merge without completing the WIP file (rename TODO_ to DONE_)
+- **NEVER** merge a feature branch into `main` without explicit user approval
 - **ALWAYS** use the special commands for workflow management
 
 ## Quick Reference
@@ -13,7 +14,7 @@
 | "new goal", "new feature", "start feature", "I want to work on..." | Start new work → creates WIP + branch |
 | "what's the status", "show me progress", "what's done" | Show TODO/DONE overview |
 | "what's next", "what should I work on", "priority task" | Show priority task |
-| "I'm done", "finish up", "complete this", "ready to merge" | Finish work → marks done + merges + cleanup |
+| "I'm done", "finish up", "complete this", "ready to merge" | Finish work → marks done + requests merge approval |
 | "what can you do", "help", "available actions" | List all available workflow actions |
 
 ## Project Structure
@@ -58,6 +59,7 @@ If convinced that there is a genuine fundamental error outside the current scope
 - ❌ Creating multiple TODO files for same feature  
 - ❌ Forgetting to update WIP file progress
 - ❌ Merging without marking WIP as DONE
+- ❌ Merging without user approval
 - ❌ Not using feature branches for new work
 - ❌ **Expanding scope when encountering errors**
 - ❌ **Assuming fundamental issues without evidence**

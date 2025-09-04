@@ -120,10 +120,28 @@ async function main() {
     return;
   }
 
+  function saveDraftToLocalStorage() {
+    if (!appState.currentFilePath) return;
+
+    try {
+      const currentContent = appState.currentMode === 'raw' ? rawTextarea.value : contentEditor.getMarkdown();
+      const hasChanged = currentContent.trim() !== appState.baselineMarkdown.trim();
+
+      if (hasChanged) {
+        const lockId = lockService.getCurrentLockId(appState.currentFilePath);
+        const lockExpiry = lockId ? new Date(Date.now() + 5 * 60 * 1000).toISOString() : undefined;
+        lockService.saveDraft(appState.currentFilePath, currentContent, lockExpiry, appState.currentFileGitHash ?? undefined);
+      }
+    } catch (err) {
+      console.warn('Failed to store draft on edit:', err);
+    }
+  }
+
   const onEdit = (markdown: string) => {
     const hasChanged = markdown.trim() !== appState.baselineMarkdown.trim();
     if (hasChanged) {
       setDirty(true);
+      saveDraftToLocalStorage(); // Save draft on actual change
       render();
     }
   };
@@ -383,25 +401,11 @@ async function main() {
         hideCreateDialog();
       }
 
-      if (appState.isDirty && appState.currentFilePath) {
-        try {
-          const currentContent = appState.currentMode === 'raw' ? rawTextarea.value : contentEditor.getMarkdown();
-          const currentTrimmed = currentContent.trim();
-          const baselineTrimmed = appState.baselineMarkdown.trim();
-
-          if (currentTrimmed !== baselineTrimmed && appState.currentFilePath) {
-            const lockId = lockService.getCurrentLockId(appState.currentFilePath);
-            if (lockId) {
-              const lockExpiry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-              lockService.saveDraft(appState.currentFilePath, currentContent, lockExpiry, appState.currentFileGitHash ?? undefined);
-            } else {
-              lockService.saveDraft(appState.currentFilePath, currentContent, undefined, appState.currentFileGitHash ?? undefined);
-            }
-          }
-        } catch (err) {
-          console.warn('Failed to store draft before navigation:', err);
-        }
-      }
+      // The onEdit handler now saves drafts immediately, so this check is no longer needed before navigation.
+      // Leaving this commented out as a reminder of the previous logic.
+      // if (appState.isDirty) {
+      //   saveDraftToLocalStorage();
+      // }
 
       if (appState.currentFilePath && appState.currentFilePath !== node.id) {
         await releaseLockForFile(appState.currentFilePath);
