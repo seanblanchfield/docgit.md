@@ -1,5 +1,6 @@
 import { Crepe } from '@milkdown/crepe';
 import { editorViewCtx, parserCtx } from '@milkdown/core';
+import { listener, listenerCtx } from '@milkdown/plugin-listener';
 import { Slice } from 'prosemirror-model';
 
 export interface ContentEditor {
@@ -9,11 +10,24 @@ export interface ContentEditor {
   cleanupForRead(): void;
 }
 
-export async function initContentEditor(rootSelector: string, defaultValue: string): Promise<ContentEditor> {
+export async function initContentEditor(
+  rootSelector: string,
+  defaultValue: string,
+  onEdit: (markdown: string) => void
+): Promise<ContentEditor> {
   const crepe = new Crepe({
     root: rootSelector,
     defaultValue,
   });
+
+  crepe.editor.use(listener);
+  crepe.editor.use((ctx) => {
+    const listener = ctx.get(listenerCtx);
+    listener.markdownUpdated((_ctx, markdown) => {
+      onEdit(markdown);
+    });
+  });
+
   await crepe.create();
 
   return {

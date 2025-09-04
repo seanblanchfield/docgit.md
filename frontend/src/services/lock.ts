@@ -157,6 +157,11 @@ export class LockService {
   /**
    * Save draft data with expiry and base commit hash information
    */
+  discardDraft(filePath: string): void {
+    localStorage.removeItem(this.draftPrefix + filePath);
+    console.log(`[LOCK DEBUG] Discarded draft for ${filePath}`);
+  }
+
   saveDraft(filePath: string, content: string, lockExpiry?: string, baseCommitHash?: string): void {
     const draftData: DraftData = {
       content,

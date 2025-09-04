@@ -11,6 +11,7 @@
     "@milkdown/core": "^7.12.1",
     "@milkdown/crepe": "7.12.1",
     "@milkdown/kit": "^7.15.2",
+    "@milkdown/plugin-listener": "^7.12.1",
     "@milkdown/utils": "^7.15.2",
     "@type-config/strict": "^1.2.1",
     "@types/node": "^22.0.0",

@@ -31,34 +31,6 @@ ls WIP/TODO_*     # Outstanding work
 ls -1 WIP/TODO_* | head -n 1  # Next priority task
 ```
 
-## Commands
-
-### Core Workflow
-* **`goal <name>`** - Start new goal: creates `WIP/TODO_XXX_name.md` + switches to `feature/XXX-name` branch
-  - Triggered by: "goal:", "new goal:", "I want to focus on...", etc.
-* **`complete`** - Finish current goal: TODO→DONE, merge to main, delete feature branch
-* **`commit`** - Semantic commit on feature branch with WIP reference
-
-### Task Management  
-* **`next`** - Find next priority task: `ls -1 WIP/TODO_* | head -n 1`
-* **`status`** - Show work overview: `ls WIP/DONE_*` and `ls WIP/TODO_*`
-* **`explain`** - Summarize current/priority task from WIP file
-
-### Reference
-* **`docs`** - Access documentation: `find docs -name "*.md" | sort`
-* **`commands`** - List all available commands
-
-## When to Use Commands
-- **Starting new work**: `goal <name>`
-- **Continuing work**: Check current branch, update WIP file
-- **Stuck/unclear**: `explain` or `next`
-- **Ready to finish**: `complete`
-- **Need help**: `commands`
-
-## Workflow Process
-1. **Start**: `goal <name>` → creates WIP file + feature branch
-2. **Work**: Make commits, update WIP file with progress
-3. **Finish**: `complete` → marks DONE + merges + cleanup
 
 ## Project Scope Management
 

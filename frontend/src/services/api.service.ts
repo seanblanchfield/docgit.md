@@ -129,6 +129,25 @@ class ApiService {
     }
   }
 
+  async deleteFile(filePath: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
+      const response = await fetch(`/api/files/${encodedPath}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        return { success: true };
+      } else {
+        const errorData = await response.json();
+        return { success: false, error: errorData.detail || 'Unknown error occurred' };
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'An unexpected network error occurred' };
+    }
+  }
+
   async deleteDirectory(path: string): Promise<void> {
     const response = await fetch(`/api/directory?path=${encodeURIComponent(path)}`, {
       method: 'DELETE',

@@ -14,6 +14,9 @@ dependencies:
   '@milkdown/kit':
     specifier: ^7.15.2
     version: 7.15.2(@codemirror/language@6.11.1)(@codemirror/state@6.5.2)(@codemirror/view@6.37.1)(typescript@5.8.3)
+  '@milkdown/plugin-listener':
+    specifier: ^7.12.1
+    version: 7.12.1
   '@milkdown/utils':
     specifier: ^7.15.2
     version: 7.15.2

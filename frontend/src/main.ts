@@ -62,15 +62,25 @@ function showNotification(type: 'lock-conflict' | 'lock-lost' | 'save-error' | '
 }
 
 async function main() {
-  function updateButtonStates() {
+    function updateButtonStates() {
     const isFileOpen = !!appState.currentFilePath;
     const isDirty = appState.isDirty;
 
     const saveBtn = document.querySelector<HTMLButtonElement>('[data-id="save-btn"]');
-    if (saveBtn) saveBtn.disabled = !isDirty;
-
     const discardBtn = document.querySelector<HTMLButtonElement>('[data-id="discard-btn"]');
-    if (discardBtn) discardBtn.disabled = !isDirty;
+    const draftText = document.querySelector<HTMLElement>('[data-id="draft-text"]');
+
+    if (saveBtn) {
+      saveBtn.classList.toggle('hidden', !isDirty);
+      saveBtn.disabled = !isDirty;
+    }
+    if (discardBtn) {
+      discardBtn.classList.toggle('hidden', !isDirty);
+      discardBtn.disabled = !isDirty;
+    }
+    if (draftText) {
+      draftText.classList.toggle('hidden', !isDirty);
+    }
 
     const readBtn = document.querySelector<HTMLButtonElement>('[data-mode="read"]');
     if (readBtn) readBtn.disabled = !isFileOpen;
@@ -104,19 +114,30 @@ async function main() {
   // DOM elements
   const editorRoot = document.getElementById('editor-root');
   const milkdownElement = document.querySelector('.milkdown-editor') as HTMLElement;
-  const saveBtn = document.getElementById('save-btn');
 
   if (!editorRoot) {
     console.error('[FATAL] Editor root element not found. Ensure #editor-root exists.');
     return;
   }
 
-  const contentEditor = await initContentEditor('#editor-root', appState.currentMarkdown);
+  const onEdit = (markdown: string) => {
+    const hasChanged = markdown.trim() !== appState.baselineMarkdown.trim();
+    if (hasChanged) {
+      setDirty(true);
+      render();
+    }
+  };
+
+  const contentEditor = await initContentEditor('#editor-root', appState.currentMarkdown, onEdit);
   setContentEditor(contentEditor);
   const rawTextarea = document.createElement('textarea');
   rawTextarea.className = 'raw-markdown-editor';
   rawTextarea.style.display = 'none';
   editorRoot.appendChild(rawTextarea);
+
+  rawTextarea.addEventListener('input', () => {
+    onEdit(rawTextarea.value);
+  });
 
   // Get initial path from URL
   const initialPath = window.location.pathname.substring(1).split('/').map(decodeURIComponent).join('/');
@@ -167,21 +188,23 @@ async function main() {
   }
 
   async function updateCommitMeta(filePath: string) {
-    const metaElement = document.querySelector('.status-meta');
-    if (!metaElement) return;
+    const metaElement = document.querySelector('[data-id="commit-meta"]');
+    const commitTextElement = document.querySelector('[data-id="commit-text"]');
+    if (!metaElement || !commitTextElement) return;
 
     try {
       const lastCommit = await apiService.fetchLatestCommit(filePath);
       if (lastCommit) {
-        metaElement.innerHTML = `
-          Last updated ${humanizeTime(lastCommit.date)} by ${lastCommit.author_name}
-        `;
+        commitTextElement.textContent = `Last updated ${humanizeTime(lastCommit.date)} by ${lastCommit.author_name}`;
+        metaElement.classList.remove('hidden');
       } else {
-        metaElement.innerHTML = 'No history available for this file.';
+        commitTextElement.textContent = 'No history available for this file.';
+        metaElement.classList.remove('hidden');
       }
     } catch (error) {
       console.warn('Could not fetch commit history:', error);
-      metaElement.innerHTML = 'Could not load file history.';
+      commitTextElement.textContent = 'Could not load file history.';
+      metaElement.classList.remove('hidden');
     }
   }
 
@@ -254,10 +277,41 @@ async function main() {
     render();
   }
 
-  // Attach listeners
-  if (saveBtn) {
-    saveBtn.addEventListener('click', handleSave);
+
+  async function handleDiscard() {
+    if (!appState.currentFilePath || !appState.isDirty) return;
+
+    // Revert editor content to baseline
+    contentEditor.replaceContent(appState.baselineMarkdown);
+    rawTextarea.value = appState.baselineMarkdown;
+
+    // Clear any saved draft for this file
+    lockService.discardDraft(appState.currentFilePath);
+
+    // Reset dirty state and re-render
+    setDirty(false);
+    render();
+
+    showNotification('success', 'Changes Discarded', `Your local changes to ${humanizeFileName(appState.currentFilePath)} have been discarded.`);
   }
+
+  const editorStatusBar = document.getElementById('editor-status-bar');
+  if (editorStatusBar) {
+    editorStatusBar.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      const button = target.closest('button');
+      if (!button) return;
+
+      const dataId = button.dataset.id;
+      if (dataId === 'save-btn') {
+        handleSave();
+      }
+      if (dataId === 'discard-btn') {
+        handleDiscard();
+      }
+    });
+  }
+
   document.querySelectorAll<HTMLButtonElement>('.mode-btn').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const mode = btn.dataset.mode as Mode;
@@ -287,7 +341,7 @@ async function main() {
 
   directoryTree = new DirectoryTree({
     el: treeContainer,
-    selectDefault: true,
+    selectDefault: false,
     onCreateFile: async (parentPath: string, name: string, isDirectory: boolean) => {
       const fullPath = parentPath ? `${parentPath}/${name}` : name;
       try {
@@ -417,9 +471,11 @@ async function main() {
   setDirectoryTree(directoryTree);
   await directoryTree.load();
 
-  // After tree loaded, apply deep link if any
-  if (initialPath) {
-    directoryTree.selectPath(initialPath);
+  // After tree loaded, apply deep link if any, otherwise load default
+  if (initialPath && initialPath !== '/') {
+    await directoryTree.selectPath(initialPath);
+  } else {
+    await directoryTree.selectPath('01_start.md');
   }
 
   function hideCreateDialog() {
@@ -626,6 +682,90 @@ async function main() {
 
   // Initialize drawer toggle
   setupDrawer('#tree-drawer');
+
+  // Overflow menu event listeners
+  const overflowBtn = document.querySelector('[data-id="overflow-btn"]') as HTMLButtonElement | null;
+  const overflowDropdown = document.querySelector('[data-id="overflow-dropdown"]') as HTMLElement | null;
+  const historyBtn = document.querySelector('[data-id="history-btn"]') as HTMLButtonElement | null;
+  const deleteBtn = document.querySelector('[data-id="delete-btn"]') as HTMLButtonElement | null;
+
+  overflowBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    overflowDropdown?.classList.toggle('hidden');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (overflowDropdown && !overflowDropdown.contains(e.target as Node) && !overflowBtn?.contains(e.target as Node)) {
+      overflowDropdown.classList.add('hidden');
+    }
+  });
+
+  const historyDrawer = document.querySelector('[data-id="history-drawer"]') as HTMLElement | null;
+  const historyCloseBtn = document.querySelector('[data-id="history-close"]') as HTMLButtonElement | null;
+
+  historyBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
+    overflowDropdown?.classList.add('hidden');
+    historyDrawer?.classList.remove('hidden');
+  });
+
+  function closeHistoryDrawer() {
+    if (historyDrawer) {
+      historyDrawer.classList.add('hidden');
+    }
+  }
+
+  historyCloseBtn?.addEventListener('click', closeHistoryDrawer);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && historyDrawer && !historyDrawer.classList.contains('hidden')) {
+      closeHistoryDrawer();
+    }
+  });
+
+  // Delete file handler
+  const deleteDialog = document.querySelector('[data-id="delete-dialog"]') as HTMLDialogElement | null;
+  const deleteFilePathEl = document.querySelector('[data-id="delete-file-path"]') as HTMLElement | null;
+  const deleteCancelBtn = document.querySelector('[data-id="delete-cancel"]') as HTMLButtonElement | null;
+  const deleteConfirmBtn = document.querySelector('[data-id="delete-confirm"]') as HTMLButtonElement | null;
+
+  deleteBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
+    overflowDropdown?.classList.add('hidden');
+    if (!appState.currentFilePath) return;
+    if (deleteDialog && deleteFilePathEl) {
+      deleteFilePathEl.textContent = appState.currentFilePath;
+      deleteDialog.showModal();
+    }
+  });
+
+  deleteCancelBtn?.addEventListener('click', () => {
+    deleteDialog?.close();
+  });
+
+  deleteConfirmBtn?.addEventListener('click', async () => {
+    if (!appState.currentFilePath || !deleteDialog) return;
+
+    try {
+      deleteDialog.close();
+      const result = await apiService.deleteFile(appState.currentFilePath);
+      if (result.success) {
+        showNotification('success', 'File Deleted', `${humanizeFileName(appState.currentFilePath)} was deleted.`);
+        setCurrentFile(null, '', null);
+        contentEditor.replaceContent('# Welcome to Markdown Wiki\n\nSelect a file from the sidebar to edit.');
+        if (directoryTree) {
+            const parentPath = appState.currentFilePath.includes('/') ? appState.currentFilePath.substring(0, appState.currentFilePath.lastIndexOf('/')) : '';
+            await directoryTree.load(parentPath);
+        }
+        history.replaceState(null, '', '/');
+      } else {
+        showNotification('save-error', 'Delete Failed', result.error || 'Unknown error occurred');
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      showNotification('save-error', 'Delete Error', 'An unexpected error occurred while deleting the file.');
+    }
+  });
 }
 
 if (document.readyState === 'loading') {
