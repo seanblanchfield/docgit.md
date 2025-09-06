@@ -818,17 +818,22 @@ async function main() {
       } catch (error) {
         console.error('Error creating file/directory:', error);
         // Show inline error instead of modal alert
-        if (errorElement && error instanceof Error && error.message.includes('Name collision')) {
+        if (errorElement && error instanceof Error) {
           const itemType = isDirectory ? 'directory' : 'file';
-          const match = error.message.match(/Name collision: (.+)/);
-          const conflictingName = match ? match[1] : 'existing item';
-          errorElement.textContent = `A ${itemType} with a similar name already exists: "${conflictingName}". Please choose a different name.`;
-          errorElement.style.display = 'block';
-          nameInput.classList.add('error');
-          nameInput.focus();
-        } else {
-          // For other errors, show a generic inline message
-          errorElement.textContent = 'Failed to create file/directory. Please try again.';
+          
+          if (error.message.includes('Name collision')) {
+            // Frontend collision detection
+            const match = error.message.match(/Name collision: (.+)/);
+            const conflictingName = match ? match[1] : 'existing item';
+            errorElement.textContent = `A ${itemType} with a similar name already exists: "${conflictingName}". Please choose a different name.`;
+          } else if (error.message.includes('409') || error.message.includes('conflict') || error.message.includes('already exists')) {
+            // Backend 409 conflict error
+            errorElement.textContent = `A ${itemType} with that name already exists. Please choose a different name.`;
+          } else {
+            // Generic error
+            errorElement.textContent = 'Failed to create file/directory. Please try again.';
+          }
+          
           errorElement.style.display = 'block';
           nameInput.classList.add('error');
           nameInput.focus();
