@@ -937,9 +937,11 @@ async function main() {
         // Update directory tree and select parent directory
         if (directoryTree) {
             const parentPath = filePathToDelete.includes('/') ? filePathToDelete.substring(0, filePathToDelete.lastIndexOf('/')) : '';
-            await directoryTree.load(parentPath);
             
-            // Select and highlight the parent directory to keep user oriented
+            // Use loadPreservingExpansion to maintain tree state
+            await directoryTree.loadPreservingExpansion();
+            
+            // Select and expand the parent directory to keep user oriented
             if (parentPath) {
               setTimeout(() => {
                 if (directoryTree) {
