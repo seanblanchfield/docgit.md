@@ -320,6 +320,13 @@ async function main() {
         (milkdownElement as HTMLElement).style.display = 'block'; // Keep it visible for content
         (milkdownElement as HTMLElement).classList.add('readonly');
       }
+      
+      // Show the milkdown container in read mode
+      const milkdownContainer = document.querySelector('.milkdown');
+      if (milkdownContainer) {
+        (milkdownContainer as HTMLElement).style.display = 'block';
+      }
+      
       contentEditor.setEditable(false);
       contentEditor.cleanupForRead();
       appState.currentMarkdown = contentEditor.getMarkdown() || appState.currentMarkdown;
@@ -329,9 +336,17 @@ async function main() {
       autoResize(rawTextarea);
       (rawTextarea as HTMLElement).style.display = 'block';
       contentEditor.setEditable(false);
+      
+      // Hide the entire milkdown editor container in raw mode
       if (milkdownElement) {
         milkdownElement.style.pointerEvents = 'none';
-        (milkdownElement as HTMLElement).style.display = 'none';
+        milkdownElement.style.display = 'none';
+      }
+      
+      // Also hide any other milkdown-related elements
+      const milkdownContainer = document.querySelector('.milkdown');
+      if (milkdownContainer) {
+        (milkdownContainer as HTMLElement).style.display = 'none';
       }
     } else { // wysiwyg
       (rawTextarea as HTMLElement).style.display = 'none';
@@ -340,6 +355,13 @@ async function main() {
         (milkdownElement as HTMLElement).style.display = 'block';
         milkdownElement.classList.remove('readonly');
       }
+      
+      // Show the milkdown container in wysiwyg mode
+      const milkdownContainer = document.querySelector('.milkdown');
+      if (milkdownContainer) {
+        (milkdownContainer as HTMLElement).style.display = 'block';
+      }
+      
       contentEditor.setEditable(true);
       appState.currentMarkdown = contentEditor.getMarkdown() || appState.currentMarkdown;
     }
@@ -436,12 +458,20 @@ async function main() {
           // After reloading, select the new file
           setTimeout(() => directoryTree?.selectPath(fullPath), 100);
         } else {
-          // For directories, show the create dialog inside the new directory
+          // For directories, select the new directory and show create dialog
           setTimeout(() => {
             if (directoryTree) {
-              directoryTree.showCreateDialogForDirectory(fullPath);
+              // Select the new directory in the tree (this will expand parent paths automatically)
+              directoryTree.selectPath(fullPath);
+              
+              // Show create dialog inside the new directory
+              setTimeout(() => {
+                if (directoryTree) {
+                  directoryTree.showCreateDialogForDirectory(fullPath);
+                }
+              }, 200);
             }
-          }, 200);
+          }, 300);
         }
       } catch (error) {
         console.error('Error creating file/directory:', error);
