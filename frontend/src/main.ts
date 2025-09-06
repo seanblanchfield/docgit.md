@@ -152,7 +152,7 @@ async function main() {
     statusOverlay.innerHTML = `
       <div class="status-content">
         <h1>${title}</h1>
-        <p>${message}</p>
+        <p>${message.replace(/\*\*/g, '')}</p>
       </div>
     `;
     
