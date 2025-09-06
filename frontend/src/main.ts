@@ -101,9 +101,9 @@ async function main() {
     updateButtonStates();
 
     // Update mode buttons
-    document.querySelector('[data-mode="wysiwyg"]')?.classList.toggle('active', appState.currentMode === 'wysiwyg');
-    document.querySelector('[data-mode="raw"]')?.classList.toggle('active', appState.currentMode === 'raw');
-    document.querySelector('[data-mode="read"]')?.classList.toggle('active', appState.currentMode === 'read');
+    document.querySelector('[data-mode="wysiwyg"]')?.classList.toggle('selected', appState.currentMode === 'wysiwyg');
+    document.querySelector('[data-mode="raw"]')?.classList.toggle('selected', appState.currentMode === 'raw');
+    document.querySelector('[data-mode="read"]')?.classList.toggle('selected', appState.currentMode === 'read');
 
     // Update draft status in tree
     if (appState.currentFilePath) {
@@ -792,7 +792,14 @@ async function main() {
             // Clear current file state and show success message
             setCurrentFile(null, '', null);
             const humanizedPath = humanizeFileName(parentPath.split('/').pop() || parentPath);
-            contentEditor.replaceContent(`# Directory Deleted Successfully\n\nDirectory **${humanizedPath}** has been deleted successfully.`);
+            const successMessage = `# Directory Deleted Successfully\n\nDirectory **${humanizedPath}** has been deleted successfully.`;
+            contentEditor.replaceContent(successMessage);
+            
+            // Clear raw textarea to prevent showing old content
+            const rawTextarea = document.querySelector('.raw-markdown-editor') as HTMLTextAreaElement;
+            if (rawTextarea) {
+              rawTextarea.value = successMessage;
+            }
             
             // Update directory tree
             if (grandParentPath) {
