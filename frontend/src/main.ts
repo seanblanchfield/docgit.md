@@ -2,8 +2,9 @@ import { initContentEditor } from './components/editor';
 import { DirectoryTree } from './tree/index';
 import { TreeNode } from './tree/types';
 import { setupHistory } from './components/history';
-import { humanizeFileName } from './utils/humanize';
+import { humanizeFileName, humanizeTime } from './utils/humanize';
 import { fetchDirectoryTreeData } from './tree/data';
+import { setupDrawer } from './components/drawer';
 import { lockService } from './services/lock';
 import { apiService } from './services/api.service';
 import { appState, setMode, setDirty, setCurrentFile } from './state/app.state';
@@ -115,17 +116,23 @@ async function main() {
   }
 
   // Helper function to normalize names for collision detection
-  function normalizeNameForComparison(name: string): string {
-    // Remove leading digits and non-alphas, convert to lowercase
-    return name.replace(/^[^a-zA-Z]*/, '').toLowerCase();
+  function normalizeNameForComparison(name: string): { exact: string; fuzzy: string } {
+    // First check for exact match (case-insensitive)
+    const exactMatch = name.toLowerCase().trim();
+    // Also check with leading digits/non-alphas removed for fuzzy matching
+    const fuzzyMatch = name.replace(/^[^a-zA-Z]*/, '').toLowerCase().trim();
+    return { exact: exactMatch, fuzzy: fuzzyMatch };
   }
 
   // Check for name collisions in the target directory
-  async function checkNameCollision(parentPath: string, proposedName: string): Promise<string | null> {
+  async function checkNameCollision(parentPath: string, proposedName: string, isDirectory: boolean): Promise<string | null> {
     try {
+      // For files, add .md extension to match what the backend will create
+      const nameToCheck = isDirectory ? proposedName : `${proposedName}.md`;
+      
       // Fetch the directory tree data for the parent path
       const treeData = await fetchDirectoryTreeData(parentPath);
-      const normalizedProposed = normalizeNameForComparison(proposedName);
+      const normalizedProposed = normalizeNameForComparison(nameToCheck);
       
       // Check against existing files and directories
       for (const item of treeData) {
@@ -133,7 +140,9 @@ async function main() {
         const itemName = (item as any).rawName || item.name;
         const normalizedExisting = normalizeNameForComparison(itemName);
         
-        if (normalizedExisting && normalizedProposed && normalizedExisting === normalizedProposed) {
+        // Check for exact match first, then fuzzy match
+        if (normalizedExisting.exact === normalizedProposed.exact || 
+            (normalizedExisting.fuzzy && normalizedProposed.fuzzy && normalizedExisting.fuzzy === normalizedProposed.fuzzy)) {
           return itemName; // Return the actual conflicting name
         }
       }
@@ -471,7 +480,7 @@ async function main() {
       const fullPath = parentPath ? `${parentPath}/${name}` : name;
       
       // Check for name collisions before creating
-      const collision = await checkNameCollision(parentPath, name);
+      const collision = await checkNameCollision(parentPath, name, isDirectory);
       if (collision) {
         const itemType = isDirectory ? 'directory' : 'file';
         showNotification('save-error', 'Name Conflict', `A ${itemType} with a similar name already exists: "${collision}". Please choose a different name.`);
