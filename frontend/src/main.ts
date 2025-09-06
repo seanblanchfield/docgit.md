@@ -124,6 +124,41 @@ async function main() {
     return { exact: exactMatch, fuzzy: fuzzyMatch };
   }
 
+  // Show status message overlay instead of editable content
+  function showStatusMessage(title: string, message: string) {
+    if (!editorRoot) return;
+    
+    // Hide all editor UI elements
+    const statusActions = document.querySelector('.status-actions') as HTMLElement;
+    const modeControl = document.querySelector('.mode-control') as HTMLElement;
+    const statusMeta = document.querySelector('.status-meta') as HTMLElement;
+    const milkdownContainer = document.querySelector('.milkdown-editor') as HTMLElement;
+    const rawTextarea = document.querySelector('.raw-markdown-editor') as HTMLTextAreaElement;
+    
+    if (statusActions) statusActions.style.display = 'none';
+    if (modeControl) modeControl.style.display = 'none';
+    if (statusMeta) statusMeta.style.display = 'none';
+    if (milkdownContainer) milkdownContainer.style.display = 'none';
+    if (rawTextarea) rawTextarea.style.display = 'none';
+    
+    // Create status overlay
+    const existingOverlay = editorRoot.querySelector('.status-overlay');
+    if (existingOverlay) {
+      existingOverlay.remove();
+    }
+    
+    const statusOverlay = document.createElement('div');
+    statusOverlay.className = 'status-overlay';
+    statusOverlay.innerHTML = `
+      <div class="status-content">
+        <h1>${title}</h1>
+        <p>${message}</p>
+      </div>
+    `;
+    
+    editorRoot.appendChild(statusOverlay);
+  }
+
   // Check for name collisions in the target directory
   async function checkNameCollision(parentPath: string, proposedName: string, isDirectory: boolean): Promise<string | null> {
     try {
@@ -532,7 +567,9 @@ async function main() {
       // Clear current file state and show success message
       setCurrentFile(null, '', null);
       const humanizedPath = humanizeFileName(path.split('/').pop() || path);
-      contentEditor.replaceContent(`# Directory Deleted Successfully\n\nDirectory **${humanizedPath}** has been deleted successfully.`);
+      
+      // Show status overlay instead of editable content
+      showStatusMessage('Directory Deleted Successfully', `Directory **${humanizedPath}** has been deleted successfully.`);
       
       // Update directory tree
       if (parentPath) {
@@ -867,14 +904,12 @@ async function main() {
             // Clear current file state and show success message
             setCurrentFile(null, '', null);
             const humanizedPath = humanizeFileName(parentPath.split('/').pop() || parentPath);
-            const successMessage = `# Directory Deleted Successfully\n\nDirectory **${humanizedPath}** has been deleted successfully.`;
-            contentEditor.replaceContent(successMessage);
             
-            // Clear raw textarea to prevent showing old content
-            const rawTextarea = document.querySelector('.raw-markdown-editor') as HTMLTextAreaElement;
-            if (rawTextarea) {
-              rawTextarea.value = successMessage;
-            }
+            // Hide dialog first to prevent cancel handler from overriding status
+            hideCreateDialog();
+            
+            // Show status overlay instead of editable content
+            showStatusMessage('Directory Deleted Successfully', `Directory **${humanizedPath}** has been deleted successfully.`);
             
             // Update directory tree
             if (grandParentPath) {
@@ -889,7 +924,6 @@ async function main() {
             // Update URL
             history.replaceState(null, '', '/');
           }
-          hideCreateDialog();
         } catch (error) {
           console.error('Error deleting directory:', error);
           alert('Failed to delete directory. Please try again.');

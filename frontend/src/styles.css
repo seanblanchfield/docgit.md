@@ -1190,6 +1190,40 @@ dialog::backdrop { background: rgba(0,0,0,0.4); }
   box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
 }
 
+/* Status overlay styling */
+.status-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.status-content {
+  text-align: center;
+  max-width: 600px;
+  padding: 2rem;
+}
+
+.status-content h1 {
+  margin: 0 0 1rem 0;
+  font-size: 2rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.status-content p {
+  margin: 0;
+  font-size: 1.125rem;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
 .create-form {
   background: #f6f8fa;
   border: 1px solid #d0d7de;
