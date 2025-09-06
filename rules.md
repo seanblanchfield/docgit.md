@@ -155,7 +155,7 @@ View current dependencies: `cat frontend/package.json | jq .dependencies`
 - If you are having difficulty debugging the UI, ask the user to try the action for you and provide a screenshot
 - If you need to narrow a frontend problem down, consider implementing debug logging
 
-#### Frontend Console Logs
+#### Browser Console Logs
 Frontend console messages (console.log, console.info, console.warn, console.error, console.debug) are automatically forwarded to the backend and logged in multiple places:
 
 **Option 1: Dedicated Browser Console Log File**

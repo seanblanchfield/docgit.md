@@ -82,6 +82,22 @@ body {
   overflow: hidden;
 }
 
+.raw-markdown-editor {
+  padding: 20px;
+  box-sizing: border-box;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  border: none;
+  outline: none;
+  resize: none;
+  width: 100%;
+  height: 100vh;
+  min-height: 100vh;
+  overflow-y: auto;
+  background: #fff;
+}
+
 /* Hide interactive Milkdown handles in read-only */
 .milkdown.readonly .milkdown-block-handle,
 .milkdown.readonly .crepe-placeholder {

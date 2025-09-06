@@ -2,6 +2,7 @@ import { initContentEditor } from './components/editor';
 import { DirectoryTree } from './tree';
 import { TreeNode } from './tree/types';
 import { setupDrawer } from './components/drawer';
+import { setupHistory } from './components/history';
 import { humanizeTime, humanizeFileName } from './utils/humanize';
 import { lockService } from './services/lock';
 import { apiService } from './services/api.service';
@@ -234,9 +235,10 @@ async function main() {
     if (!appState.currentFilePath || !appState.isDirty) return;
 
     const content = appState.currentMode === 'raw' ? rawTextarea.value : contentEditor.getMarkdown();
+    const lockId = lockService.getCurrentLockId(appState.currentFilePath) || '';
 
     try {
-      const result = await apiService.saveFile(appState.currentFilePath, content, appState.currentFileGitHash || '', `Update ${appState.currentFilePath}`);
+      const result = await apiService.saveFile(appState.currentFilePath, content, lockId, `Update ${appState.currentFilePath}`);
 
       if (result.success) {
         appState.baselineMarkdown = content;
@@ -246,7 +248,11 @@ async function main() {
         updateCommitMeta(appState.currentFilePath);
         render();
       } else {
-        showNotification('save-error', 'Save Failed', 'Could not save the file. Please check the console for details.');
+        if (result.conflict) {
+          showNotification('lock-conflict', 'Save Failed - Lock Conflict', 'The file is locked by another user. Please try again later.');
+        } else {
+          showNotification('save-error', 'Save Failed', result.error || 'Could not save the file. Please check the console for details.');
+        }
       }
     } catch (error) {
       console.error('Failed to save file:', error);
@@ -429,6 +435,13 @@ async function main() {
         if (!isDirectory) {
           // After reloading, select the new file
           setTimeout(() => directoryTree?.selectPath(fullPath), 100);
+        } else {
+          // For directories, show the create dialog inside the new directory
+          setTimeout(() => {
+            if (directoryTree) {
+              directoryTree.showCreateDialogForDirectory(fullPath);
+            }
+          }, 200);
         }
       } catch (error) {
         console.error('Error creating file/directory:', error);
@@ -438,11 +451,24 @@ async function main() {
     onDeleteDirectory: async (path: string) => {
       await apiService.deleteDirectory(path);
       const parentPath = path.includes('/') ? path.substring(0, path.lastIndexOf('/')) : '';
+      
+      // Clear current file state and show success message
+      setCurrentFile(null, '', null);
+      const humanizedPath = humanizeFileName(path.split('/').pop() || path);
+      contentEditor.replaceContent(`# Directory Deleted Successfully\n\nDirectory **${humanizedPath}** has been deleted successfully.`);
+      
+      // Update directory tree
       if (parentPath) {
         await directoryTree?.load(parentPath);
       } else {
         await directoryTree?.load();
       }
+      
+      // Show success notification
+      showNotification('success', 'Directory Deleted', `Directory ${humanizedPath} was deleted successfully.`);
+      
+      // Update URL
+      history.replaceState(null, '', '/');
     },
     onFileSelect: async (node: TreeNode) => {
       if (appState.dialog.visible) {
@@ -729,7 +755,28 @@ async function main() {
     dialogElement.querySelector('.delete-dir-btn')?.addEventListener('click', async () => {
       if (confirm(`Are you sure you want to delete the empty directory "${parentPath}"?`)) {
         try {
-          await onDeleteDirectory(parentPath);
+          if (directoryTree) {
+            await apiService.deleteDirectory(parentPath);
+            const grandParentPath = parentPath.includes('/') ? parentPath.substring(0, parentPath.lastIndexOf('/')) : '';
+            
+            // Clear current file state and show success message
+            setCurrentFile(null, '', null);
+            const humanizedPath = humanizeFileName(parentPath.split('/').pop() || parentPath);
+            contentEditor.replaceContent(`# Directory Deleted Successfully\n\nDirectory **${humanizedPath}** has been deleted successfully.`);
+            
+            // Update directory tree
+            if (grandParentPath) {
+              await directoryTree.load(grandParentPath);
+            } else {
+              await directoryTree.load();
+            }
+            
+            // Show success notification
+            showNotification('success', 'Directory Deleted', `Directory ${humanizedPath} was deleted successfully.`);
+            
+            // Update URL
+            history.replaceState(null, '', '/');
+          }
           hideCreateDialog();
         } catch (error) {
           console.error('Error deleting directory:', error);
@@ -769,6 +816,9 @@ async function main() {
 
   // Initialize drawer toggle
   setupDrawer('#tree-drawer');
+  
+  // Initialize history functionality
+  setupHistory();
 
   // Overflow menu event listeners
   const overflowBtn = document.querySelector('[data-id="overflow-btn"]') as HTMLButtonElement | null;
@@ -833,17 +883,29 @@ async function main() {
   deleteConfirmBtn?.addEventListener('click', async () => {
     if (!appState.currentFilePath || !deleteDialog) return;
 
+    // Store the file path before clearing it
+    const filePathToDelete = appState.currentFilePath;
+    const fileName = humanizeFileName(filePathToDelete);
+    
     try {
       deleteDialog.close();
-      const result = await apiService.deleteFile(appState.currentFilePath);
+      const result = await apiService.deleteFile(filePathToDelete);
       if (result.success) {
-        showNotification('success', 'File Deleted', `${humanizeFileName(appState.currentFilePath)} was deleted.`);
+        // Clear current file state
         setCurrentFile(null, '', null);
-        contentEditor.replaceContent('# Welcome to Markdown Wiki\n\nSelect a file from the sidebar to edit.');
+        
+        // Show success message instead of editor content
+        contentEditor.replaceContent(`# File Deleted Successfully\n\nFile **${fileName}** has been deleted successfully.`);
+        
+        // Update directory tree
         if (directoryTree) {
-            const parentPath = appState.currentFilePath.includes('/') ? appState.currentFilePath.substring(0, appState.currentFilePath.lastIndexOf('/')) : '';
+            const parentPath = filePathToDelete.includes('/') ? filePathToDelete.substring(0, filePathToDelete.lastIndexOf('/')) : '';
             await directoryTree.load(parentPath);
         }
+        
+        // Show success notification
+        showNotification('success', 'File Deleted', `${fileName} was deleted successfully.`);
+        
         history.replaceState(null, '', '/');
       } else {
         showNotification('save-error', 'Delete Failed', result.error || 'Unknown error occurred');
