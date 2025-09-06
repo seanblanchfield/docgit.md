@@ -1,4 +1,4 @@
-# TODO: UI Bugs Group Fix
+# DONE: UI Bugs Group Fix
 
 **Branch:** `fix/ui-bugs-group`
 **Started:** 2025-09-06T22:24:23+01:00
@@ -33,6 +33,16 @@
 - **Expected:** Full width, at least viewport height
 - **Status:** ✅ **FIXED** - Full viewport width and height
 
+### 7. Name Collision Detection
+- **Problem:** No validation when creating files/directories with existing names
+- **Status:** ✅ **FIXED** - Added client-side collision detection with inline validation errors
+
+### 8. Directory Deletion UX Issues
+- **Problem:** Directory deletion showed confusing editable content with save/discard buttons
+- **Problem:** Status message had markdown formatting and was cut off on left side
+- **Problem:** Status overlay persisted when navigating to other pages
+- **Status:** ✅ **FIXED** - Clean status overlay positioned at top with proper navigation clearing
+
 ## Progress
 
 - [x] Created branch `fix/ui-bugs-group`
@@ -62,6 +72,15 @@
 ✅ **View History**: Working correctly, shows commit history
 ✅ **Raw Editor Sizing**: Full viewport width and height
 
-## Commit
+## Final Commits
 
-Committed as: `02525a7` - "Fix UI bugs group: file deletion, directory operations, saving, history, and editor sizing"
+- `6f2d7ec`: Initial name collision detection and UI improvements
+- `b6f5433`: Critical bug fixes for history, overflow menu, and collision detection  
+- `9aa2152`: UX improvements for inline validation errors
+- `fb9306c`: Improved directory collision error handling for backend 409 errors
+- `3c71b3b`: Fix directory deletion UX - replace editable content with clean status overlay
+- `08e680e`: Fix status overlay display issues (cutoff and markdown formatting)
+- `75d921a`: Fix status overlay positioning and navigation issues
+- `26ade5a`: Adjust status overlay positioning to top with 100px padding
+
+**Merged into main:** 2025-09-07T00:25:52+01:00
