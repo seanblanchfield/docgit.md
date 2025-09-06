@@ -1,9 +1,9 @@
 import { initContentEditor } from './components/editor';
-import { DirectoryTree } from './tree';
+import { DirectoryTree } from './tree/index';
 import { TreeNode } from './tree/types';
-import { setupDrawer } from './components/drawer';
 import { setupHistory } from './components/history';
-import { humanizeTime, humanizeFileName } from './utils/humanize';
+import { humanizeFileName } from './utils/humanize';
+import { fetchDirectoryTreeData } from './tree/data';
 import { lockService } from './services/lock';
 import { apiService } from './services/api.service';
 import { appState, setMode, setDirty, setCurrentFile } from './state/app.state';
@@ -111,6 +111,37 @@ async function main() {
       if (el) {
         el.classList.toggle('modified', appState.isDirty);
       }
+    }
+  }
+
+  // Helper function to normalize names for collision detection
+  function normalizeNameForComparison(name: string): string {
+    // Remove leading digits and non-alphas, convert to lowercase
+    return name.replace(/^[^a-zA-Z]*/, '').toLowerCase();
+  }
+
+  // Check for name collisions in the target directory
+  async function checkNameCollision(parentPath: string, proposedName: string): Promise<string | null> {
+    try {
+      // Fetch the directory tree data for the parent path
+      const treeData = await fetchDirectoryTreeData(parentPath);
+      const normalizedProposed = normalizeNameForComparison(proposedName);
+      
+      // Check against existing files and directories
+      for (const item of treeData) {
+        // Use rawName if available (from addIsDirectory), otherwise use name
+        const itemName = (item as any).rawName || item.name;
+        const normalizedExisting = normalizeNameForComparison(itemName);
+        
+        if (normalizedExisting && normalizedProposed && normalizedExisting === normalizedProposed) {
+          return itemName; // Return the actual conflicting name
+        }
+      }
+      
+      return null; // No collision found
+    } catch (error) {
+      console.error('Error checking name collision:', error);
+      return null; // On error, allow creation (backend will handle actual conflicts)
     }
   }
 
@@ -438,6 +469,15 @@ async function main() {
     selectDefault: false,
     onCreateFile: async (parentPath: string, name: string, isDirectory: boolean) => {
       const fullPath = parentPath ? `${parentPath}/${name}` : name;
+      
+      // Check for name collisions before creating
+      const collision = await checkNameCollision(parentPath, name);
+      if (collision) {
+        const itemType = isDirectory ? 'directory' : 'file';
+        showNotification('save-error', 'Name Conflict', `A ${itemType} with a similar name already exists: "${collision}". Please choose a different name.`);
+        throw new Error(`Name collision: ${collision}`);
+      }
+      
       try {
         if (isDirectory) {
           await apiService.createDirectory(fullPath);
