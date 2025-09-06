@@ -1176,6 +1176,20 @@ dialog::backdrop { background: rgba(0,0,0,0.4); }
   color: #656d76;
 }
 
+/* Error message styling */
+.error-message {
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  line-height: 1.25;
+}
+
+/* Input error state */
+.form-input.error {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
 .create-form {
   background: #f6f8fa;
   border: 1px solid #d0d7de;

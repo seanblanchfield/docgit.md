@@ -482,8 +482,6 @@ async function main() {
       // Check for name collisions before creating
       const collision = await checkNameCollision(parentPath, name, isDirectory);
       if (collision) {
-        const itemType = isDirectory ? 'directory' : 'file';
-        showNotification('save-error', 'Name Conflict', `A ${itemType} with a similar name already exists: "${collision}". Please choose a different name.`);
         throw new Error(`Name collision: ${collision}`);
       }
       
@@ -753,6 +751,7 @@ async function main() {
           <div class="form-group">
             <label for="create-name">Name:</label>
             <input type="text" id="create-name" class="form-input" placeholder="Enter name..." />
+            <div class="error-message" id="name-error" style="display: none;"></div>
           </div>
           
           <div class="form-group">
@@ -806,12 +805,34 @@ async function main() {
       const typeRadio = dialogElement.querySelector('input[name="create-type"]:checked') as HTMLInputElement;
       const isDirectory = typeRadio.value === 'directory';
       
+      // Clear any previous error
+      const errorElement = dialogElement.querySelector('#name-error') as HTMLElement;
+      if (errorElement) {
+        errorElement.style.display = 'none';
+        nameInput.classList.remove('error');
+      }
+      
       try {
         await onCreateFile(parentPath, name, isDirectory);
         hideCreateDialog();
       } catch (error) {
         console.error('Error creating file/directory:', error);
-        alert('Failed to create file/directory. Please try again.');
+        // Show inline error instead of modal alert
+        if (errorElement && error instanceof Error && error.message.includes('Name collision')) {
+          const itemType = isDirectory ? 'directory' : 'file';
+          const match = error.message.match(/Name collision: (.+)/);
+          const conflictingName = match ? match[1] : 'existing item';
+          errorElement.textContent = `A ${itemType} with a similar name already exists: "${conflictingName}". Please choose a different name.`;
+          errorElement.style.display = 'block';
+          nameInput.classList.add('error');
+          nameInput.focus();
+        } else {
+          // For other errors, show a generic inline message
+          errorElement.textContent = 'Failed to create file/directory. Please try again.';
+          errorElement.style.display = 'block';
+          nameInput.classList.add('error');
+          nameInput.focus();
+        }
       }
     };
     
