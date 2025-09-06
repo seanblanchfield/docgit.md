@@ -126,14 +126,12 @@ async function main() {
 
   // Show status message overlay instead of editable content
   function showStatusMessage(title: string, message: string) {
-    if (!editorRoot) return;
-    
-    // Hide all editor UI elements
-    const statusActions = document.querySelector('.status-actions') as HTMLElement;
-    const modeControl = document.querySelector('.mode-control') as HTMLElement;
-    const statusMeta = document.querySelector('.status-meta') as HTMLElement;
-    const milkdownContainer = document.querySelector('.milkdown-editor') as HTMLElement;
-    const rawTextarea = document.querySelector('.raw-markdown-editor') as HTMLTextAreaElement;
+    // Hide all editor elements
+    const statusActions = document.querySelector('.status-actions') as HTMLElement | null;
+    const modeControl = document.querySelector('.mode-control') as HTMLElement | null;
+    const statusMeta = document.querySelector('.status-meta') as HTMLElement | null;
+    const milkdownContainer = document.querySelector('.milkdown') as HTMLElement | null;
+    const rawTextarea = document.querySelector('#raw-textarea') as HTMLTextAreaElement | null;
     
     if (statusActions) statusActions.style.display = 'none';
     if (modeControl) modeControl.style.display = 'none';
@@ -142,7 +140,7 @@ async function main() {
     if (rawTextarea) rawTextarea.style.display = 'none';
     
     // Create status overlay
-    const existingOverlay = editorRoot.querySelector('.status-overlay');
+    const existingOverlay = document.querySelector('.status-overlay');
     if (existingOverlay) {
       existingOverlay.remove();
     }
@@ -156,7 +154,29 @@ async function main() {
       </div>
     `;
     
-    editorRoot.appendChild(statusOverlay);
+    if (editorRoot) {
+      editorRoot.appendChild(statusOverlay);
+    }
+  }
+
+  function clearStatusMessage() {
+    const existingOverlay = document.querySelector('.status-overlay');
+    if (existingOverlay) {
+      existingOverlay.remove();
+    }
+    
+    // Show all editor elements again
+    const statusActions = document.querySelector('.status-actions') as HTMLElement | null;
+    const modeControl = document.querySelector('.mode-control') as HTMLElement | null;
+    const statusMeta = document.querySelector('.status-meta') as HTMLElement | null;
+    const milkdownContainer = document.querySelector('.milkdown') as HTMLElement | null;
+    const rawTextarea = document.querySelector('#raw-textarea') as HTMLTextAreaElement | null;
+    
+    if (statusActions) statusActions.style.display = '';
+    if (modeControl) modeControl.style.display = '';
+    if (statusMeta) statusMeta.style.display = '';
+    if (milkdownContainer) milkdownContainer.style.display = '';
+    if (rawTextarea && appState.currentMode === 'raw') rawTextarea.style.display = '';
   }
 
   // Check for name collisions in the target directory
@@ -578,8 +598,7 @@ async function main() {
         await directoryTree?.load();
       }
       
-      // Show success notification
-      showNotification('success', 'Directory Deleted', `Directory ${humanizedPath} was deleted successfully.`);
+      // Don't show notification popup when using status overlay
       
       // Update URL
       history.replaceState(null, '', '/');
@@ -603,6 +622,7 @@ async function main() {
       
       const serverContent = await apiService.fetchFileContent(node.id);
       const gitHash = await apiService.fetchGitHash(node.id);
+      clearStatusMessage();
       setCurrentFile(node.id, serverContent, gitHash);
 
       await fetchGitHashForCurrentFile();
@@ -918,8 +938,7 @@ async function main() {
               await directoryTree.load();
             }
             
-            // Show success notification
-            showNotification('success', 'Directory Deleted', `Directory ${humanizedPath} was deleted successfully.`);
+            // Don't show notification popup when using status overlay
             
             // Update URL
             history.replaceState(null, '', '/');
