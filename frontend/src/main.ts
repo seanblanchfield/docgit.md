@@ -934,10 +934,19 @@ async function main() {
         // Show success message instead of editor content
         contentEditor.replaceContent(`# File Deleted Successfully\n\nFile **${fileName}** has been deleted successfully.`);
         
-        // Update directory tree
+        // Update directory tree and select parent directory
         if (directoryTree) {
             const parentPath = filePathToDelete.includes('/') ? filePathToDelete.substring(0, filePathToDelete.lastIndexOf('/')) : '';
             await directoryTree.load(parentPath);
+            
+            // Select and highlight the parent directory to keep user oriented
+            if (parentPath) {
+              setTimeout(() => {
+                if (directoryTree) {
+                  directoryTree.selectPath(parentPath);
+                }
+              }, 200);
+            }
         }
         
         // Show success notification
