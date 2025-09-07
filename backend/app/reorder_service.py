@@ -171,27 +171,22 @@ class ReorderService:
     def _calculate_new_prefix(self, target_items: List[str], position: int) -> int:
         """Calculate appropriate numerical prefix for the new position."""
         if not target_items or position <= 0:
-            return 10
+            return 1
         
         if position >= len(target_items):
-            # Insert at end
+            # Insert at end - use next sequential number
             last_prefix = self._extract_numerical_prefix(target_items[-1])
-            return last_prefix + 10
+            return last_prefix + 1
         
-        # Insert at specific position
+        # Insert at specific position - use temporary prefix that will be normalized
+        # The normalization step will assign proper sequential numbers
+        # For now, just use a prefix that ensures correct ordering
         if position == 0:
-            first_prefix = self._extract_numerical_prefix(target_items[0])
-            return max(10, first_prefix - 10)
+            return 1
         
-        prev_prefix = self._extract_numerical_prefix(target_items[position - 1])
-        next_prefix = self._extract_numerical_prefix(target_items[position])
-        
-        # If there's enough gap, use middle value
-        if next_prefix - prev_prefix > 10:
-            return prev_prefix + 10
-        
-        # Otherwise, use next available increment
-        return next_prefix + 10
+        # Use the target position directly as a temporary prefix
+        # The normalization will fix all prefixes to be sequential
+        return position
     
     def _apply_numerical_prefix(self, filename: str, prefix: int) -> str:
         """Apply or update numerical prefix to filename."""
@@ -257,9 +252,9 @@ class ReorderService:
             if not items:
                 return []
             
-            # Sort items lexicographically (this preserves current visual order)
-            # Files with existing prefixes will be sorted by their full name
-            items.sort(key=lambda x: x['name'].lower())
+            # Sort items by their numerical prefix to preserve intended order
+            # This maintains the order after moves rather than re-sorting alphabetically
+            items.sort(key=lambda x: self._extract_numerical_prefix(x['name']))
             
             # Generate new names with 3-digit prefixes
             renames = []

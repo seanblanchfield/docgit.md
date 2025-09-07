@@ -84,19 +84,34 @@ export class ReorderService {
   }
 
   /**
-   * Calculate the position index for insertion
-   * This is a simplified version - in a real implementation,
-   * you might need to query the current directory structure
+   * Calculate the position index for insertion based on target item's numerical prefix
    */
   private static calculatePosition(targetId: string, dropPosition: 'before' | 'after'): number {
-    // For now, we'll use a simple approach
-    // In a more sophisticated implementation, you would:
-    // 1. Get the current items in the target directory
-    // 2. Find the target item's current position
-    // 3. Calculate the new position based on before/after
-
-    // This is a placeholder implementation
-    return dropPosition === 'before' ? 0 : 1;
+    // Extract the filename from the full path
+    const filename = targetId.split('/').pop() || '';
+    
+    // Extract numerical prefix from the target filename
+    const match = filename.match(/^(\d+)_/);
+    const targetPrefix = match ? parseInt(match[1] || '0', 10) : 0;
+    
+    let position: number;
+    if (dropPosition === 'before') {
+      // Insert before the target item
+      position = Math.max(1, targetPrefix - 1);
+    } else {
+      // Insert after the target item  
+      position = targetPrefix + 1;
+    }
+    
+    console.log('Position calculation:', {
+      targetId,
+      filename,
+      targetPrefix,
+      dropPosition,
+      calculatedPosition: position
+    });
+    
+    return position;
   }
 
   /**
