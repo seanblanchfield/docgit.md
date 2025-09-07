@@ -6,17 +6,8 @@ export function setupEventHandlers(treeInstance: any, el: HTMLElement, onFileSel
   let lastSelectedId: string | null = null;
   let manualSelectedId: string | null = null;
 
-  // Add manual toggle handler for directory toggler or name clicks
-  // Prevent InfiniteTree from deselecting already-selected file rows
-  el.addEventListener('mousedown', (event) => {
-    const itemEl = (event.target as HTMLElement).closest('.infinite-tree-item');
-    if (!itemEl) return;
-    if (!itemEl.classList.contains('infinite-tree-selected')) return;
-    // only for files (no children)
-    if (itemEl.hasAttribute('data-children')) return;
-    event.stopImmediatePropagation();
-    event.preventDefault();
-  }, true);
+  // REMOVED: mousedown event handling that was interfering with DragManager
+  // The original functionality to prevent deselection will be handled differently
 
   // Capture phase guard to keep selection
   el.addEventListener('click', (event) => {

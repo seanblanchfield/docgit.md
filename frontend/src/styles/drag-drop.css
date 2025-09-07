@@ -1,0 +1,143 @@
+/* Drag & Drop Styles */
+
+/* Tree container when dragging is active */
+.tree-dragging {
+  user-select: none;
+}
+
+/* Drag ghost - the semi-transparent copy that follows the cursor */
+.drag-ghost {
+  opacity: 0.7 !important;
+  transform: rotate(5deg) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 1px solid #007acc;
+  background: var(--vscode-editor-background, #1e1e1e);
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 10000;
+}
+
+/* Drop indicator - horizontal line showing where item will be dropped */
+.drop-indicator {
+  position: absolute;
+  height: 2px;
+  background-color: #007acc;
+  border-radius: 1px;
+  box-shadow: 0 0 4px rgba(0, 122, 204, 0.5);
+  z-index: 9999;
+  transition: all 0.1s ease;
+}
+
+/* Drop indicator for "inside" drops (into directories) */
+.drop-indicator.inside {
+  background-color: #28a745;
+  box-shadow: 0 0 4px rgba(40, 167, 69, 0.5);
+}
+
+/* Tree item being dragged (original item becomes semi-transparent) */
+.infinite-tree-item.dragging {
+  opacity: 0.5;
+  background-color: rgba(0, 122, 204, 0.1);
+}
+
+/* Tree item that is a valid drop target */
+.infinite-tree-item.drop-target {
+  background-color: rgba(0, 122, 204, 0.1);
+  border: 1px dashed #007acc;
+  border-radius: 3px;
+}
+
+/* Tree item that is a valid drop target for "inside" drops */
+.infinite-tree-item.drop-target.inside {
+  background-color: rgba(40, 167, 69, 0.1);
+  border-color: #28a745;
+}
+
+/* Hover effects during drag */
+.tree-dragging .infinite-tree-item:hover {
+  background-color: rgba(0, 122, 204, 0.05);
+}
+
+/* Cursor changes during drag */
+.tree-dragging * {
+  cursor: grabbing !important;
+}
+
+/* Long press feedback - subtle highlight when long press is detected */
+.infinite-tree-item.long-press-active {
+  background-color: rgba(0, 122, 204, 0.05);
+  transform: scale(1.02);
+  transition: all 0.1s ease;
+}
+
+/* Animation for auto-expanding directories */
+.infinite-tree-item.auto-expanding {
+  animation: pulse 1s ease-in-out;
+}
+
+@keyframes pulse {
+  0% { background-color: transparent; }
+  50% { background-color: rgba(40, 167, 69, 0.1); }
+  100% { background-color: transparent; }
+}
+
+/* Ensure drag ghost maintains tree item styling */
+.drag-ghost .infinite-tree-node {
+  padding: 4px 8px;
+}
+
+.drag-ghost .infinite-tree-title {
+  color: var(--vscode-foreground, #cccccc);
+}
+
+.drag-ghost .infinite-tree-toggler {
+  color: var(--vscode-foreground, #cccccc);
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .drag-ghost {
+    transform: none !important;
+    transition: none !important;
+  }
+  
+  .drop-indicator {
+    transition: none !important;
+  }
+  
+  .infinite-tree-item.long-press-active {
+    transform: none !important;
+    transition: none !important;
+  }
+  
+  .infinite-tree-item.auto-expanding {
+    animation: none !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .drop-indicator {
+    background-color: #ffffff;
+    box-shadow: 0 0 0 1px #000000;
+  }
+  
+  .drop-indicator.inside {
+    background-color: #00ff00;
+  }
+  
+  .drag-ghost {
+    border: 2px solid #ffffff;
+  }
+}
+
+/* Touch device optimizations */
+@media (pointer: coarse) {
+  .infinite-tree-item {
+    min-height: 32px; /* Larger touch targets */
+  }
+  
+  .drop-indicator {
+    height: 3px; /* Thicker indicator for touch */
+  }
+}

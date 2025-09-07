@@ -1,4 +1,7 @@
 /* styles.css */
+@import './styles/drag-drop.css';
+@import './styles/confirm-move-dialog.css';
+
 :root {
   --primary-color: #2563eb;
   --primary-hover: #1d4ed8;

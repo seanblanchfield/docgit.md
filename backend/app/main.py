@@ -9,6 +9,7 @@ from .schemas import TreeNode # Added for the directory tree endpoint
 from .config import settings
 from .git_service import GitService
 from .file_lock_service import lock_service
+from .reorder_service import ReorderService
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -49,6 +50,9 @@ git_service = GitService(
     author_email=settings.GIT_AUTHOR_EMAIL
 )
 
+# Instantiate ReorderService
+reorder_service = ReorderService(git_service, lock_service)
+
 app = FastAPI(openapi_url="/api/openapi.json", docs_url="/api/docs", redoc_url="/api/redoc")
 
 # Background task for cleaning up expired locks
@@ -75,6 +79,10 @@ async def startup_event():
 # Dependency injector for GitService
 def get_git_service() -> GitService:
     return git_service
+
+# Dependency injector for ReorderService
+def get_reorder_service() -> ReorderService:
+    return reorder_service
 
 @app.get("/health")
 async def health_check():
@@ -768,3 +776,36 @@ async def move_directory(
     except Exception as e:
         logger.error(f"Error moving directory '{dir_path}' to '{request_body.destination_path}': {e}")
         raise HTTPException(status_code=500, detail=f"Failed to move directory: {str(e)}")
+
+
+# Reorder endpoint for drag & drop functionality
+@app.post("/api/reorder", response_model=schemas.ReorderResponse)
+async def reorder_item(
+    request_body: schemas.ReorderRequest,
+    rs: ReorderService = Depends(get_reorder_service)
+):
+    """
+    Reorder a file or directory by moving it to a new position within the tree structure.
+    This endpoint supports drag & drop functionality by updating numerical prefixes.
+    - **request_body**: JSON body with source_path, target_parent_path, position, and is_directory.
+    """
+    try:
+        result = rs.reorder_item(
+            source_path=request_body.source_path,
+            target_parent_path=request_body.target_parent_path,
+            position=request_body.position,
+            is_directory=request_body.is_directory
+        )
+        
+        return schemas.ReorderResponse(
+            success=result["success"],
+            message=result.get("message"),
+            new_path=result.get("newPath")
+        )
+        
+    except Exception as e:
+        logger.error(f"Error reordering item '{request_body.source_path}': {e}")
+        return schemas.ReorderResponse(
+            success=False,
+            message=f"Failed to reorder item: {str(e)}"
+        )

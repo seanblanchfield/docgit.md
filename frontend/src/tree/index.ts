@@ -7,11 +7,13 @@ import { addCreateItems, showCreateDialogForDirectory } from './createItem';
 import { refreshAllLockStatuses, updateLockStatus } from './lock';
 import { selectPath, loadPreservingExpansion } from './state';
 import { setupEventHandlers } from './eventHandlers';
+import { DragManager } from './DragManager';
 
 export class DirectoryTree {
   private tree: any;
   private el: HTMLElement;
   private options: DirectoryTreeOptions;
+  private dragManager: DragManager;
 
   constructor(options: DirectoryTreeOptions) {
     this.options = options;
@@ -25,6 +27,9 @@ export class DirectoryTree {
     });
 
     setupEventHandlers(this.tree, this.el, this.options.onFileSelect, this.options.onCreateFile, this.options.onDeleteDirectory);
+    
+    // Initialize drag manager
+    this.dragManager = new DragManager(this.tree, this.el);
   }
 
   async load(path?: string) {
@@ -65,5 +70,9 @@ export class DirectoryTree {
 
   public showCreateDialogForDirectory(directoryPath: string): void {
     showCreateDialogForDirectory(directoryPath, this.tree, this.options.onCreateFile);
+  }
+
+  public destroy(): void {
+    this.dragManager.destroy();
   }
 }

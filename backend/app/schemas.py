@@ -121,3 +121,16 @@ class ConsoleMessage(BaseModel):
 class ConsoleLogResponse(BaseModel):
     status: str  # Success/failure status
     logged_at: str  # Server timestamp when logged
+
+
+# Reorder schemas for drag & drop functionality
+class ReorderRequest(BaseModel):
+    source_path: str  # Path of item to move
+    target_parent_path: str  # Parent directory where item should be moved
+    position: int  # 0-based index position within target directory
+    is_directory: bool = False  # Whether the source is a directory
+
+class ReorderResponse(BaseModel):
+    success: bool
+    message: Optional[str] = None
+    new_path: Optional[str] = None  # New path after reordering

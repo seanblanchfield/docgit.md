@@ -241,11 +241,38 @@ interface ReorderResponse {
 ---
 
 ## Progress Log
-- [ ] Phase 1: Core Drag Detection
-- [ ] Phase 2: Drop Target Detection  
-- [ ] Phase 3: Confirmation & Cancellation
-- [ ] Phase 4: Backend Integration
-- [ ] Phase 5: Testing & Polish
+- [x] Phase 1: Core Drag Detection - COMPLETED
+  - ✅ Drag state management implemented
+  - ✅ Long press detection (500ms threshold)
+  - ✅ Drag initiation and movement tracking
+  - ✅ Visual drag ghost and transparency effects
 
-**Started**: [Date]
-**Target Completion**: [Date + 5 days]
+- [x] Phase 2: Drop Target Detection - COMPLETED
+  - ✅ Drop target calculation and positioning
+  - ✅ Visual drop indicators (before/after/inside)
+  - ✅ Auto-expand directories on hover (1s delay)
+  - ✅ Drop target highlighting
+
+- [x] Phase 3: Confirmation & Cancellation - COMPLETED
+  - ✅ Escape key cancellation
+  - ✅ Confirmation dialog with move details
+  - ✅ Accessible keyboard navigation
+  - ✅ Move cancellation handling
+
+- [x] Phase 4: Backend Integration - COMPLETED
+  - ✅ ReorderService backend implementation
+  - ✅ /api/reorder POST endpoint
+  - ✅ Numerical prefix calculation and updates
+  - ✅ Git integration for move tracking
+  - ✅ Frontend API integration
+
+- [x] Phase 5: Testing & Polish - COMPLETED
+  - ✅ API testing with curl commands
+  - ✅ Cross-directory move verification
+  - ✅ Within-directory reorder verification
+  - ✅ Git commit tracking confirmed
+  - ✅ Error handling and validation
+
+**Started**: 2025-09-07
+**Completed**: 2025-09-07
+**Status**: READY FOR MERGE
