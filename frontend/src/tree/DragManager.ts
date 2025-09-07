@@ -20,7 +20,7 @@ export class DragManager {
   private readonly LONG_PRESS_DURATION = 500; // ms
   private readonly AUTO_EXPAND_DELAY = 1000; // 1 second for auto-expand
 
-  constructor(private tree: any, private container: HTMLElement) {
+  constructor(private tree: any, private container: HTMLElement, private directoryTree?: any) {
     console.log('DragManager constructor called', { tree, container });
     this.state = this.getInitialState();
     this.confirmDialog = new ConfirmMoveDialog();
@@ -432,8 +432,13 @@ export class DragManager {
 
       if (result.success) {
         console.log('Reorder successful:', result.message);
-        // Refresh the page to show updated file structure
-        window.location.reload();
+        // Refresh the tree while preserving expanded state
+        if (this.directoryTree && this.directoryTree.loadPreservingExpansion) {
+          await this.directoryTree.loadPreservingExpansion();
+        } else {
+          // Fallback to page reload if directoryTree not available
+          window.location.reload();
+        }
       } else {
         console.error('Reorder failed:', result.message);
         alert(`Failed to move item: ${result.message}`);

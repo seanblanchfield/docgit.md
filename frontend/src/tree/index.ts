@@ -29,7 +29,7 @@ export class DirectoryTree {
     setupEventHandlers(this.tree, this.el, this.options.onFileSelect, this.options.onCreateFile, this.options.onDeleteDirectory);
     
     // Initialize drag manager
-    this.dragManager = new DragManager(this.tree, this.el);
+    this.dragManager = new DragManager(this.tree, this.el, this);
   }
 
   async load(path?: string) {
