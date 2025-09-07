@@ -271,7 +271,7 @@ class ReorderService:
                 name_without_prefix = re.sub(r'^\d+_', '', old_name)
                 
                 # Generate new 3-digit prefix
-                new_prefix = f"{(i + 1) * 10:03d}"
+                new_prefix = f"{i + 1:03d}"
                 new_name = f"{new_prefix}_{name_without_prefix}"
                 new_path = os.path.join(directory_path, new_name)
                 
