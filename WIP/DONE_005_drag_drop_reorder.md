@@ -261,10 +261,6 @@ interface ReorderResponse {
 
 - [x] Phase 4: Backend Integration - COMPLETED
   - ✅ ReorderService backend implementation
-  - ✅ /api/reorder POST endpoint
-  - ✅ Numerical prefix calculation and updates
-  - ✅ Git integration for move tracking
-  - ✅ Frontend API integration
 
 - [x] Phase 5: Testing & Polish - COMPLETED
   - ✅ API testing with curl commands
@@ -275,4 +271,11 @@ interface ReorderResponse {
 
 **Started**: 2025-09-07
 **Completed**: 2025-09-07
-**Status**: READY FOR MERGE
+**Status**: MOSTLY COMPLETED 
+
+## Known Issues & Future Improvements
+
+### Issues to Address in Current Feature:
+- [ ] **Cannot drag files into subdirectories** - "inside" drop position not working
+- [ ] **URL numbering conflicts** - URLs contain numerical prefixes that change when files are reordered, breaking bookmarks/links
+- [ ] **Clean up debug console output** - Remove temporary debug logging added during development

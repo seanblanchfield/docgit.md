@@ -1,0 +1,51 @@
+# TODO_016: Tree View Navigation and Expansion Issues
+
+## Objective
+Fix tree view collapse and URL-based navigation issues to improve user experience when navigating directories.
+
+## User Stories
+- As a user, when I delete a directory, I want the tree view to stay at my current level so I can see the parent directory
+- As a user, when I visit a deep URL to a create screen, I want the tree view to expand to show that location
+- As a user, when I visit a deep URL to a directory, I want the tree view to expand and show the first file in that directory
+
+## Requirements
+
+### Functional Requirements
+1. **Directory Deletion Tree Preservation**
+   - After deleting a directory, maintain tree expansion at parent level
+   - Don't collapse entire tree view
+   - Keep user context and navigation state
+
+2. **Deep URL Create Screen Navigation**
+   - URLs like "path/to/dir/__create__" should expand tree to that location
+   - Show create dialog in context of expanded tree
+   - Maintain tree state after create operations
+
+3. **Deep URL Directory Navigation**
+   - URLs like "path/to/dir/" should expand tree to show directory contents
+   - Select first lexicographic item in the directory
+   - Maintain proper tree expansion state
+
+### Technical Requirements
+- Modify tree state management for deletion operations
+- Enhance URL routing to trigger tree expansion
+- Update tree expansion logic for deep URLs
+- Preserve selection and expansion state across operations
+
+## Implementation Plan
+1. **Phase 1**: Fix directory deletion tree collapse
+2. **Phase 2**: Implement deep URL tree expansion
+3. **Phase 3**: Add first-item selection for directory URLs
+4. **Phase 4**: Testing and edge case handling
+
+## Acceptance Criteria
+- [ ] Deleting directory doesn't collapse entire tree
+- [ ] Parent directory remains visible after deletion
+- [ ] Deep create URLs expand tree appropriately
+- [ ] Deep directory URLs expand tree and select first item
+- [ ] Tree state is preserved across navigation
+- [ ] URL changes reflect tree expansion state
+
+**Priority**: Medium
+**Estimated Effort**: 2-3 days
+**Dependencies**: None
