@@ -22,19 +22,16 @@ export class TreeContextMenu {
       this.hide();
     }
     this.currentNode = node;
-    console.log('TreeContextMenu show() called with node:', node);
     this.createMenu(x, y);
   }
 
   public hide(): void {
-    console.log('TreeContextMenu hide() called, currentNode before clear:', this.currentNode);
     if (this.menu) {
       this.menu.remove();
       this.menu = null;
     }
     // Don't clear currentNode immediately - let handlers use it first
     setTimeout(() => {
-      console.log('TreeContextMenu clearing currentNode after timeout');
       this.currentNode = null;
     }, 0);
   }
@@ -93,11 +90,9 @@ export class TreeContextMenu {
       menuItem.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log(`Menu item '${item.label}' clicked, currentNode:`, this.currentNode);
         // Store current node before calling action (which may hide the menu)
         const nodeForAction = this.currentNode;
         if (item.label === 'Rename' && nodeForAction && this.options.onRename) {
-          console.log('Calling onRename with node:', nodeForAction);
           this.hide();
           this.options.onRename(nodeForAction);
         } else if (item.label === 'Delete' && nodeForAction && this.options.onDelete) {
@@ -107,7 +102,6 @@ export class TreeContextMenu {
           this.hide();
           this.options.onEnterDragMode(nodeForAction);
         } else {
-          console.log('Falling back to item.action()');
           item.action();
         }
       });
@@ -175,14 +169,10 @@ export class TreeContextMenu {
   }
 
   private handleRename(): void {
-    console.log('TreeContextMenu handleRename called', { currentNode: this.currentNode, hasOnRename: !!this.options.onRename });
     if (this.currentNode && this.options.onRename) {
       const nodeToRename = this.currentNode; // Store reference before hiding
       this.hide();
-      console.log('Calling onRename callback with node:', nodeToRename);
       this.options.onRename(nodeToRename);
-    } else {
-      console.error('Cannot handle rename - missing node or callback', { currentNode: this.currentNode, onRename: this.options.onRename });
     }
   }
 
