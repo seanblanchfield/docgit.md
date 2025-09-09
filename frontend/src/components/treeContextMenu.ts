@@ -26,10 +26,10 @@ export class TreeContextMenu {
     this.justShown = true;
     this.createMenu(x, y);
     
-    // Reset the flag after a short delay to allow the menu to be interactive
+    // Reset the flag after a delay to ensure mouse release doesn't trigger hide
     setTimeout(() => {
       this.justShown = false;
-    }, 100);
+    }, 500);
   }
 
   public hide(): void {
@@ -150,13 +150,24 @@ export class TreeContextMenu {
   }
 
   private setupGlobalClickListener(): void {
-    // Use capture phase to handle clicks before they bubble up
+    // Use capture phase to handle clicks when menu is visible
     document.addEventListener('click', (event) => {
-      if (this.menu && !this.menu.contains(event.target as Node) && !this.justShown) {
-        // Delay hiding to allow menu item clicks to process first
-        setTimeout(() => {
+      if (this.menu) {
+        // If click is on menu item, let it proceed normally
+        if (this.menu.contains(event.target as Node)) {
+          return;
+        }
+        
+        // If click is outside menu and not just shown, hide menu
+        if (!this.justShown) {
+          event.stopPropagation();
+          event.stopImmediatePropagation();
           this.hide();
-        }, 0);
+        } else {
+          // Menu was just shown, prevent this click from doing anything else
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+        }
       }
     }, true); // Use capture phase
 
