@@ -7,7 +7,7 @@ import { addCreateItems, showCreateDialogForDirectory } from './createItem';
 import { refreshAllLockStatuses, updateLockStatus } from './lock';
 import { selectPath, loadPreservingExpansion } from './state';
 import { setupEventHandlers } from './eventHandlers';
-import { DragManager } from './dragManager';
+import { DragManager } from './DragManager';
 
 export class DirectoryTree {
   private tree: any;
