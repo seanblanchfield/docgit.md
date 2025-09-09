@@ -56,7 +56,14 @@ export class DragManager {
   private setupContextMenu(): void {
     const contextMenuOptions: TreeContextMenuOptions = {
       onRename: (node: TreeNode) => {
-        this.renameDialog.show(node);
+        console.log('DragManager onRename callback called with node:', node);
+        console.log('DragManager renameDialog exists:', !!this.renameDialog);
+        if (this.renameDialog) {
+          console.log('Calling renameDialog.show()');
+          this.renameDialog.show(node);
+        } else {
+          console.error('RenameDialog not initialized!');
+        }
       },
       onDelete: (node: TreeNode) => {
         this.handleDeleteFromContextMenu(node);
@@ -76,29 +83,35 @@ export class DragManager {
   }
 
   private setupRenameDialog(): void {
-    this.renameDialog = new RenameDialog({
-      onConfirm: async (node: TreeNode, newName: string) => {
-        try {
-          const renameService = new RenameService();
-          const result = await renameService.renameItem(node.id, newName);
-          console.log('Rename successful:', result);
-          
-          // Refresh the tree to show the updated name
-          if (this.tree && this.tree.refreshTree) {
-            await this.tree.refreshTree();
+    console.log('DragManager setupRenameDialog called');
+    try {
+      this.renameDialog = new RenameDialog({
+        onConfirm: async (node: TreeNode, newName: string) => {
+          try {
+            const renameService = new RenameService();
+            const result = await renameService.renameItem(node.id, newName);
+            console.log('Rename successful:', result);
+            
+            // Refresh the tree to show the updated name
+            if (this.tree && this.tree.refreshTree) {
+              await this.tree.refreshTree();
+            }
+            
+            // Show success notification
+            console.log(`Successfully renamed "${node.name}" to "${newName}"`);
+          } catch (error) {
+            console.error('Rename failed:', error);
+            throw error; // Re-throw to let the dialog handle the error display
           }
-          
-          // Show success notification
-          console.log(`Successfully renamed "${node.name}" to "${newName}"`);
-        } catch (error) {
-          console.error('Rename failed:', error);
-          throw error; // Re-throw to let the dialog handle the error display
+        },
+        onCancel: () => {
+          console.log('Rename cancelled');
         }
-      },
-      onCancel: () => {
-        console.log('Rename cancelled');
-      }
-    });
+      });
+      console.log('DragManager renameDialog created successfully:', this.renameDialog);
+    } catch (error) {
+      console.error('Error creating RenameDialog:', error);
+    }
   }
 
   private setupDeleteDialog(): void {

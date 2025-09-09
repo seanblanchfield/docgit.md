@@ -17,17 +17,26 @@ export class TreeContextMenu {
   }
 
   public show(node: TreeNode, x: number, y: number): void {
-    this.hide(); // Hide any existing menu
+    // Only hide existing menu if there is one
+    if (this.menu) {
+      this.hide();
+    }
     this.currentNode = node;
+    console.log('TreeContextMenu show() called with node:', node);
     this.createMenu(x, y);
   }
 
   public hide(): void {
+    console.log('TreeContextMenu hide() called, currentNode before clear:', this.currentNode);
     if (this.menu) {
       this.menu.remove();
       this.menu = null;
     }
-    this.currentNode = null;
+    // Don't clear currentNode immediately - let handlers use it first
+    setTimeout(() => {
+      console.log('TreeContextMenu clearing currentNode after timeout');
+      this.currentNode = null;
+    }, 0);
   }
 
   public isVisible(): boolean {
@@ -82,9 +91,25 @@ export class TreeContextMenu {
       
       // Click handler
       menuItem.addEventListener('click', (e) => {
+        e.preventDefault();
         e.stopPropagation();
-        item.action();
-        this.hide();
+        console.log(`Menu item '${item.label}' clicked, currentNode:`, this.currentNode);
+        // Store current node before calling action (which may hide the menu)
+        const nodeForAction = this.currentNode;
+        if (item.label === 'Rename' && nodeForAction && this.options.onRename) {
+          console.log('Calling onRename with node:', nodeForAction);
+          this.hide();
+          this.options.onRename(nodeForAction);
+        } else if (item.label === 'Delete' && nodeForAction && this.options.onDelete) {
+          this.hide();
+          this.options.onDelete(nodeForAction);
+        } else if (item.label === 'Move' && nodeForAction && this.options.onEnterDragMode) {
+          this.hide();
+          this.options.onEnterDragMode(nodeForAction);
+        } else {
+          console.log('Falling back to item.action()');
+          item.action();
+        }
       });
       
       this.menu!.appendChild(menuItem);
@@ -124,11 +149,15 @@ export class TreeContextMenu {
   }
 
   private setupGlobalClickListener(): void {
+    // Use capture phase to handle clicks before they bubble up
     document.addEventListener('click', (event) => {
       if (this.menu && !this.menu.contains(event.target as Node)) {
-        this.hide();
+        // Delay hiding to allow menu item clicks to process first
+        setTimeout(() => {
+          this.hide();
+        }, 0);
       }
-    });
+    }, true); // Use capture phase
 
     // Add escape key listener
     document.addEventListener('keydown', (event) => {
@@ -146,9 +175,14 @@ export class TreeContextMenu {
   }
 
   private handleRename(): void {
+    console.log('TreeContextMenu handleRename called', { currentNode: this.currentNode, hasOnRename: !!this.options.onRename });
     if (this.currentNode && this.options.onRename) {
+      const nodeToRename = this.currentNode; // Store reference before hiding
       this.hide();
-      this.options.onRename(this.currentNode);
+      console.log('Calling onRename callback with node:', nodeToRename);
+      this.options.onRename(nodeToRename);
+    } else {
+      console.error('Cannot handle rename - missing node or callback', { currentNode: this.currentNode, onRename: this.options.onRename });
     }
   }
 
