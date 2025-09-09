@@ -134,3 +134,16 @@ class ReorderResponse(BaseModel):
     success: bool
     message: Optional[str] = None
     new_path: Optional[str] = None  # New path after reordering
+
+
+# Rename schemas for file and directory renaming
+class RenameRequest(BaseModel):
+    new_name: str  # New name for the file or directory
+    message: Optional[str] = None  # Optional commit message
+
+class RenameResponse(BaseModel):
+    success: bool
+    old_path: str  # Original path
+    new_path: str  # New path after rename
+    message: str
+    commit_sha: Optional[str] = None

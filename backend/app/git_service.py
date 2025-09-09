@@ -280,6 +280,28 @@ class GitService:
             return None
 
 
+    def rename_item(self, item_path_relative_to_repo: str, new_name: str, message: str) -> Optional[str]:
+        """
+        Renames a file or directory within the repository and commits the change.
+        - item_path_relative_to_repo: Current path of the item relative to the repo root.
+        - new_name: New name for the item (just the name, not the full path).
+        - message: Commit message.
+        Returns commit SHA if successful, None otherwise.
+        """
+        if not self.repo:
+            raise RuntimeError("Repository is not initialized.")
+
+        # Parse the current path to get parent directory and current name
+        current_path = Path(item_path_relative_to_repo)
+        parent_dir = current_path.parent
+        
+        # Construct the new path with the same parent directory but new name
+        new_path_relative_to_repo = str(parent_dir / new_name) if str(parent_dir) != '.' else new_name
+        
+        # Use the existing move_item method to perform the rename
+        return self.move_item(item_path_relative_to_repo, new_path_relative_to_repo, message)
+
+
     def get_file_diff(self, file_path_relative_to_repo: str, commit_sha1: str, commit_sha2: str) -> Optional[str]:
         """
         Generates a diff for a specific file between two commit SHAs.

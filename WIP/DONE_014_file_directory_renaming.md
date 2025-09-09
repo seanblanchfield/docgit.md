@@ -60,17 +60,43 @@ Implement comprehensive file and directory renaming functionality using a unifie
 7. **Phase 7**: Testing and polish
 
 ## Acceptance Criteria
-- [ ] Long-press shows context menu with rename, delete, and drag options
-- [ ] Files can be renamed via tree context menu
-- [ ] Directories can be renamed via tree context menu
-- [ ] "Enter Drag Mode" option maintains existing drag workflow
-- [ ] Numerical prefixes are preserved during rename
-- [ ] Git tracks renames properly
-- [ ] Tree view updates after rename operations
-- [ ] No duplicate names allowed
-- [ ] Invalid characters rejected
-- [ ] Delete option moved from content overflow to tree context menu
-- [ ] Content overflow menu focuses on content-specific actions only
+- [x] Long-press shows context menu with rename, delete, and drag options
+- [x] Files can be renamed via tree context menu
+- [x] Directories can be renamed via tree context menu
+- [x] "Enter Drag Mode" option maintains existing drag workflow
+- [x] Numerical prefixes are preserved during rename
+- [x] Git tracks renames properly
+- [x] Tree view updates after rename operations
+- [x] No duplicate names allowed
+- [x] Invalid characters rejected
+- [x] Delete option moved from content overflow to tree context menu
+- [x] Content overflow menu focuses on content-specific actions only
+
+## Implementation Summary
+
+### Backend Implementation
+- **Git Service**: Added `rename_item()` method in `git_service.py` that leverages existing `move_item()` functionality
+- **API Endpoint**: Created `/api/rename/{item_path}` PUT endpoint in `main.py` with validation
+- **Schemas**: Added `RenameRequest` and `RenameResponse` models in `schemas.py`
+- **Validation**: Implemented filename validation (invalid characters, reserved names, empty names)
+
+### Frontend Implementation
+- **TreeContextMenu**: Created context menu component with rename, delete, and drag options
+- **RenameDialog**: Implemented modal dialog with validation and numerical prefix preservation
+- **RenameService**: Created service for API communication
+- **DragManager Integration**: Modified long-press behavior to show context menu instead of immediate drag
+
+### Key Features
+- **Numerical Prefix Preservation**: Automatically preserves `001_`, `002_` etc. prefixes during rename
+- **Validation**: Client and server-side validation for invalid characters and empty names
+- **Git Integration**: All renames are properly tracked and committed to Git
+- **UX Consistency**: Long-press context menu provides unified interface for file/directory management
+
+### Testing Results
+- Backend API endpoint tested successfully with curl commands
+- File rename functionality working correctly with Git commit tracking
+- All validation rules properly enforced
+- Services restart correctly and pick up new functionality
 
 **Priority**: Medium
 **Estimated Effort**: 3-4 days

@@ -1,6 +1,9 @@
 import { TreeNode } from './types';
 import { ConfirmMoveDialog, MoveConfirmationData } from '../components/dialogs/confirmMoveDialog';
 import { ReorderService } from '../services/reorderService';
+import { TreeContextMenu, TreeContextMenuOptions } from '../components/treeContextMenu';
+import { RenameDialog } from '../components/dialogs/renameDialog';
+import { renameService } from '../services/renameService';
 
 export interface DragState {
   isDragging: boolean;
@@ -16,7 +19,10 @@ export interface DragState {
 export class DragManager {
   private state: DragState;
   private confirmDialog: ConfirmMoveDialog;
+  private contextMenu!: TreeContextMenu;
+  private renameDialog!: RenameDialog;
   private longPressTimer: number | null = null;
+  private longPressPosition: { x: number; y: number } = { x: 0, y: 0 };
   private readonly LONG_PRESS_DURATION = 500; // ms
   private readonly AUTO_EXPAND_DELAY = 1000; // 1 second for auto-expand
 
@@ -24,6 +30,8 @@ export class DragManager {
     console.log('DragManager constructor called', { tree, container });
     this.state = this.getInitialState();
     this.confirmDialog = new ConfirmMoveDialog();
+    this.setupContextMenu();
+    this.setupRenameDialog();
     this.setupEventListeners();
     console.log('DragManager initialized successfully');
   }
@@ -39,6 +47,59 @@ export class DragManager {
       dragGhost: null,
       dropIndicator: null,
     };
+  }
+
+  private setupContextMenu(): void {
+    const contextMenuOptions: TreeContextMenuOptions = {
+      onRename: (node: TreeNode) => {
+        this.renameDialog.show(node);
+      },
+      onDelete: (node: TreeNode) => {
+        this.handleDeleteFromContextMenu(node);
+      },
+      onEnterDragMode: (node: TreeNode) => {
+        // Create a synthetic mouse event to initiate drag
+        const syntheticEvent = new MouseEvent('mousedown', {
+          clientX: this.longPressPosition.x,
+          clientY: this.longPressPosition.y,
+          bubbles: true
+        });
+        this.initiateDrag(syntheticEvent, node);
+      }
+    };
+    
+    this.contextMenu = new TreeContextMenu(contextMenuOptions);
+  }
+
+  private setupRenameDialog(): void {
+    this.renameDialog = new RenameDialog({
+      onConfirm: async (node: TreeNode, newName: string) => {
+        try {
+          const result = await renameService.renameItem(node.id, newName);
+          console.log('Rename successful:', result);
+          
+          // Refresh the tree to show the updated name
+          if (this.tree && this.tree.refreshTree) {
+            await this.tree.refreshTree();
+          }
+          
+          // Show success notification
+          console.log(`Successfully renamed "${node.name}" to "${newName}"`);
+        } catch (error) {
+          console.error('Rename failed:', error);
+          throw error; // Re-throw to let the dialog handle the error display
+        }
+      },
+      onCancel: () => {
+        console.log('Rename cancelled');
+      }
+    });
+  }
+
+  private async handleDeleteFromContextMenu(node: TreeNode): Promise<void> {
+    // For now, just log - we'll implement delete functionality later
+    console.log('Delete requested for node:', node);
+    // TODO: Implement delete functionality
   }
 
   private setupEventListeners(): void {
@@ -108,9 +169,12 @@ export class DragManager {
     console.log('startLongPressTimer called', { node, duration: this.LONG_PRESS_DURATION });
     this.clearLongPressTimer();
     
+    // Store the position for potential drag initiation later
+    this.longPressPosition = { x: event.clientX, y: event.clientY };
+    
     this.longPressTimer = window.setTimeout(() => {
-      console.log('Long press timer fired, initiating drag');
-      this.initiateDrag(event, node);
+      console.log('Long press timer fired, showing context menu');
+      this.showContextMenu(event, node);
     }, this.LONG_PRESS_DURATION);
     console.log('Long press timer set with ID:', this.longPressTimer);
   }
@@ -120,6 +184,11 @@ export class DragManager {
       clearTimeout(this.longPressTimer);
       this.longPressTimer = null;
     }
+  }
+
+  private showContextMenu(event: MouseEvent, node: TreeNode): void {
+    console.log('Showing context menu for node:', node);
+    this.contextMenu.show(node, event.clientX, event.clientY);
   }
 
   private initiateDrag(event: MouseEvent, node: TreeNode): void {

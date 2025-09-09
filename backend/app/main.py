@@ -809,3 +809,59 @@ async def reorder_item(
             success=False,
             message=f"Failed to reorder item: {str(e)}"
         )
+
+
+# Rename endpoint for file and directory renaming
+@app.put("/api/rename/{item_path:path}", response_model=schemas.RenameResponse)
+async def rename_item(
+    item_path: str,
+    request_body: schemas.RenameRequest,
+    gs: GitService = Depends(get_git_service)
+):
+    """
+    Rename a file or directory within the repository.
+    - **item_path**: Current path of the item relative to repo root.
+    - **request_body**: JSON body with new_name and optional commit message.
+    """
+    try:
+        # Validate the new name
+        new_name = request_body.new_name.strip()
+        if not new_name:
+            raise HTTPException(status_code=400, detail="New name cannot be empty")
+        
+        # Check for invalid characters in filename
+        invalid_chars = ['/', '\\', ':', '*', '?', '"', '<', '>', '|']
+        if any(char in new_name for char in invalid_chars):
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid characters in filename. Cannot contain: {', '.join(invalid_chars)}"
+            )
+        
+        # Generate commit message if not provided
+        commit_message = request_body.message or f"Rename {item_path} to {new_name}"
+        
+        # Perform the rename using git service
+        commit_sha = gs.rename_item(item_path, new_name, commit_message)
+        
+        if commit_sha is None:
+            raise HTTPException(status_code=500, detail="Failed to rename item")
+        
+        # Calculate the new path
+        from pathlib import Path
+        current_path = Path(item_path)
+        parent_dir = current_path.parent
+        new_path = str(parent_dir / new_name) if str(parent_dir) != '.' else new_name
+        
+        return schemas.RenameResponse(
+            success=True,
+            old_path=item_path,
+            new_path=new_path,
+            message=commit_message,
+            commit_sha=commit_sha
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error renaming item '{item_path}': {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to rename item: {str(e)}")
