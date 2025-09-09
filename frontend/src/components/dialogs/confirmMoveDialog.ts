@@ -21,7 +21,17 @@ export class ConfirmMoveDialog {
     
     this.createDialog(data);
     this.attachEventListeners();
+    
+    // Store move data for later retrieval
+    this.setMoveData(data);
+    
+    // Disable background interactions
+    document.body.style.pointerEvents = 'none';
+    
     document.body.appendChild(this.dialog!);
+    
+    // Ensure dialog is interactive
+    this.dialog!.style.pointerEvents = 'auto';
     
     // Focus the dialog for accessibility
     this.dialog!.focus();
@@ -205,6 +215,9 @@ export class ConfirmMoveDialog {
   }
 
   private close(): void {
+    // Restore background interactions
+    document.body.style.pointerEvents = '';
+    
     if (this.dialog && this.dialog.parentNode) {
       this.dialog.parentNode.removeChild(this.dialog);
     }

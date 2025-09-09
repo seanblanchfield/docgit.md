@@ -21,6 +21,9 @@ export class RenameDialog {
   }
 
   public hide(): void {
+    // Restore pointer events when dialog closes
+    document.body.style.pointerEvents = '';
+    
     if (this.overlay) {
       this.overlay.remove();
       this.overlay = null;
@@ -44,7 +47,7 @@ export class RenameDialog {
     this.overlay.style.width = '100%';
     this.overlay.style.height = '100%';
     this.overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-    this.overlay.style.zIndex = '1000';
+    this.overlay.style.zIndex = '10002';
     this.overlay.style.display = 'flex';
     this.overlay.style.alignItems = 'center';
     this.overlay.style.justifyContent = 'center';
@@ -215,6 +218,11 @@ export class RenameDialog {
 
     // Add to DOM and focus input
     document.body.appendChild(this.overlay);
+    
+    // Ensure dialog is above all other elements
+    this.overlay.style.pointerEvents = 'auto';
+    this.dialog.style.pointerEvents = 'auto';
+    
     input.focus();
     input.select();
 
@@ -256,7 +264,7 @@ export class RenameDialog {
 
     // Check for reserved names (Windows)
     const reservedNames = ['CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'];
-    const nameWithoutExt = name.split('.')[0].toUpperCase();
+    const nameWithoutExt = name.split('.')[0]?.toUpperCase() ?? '';
     if (reservedNames.includes(nameWithoutExt)) {
       return { isValid: false, error: `"${name}" is a reserved name` };
     }

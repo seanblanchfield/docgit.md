@@ -51,7 +51,7 @@ export class TreeContextMenu {
 
     // Create menu items
     const menuItems = [
-      { label: 'Enter Drag Mode', action: () => this.handleEnterDragMode() },
+      { label: 'Move', action: () => this.handleEnterDragMode() },
       { label: 'Rename', action: () => this.handleRename() },
       { label: 'Delete', action: () => this.handleDelete() }
     ];
@@ -134,7 +134,10 @@ export class TreeContextMenu {
   }
 
   private handleRename(): void {
-    if (this.currentNode) {
+    if (this.currentNode && this.options.onRename) {
+      this.hide();
+      // Prevent other UI interactions while rename dialog is open
+      document.body.style.pointerEvents = 'none';
       this.options.onRename(this.currentNode);
     }
   }

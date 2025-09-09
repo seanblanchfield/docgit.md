@@ -3,7 +3,9 @@ import { ConfirmMoveDialog, MoveConfirmationData } from '../components/dialogs/c
 import { ReorderService } from '../services/reorderService';
 import { TreeContextMenu, TreeContextMenuOptions } from '../components/treeContextMenu';
 import { RenameDialog } from '../components/dialogs/renameDialog';
-import { renameService } from '../services/renameService';
+import { DeleteDialog } from '../components/dialogs/deleteDialog';
+import { RenameService } from '../services/renameService';
+import { DeleteService } from '../services/deleteService';
 
 export interface DragState {
   isDragging: boolean;
@@ -21,6 +23,7 @@ export class DragManager {
   private confirmDialog: ConfirmMoveDialog;
   private contextMenu!: TreeContextMenu;
   private renameDialog!: RenameDialog;
+  private deleteDialog!: DeleteDialog;
   private longPressTimer: number | null = null;
   private longPressPosition: { x: number; y: number } = { x: 0, y: 0 };
   private readonly LONG_PRESS_DURATION = 500; // ms
@@ -32,6 +35,7 @@ export class DragManager {
     this.confirmDialog = new ConfirmMoveDialog();
     this.setupContextMenu();
     this.setupRenameDialog();
+    this.setupDeleteDialog();
     this.setupEventListeners();
     console.log('DragManager initialized successfully');
   }
@@ -75,6 +79,7 @@ export class DragManager {
     this.renameDialog = new RenameDialog({
       onConfirm: async (node: TreeNode, newName: string) => {
         try {
+          const renameService = new RenameService();
           const result = await renameService.renameItem(node.id, newName);
           console.log('Rename successful:', result);
           
@@ -96,10 +101,34 @@ export class DragManager {
     });
   }
 
+  private setupDeleteDialog(): void {
+    this.deleteDialog = new DeleteDialog({
+      onConfirm: async (node: TreeNode) => {
+        try {
+          const deleteService = new DeleteService();
+          const result = await deleteService.deleteItem(node);
+          console.log('Delete successful:', result);
+          
+          // Refresh the tree to show the item is removed
+          if (this.tree && this.tree.refreshTree) {
+            await this.tree.refreshTree();
+          }
+          
+          // Show success notification
+          console.log(`Successfully deleted "${node.name}"`);
+        } catch (error) {
+          console.error('Delete failed:', error);
+          throw error; // Re-throw to let the dialog handle the error display
+        }
+      },
+      onCancel: () => {
+        console.log('Delete cancelled');
+      }
+    });
+  }
+
   private async handleDeleteFromContextMenu(node: TreeNode): Promise<void> {
-    // For now, just log - we'll implement delete functionality later
-    console.log('Delete requested for node:', node);
-    // TODO: Implement delete functionality
+    this.deleteDialog.show(node);
   }
 
   private setupEventListeners(): void {
