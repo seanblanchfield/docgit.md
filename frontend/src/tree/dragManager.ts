@@ -511,7 +511,10 @@ export class DragManager {
   }
 
   private handleMouseUp(_event: MouseEvent): void {
-    this.clearLongPressTimer();
+    // Only clear the long press timer if context menu is not visible
+    if (!this.contextMenu.isVisible()) {
+      this.clearLongPressTimer();
+    }
     
     if (!this.state.isDragging) return;
 
@@ -519,7 +522,10 @@ export class DragManager {
   }
 
   private handleTouchEnd(_event: TouchEvent): void {
-    this.clearLongPressTimer();
+    // Only clear the long press timer if context menu is not visible
+    if (!this.contextMenu.isVisible()) {
+      this.clearLongPressTimer();
+    }
     
     if (!this.state.isDragging) return;
 

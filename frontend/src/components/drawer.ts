@@ -6,7 +6,7 @@ export function setupDrawer(drawerSelector: string) {
   const container = document.getElementById('main-container');
   const border = drawer?.querySelector('.drawer-border') as HTMLElement | null;
   const resizer = drawer?.querySelector('.drawer-resizer') as HTMLElement | null;
-  const dragTargets = [border, resizer, drawer].filter(Boolean) as HTMLElement[];
+  const dragTargets = [border, resizer].filter(Boolean) as HTMLElement[];
 
   const MIN_WIDTH = 200; // px
   const DRAG_START_THRESHOLD = 10; // px movement before drag engages
