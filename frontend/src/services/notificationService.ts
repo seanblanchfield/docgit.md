@@ -1,5 +1,5 @@
 import { LockConflictResponse } from './lock';
-import { appState, setMode } from '../state/app.state';
+import { appState, setMode } from '../state/appState';
 
 export type NotificationType = 'lock-conflict' | 'lock-lost' | 'save-error' | 'success' | 'info' | 'warning';
 

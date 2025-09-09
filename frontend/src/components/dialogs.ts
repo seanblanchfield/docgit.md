@@ -1,8 +1,8 @@
 import { directoryTree, contentEditor } from '../instances';
-import { appState, setCurrentFile } from '../state/app.state';
+import { appState, setCurrentFile } from '../state/appState';
 import { lockService } from '../services/lock';
-import { apiService } from '../services/api.service';
-import { notificationService } from '../services/notification.service';
+import { apiService } from '../services/apiService';
+import { notificationService } from '../services/notificationService';
 
 export function setupDialogs() {
   // Discard dialog

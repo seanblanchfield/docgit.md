@@ -1,5 +1,5 @@
 import { TreeNode } from './types';
-import { ConfirmMoveDialog, MoveConfirmationData } from '../components/dialogs/ConfirmMoveDialog';
+import { ConfirmMoveDialog, MoveConfirmationData } from '../components/dialogs/confirmMoveDialog';
 import { ReorderService } from '../services/reorderService';
 
 export interface DragState {

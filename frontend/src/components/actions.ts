@@ -1,8 +1,8 @@
-import { appState, setDirty } from '../state/app.state';
+import { appState, setDirty } from '../state/appState';
 import { lockService } from '../services/lock';
-import { apiService } from '../services/api.service';
+import { apiService } from '../services/apiService';
 import { contentEditor } from '../instances';
-import { notificationService } from '../services/notification.service';
+import { notificationService } from '../services/notificationService';
 
 let saveBtn: HTMLButtonElement | null;
 let draftText: HTMLElement | null;

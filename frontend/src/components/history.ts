@@ -1,6 +1,6 @@
-import { apiService } from '../services/api.service';
-import { appState } from '../state/app.state';
-import { CommitDetail } from '../services/api.service';
+import { apiService } from '../services/apiService';
+import { appState } from '../state/appState';
+import { CommitDetail } from '../services/apiService';
 import { humanizeTime } from '../utils/humanize';
 
 let historyDrawer: HTMLElement | null;

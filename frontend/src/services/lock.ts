@@ -24,7 +24,7 @@ export interface DraftData {
   baseCommitHash?: string; // Git commit hash when draft was created
 }
 
-import { notificationService } from './notification.service';
+import { notificationService } from './notificationService';
 
 export class LockService {
   private currentLocks = new Map<string, string>(); // path -> lock_id

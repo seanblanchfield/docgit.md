@@ -6,15 +6,15 @@ import { humanizeFileName, humanizeTime } from './utils/humanize';
 import { fetchDirectoryTreeData } from './tree/data';
 import { setupDrawer } from './components/drawer';
 import { lockService } from './services/lock';
-import { apiService } from './services/api.service';
-import { appState, setMode, setDirty, setCurrentFile } from './state/app.state';
-import { EditorMode as Mode } from './state/app.state';
+import { apiService } from './services/apiService';
+import { appState, setMode, setDirty, setCurrentFile } from './state/appState';
+import { EditorMode as Mode } from './state/appState';
 import { setContentEditor, setDirectoryTree } from './instances';
 
 import '@milkdown/crepe/theme/common/style.css';
 import '@milkdown/crepe/theme/frame.css';
 import './styles.css';
-import './utils/console-logger';
+import './utils/consoleLogger';
 
 let directoryTree: DirectoryTree | null = null;
 let modifiedFiles = new Set<string>();
