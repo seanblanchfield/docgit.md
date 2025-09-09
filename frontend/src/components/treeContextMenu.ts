@@ -10,6 +10,7 @@ export class TreeContextMenu {
   private menu: HTMLElement | null = null;
   private currentNode: TreeNode | null = null;
   private options: TreeContextMenuOptions;
+  private justShown: boolean = false;
 
   constructor(options: TreeContextMenuOptions) {
     this.options = options;
@@ -22,7 +23,13 @@ export class TreeContextMenu {
       this.hide();
     }
     this.currentNode = node;
+    this.justShown = true;
     this.createMenu(x, y);
+    
+    // Reset the flag after a short delay to allow the menu to be interactive
+    setTimeout(() => {
+      this.justShown = false;
+    }, 100);
   }
 
   public hide(): void {
@@ -145,7 +152,7 @@ export class TreeContextMenu {
   private setupGlobalClickListener(): void {
     // Use capture phase to handle clicks before they bubble up
     document.addEventListener('click', (event) => {
-      if (this.menu && !this.menu.contains(event.target as Node)) {
+      if (this.menu && !this.menu.contains(event.target as Node) && !this.justShown) {
         // Delay hiding to allow menu item clicks to process first
         setTimeout(() => {
           this.hide();
