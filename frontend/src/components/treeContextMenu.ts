@@ -38,13 +38,16 @@ export class TreeContextMenu {
     this.menu.style.position = 'fixed';
     this.menu.style.left = `${x}px`;
     this.menu.style.top = `${y}px`;
-    this.menu.style.zIndex = '1000';
+    this.menu.style.zIndex = '9999';
     this.menu.style.backgroundColor = 'white';
-    this.menu.style.border = '1px solid #ccc';
-    this.menu.style.borderRadius = '4px';
-    this.menu.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+    this.menu.style.border = '1px solid #ddd';
+    this.menu.style.borderRadius = '6px';
+    this.menu.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
     this.menu.style.minWidth = '160px';
     this.menu.style.padding = '4px 0';
+    this.menu.style.display = 'block';
+    this.menu.style.visibility = 'visible';
+    this.menu.style.opacity = '1';
 
     // Create menu items
     const menuItems = [
@@ -89,11 +92,11 @@ export class TreeContextMenu {
       lastItem.style.borderBottom = 'none';
     }
 
-    // Adjust position to keep menu within viewport
-    this.adjustMenuPosition();
-
-    // Add to DOM
+    // Add to DOM first
     document.body.appendChild(this.menu);
+    
+    // Then adjust position to keep menu within viewport
+    this.adjustMenuPosition();
   }
 
   private adjustMenuPosition(): void {
