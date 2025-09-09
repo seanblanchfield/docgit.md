@@ -219,7 +219,8 @@ export class RenameDialog {
     // Add to DOM and focus input
     document.body.appendChild(this.overlay);
     
-    // Ensure dialog is above all other elements
+    // Disable background interactions and ensure dialog is interactive
+    document.body.style.pointerEvents = 'none';
     this.overlay.style.pointerEvents = 'auto';
     this.dialog.style.pointerEvents = 'auto';
     

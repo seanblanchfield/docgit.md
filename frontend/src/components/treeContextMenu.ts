@@ -30,6 +30,10 @@ export class TreeContextMenu {
     this.currentNode = null;
   }
 
+  public isVisible(): boolean {
+    return this.menu !== null && document.body.contains(this.menu);
+  }
+
   private createMenu(x: number, y: number): void {
     this.menu = document.createElement('div');
     this.menu.className = 'tree-context-menu';
@@ -120,8 +124,16 @@ export class TreeContextMenu {
   }
 
   private setupGlobalClickListener(): void {
-    document.addEventListener('click', (e) => {
-      if (this.menu && !this.menu.contains(e.target as Node)) {
+    document.addEventListener('click', (event) => {
+      if (this.menu && !this.menu.contains(event.target as Node)) {
+        this.hide();
+      }
+    });
+
+    // Add escape key listener
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && this.menu) {
+        event.preventDefault();
         this.hide();
       }
     });
@@ -136,8 +148,6 @@ export class TreeContextMenu {
   private handleRename(): void {
     if (this.currentNode && this.options.onRename) {
       this.hide();
-      // Prevent other UI interactions while rename dialog is open
-      document.body.style.pointerEvents = 'none';
       this.options.onRename(this.currentNode);
     }
   }

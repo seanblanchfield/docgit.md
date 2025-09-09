@@ -105,6 +105,9 @@ export class DragManager {
     this.deleteDialog = new DeleteDialog({
       onConfirm: async (node: TreeNode) => {
         try {
+          // Find the next item to navigate to before deletion
+          const nextItem = this.findNextItemAfterDelete(node);
+          
           const deleteService = new DeleteService();
           const result = await deleteService.deleteItem(node);
           console.log('Delete successful:', result);
@@ -112,6 +115,13 @@ export class DragManager {
           // Refresh the tree to show the item is removed
           if (this.tree && this.tree.refreshTree) {
             await this.tree.refreshTree();
+          }
+          
+          // Navigate to the next appropriate item
+          if (nextItem && this.directoryTree) {
+            setTimeout(() => {
+              this.directoryTree.selectAndNavigateToNode(nextItem.id);
+            }, 100); // Small delay to ensure tree is refreshed
           }
           
           // Show success notification
@@ -125,6 +135,37 @@ export class DragManager {
         console.log('Delete cancelled');
       }
     });
+  }
+
+  private findNextItemAfterDelete(nodeToDelete: TreeNode): TreeNode | null {
+    if (!this.tree) return null;
+    
+    // Get all visible nodes in the tree
+    const allNodes = this.tree.getAllNodes ? this.tree.getAllNodes() : [];
+    if (!allNodes.length) return null;
+    
+    // Find the index of the node to delete
+    const deleteIndex = allNodes.findIndex((node: TreeNode) => node.id === nodeToDelete.id);
+    if (deleteIndex === -1) return null;
+    
+    // Try to find the next sibling or previous sibling
+    // First try next sibling
+    if (deleteIndex + 1 < allNodes.length) {
+      return allNodes[deleteIndex + 1];
+    }
+    
+    // If no next sibling, try previous sibling
+    if (deleteIndex > 0) {
+      return allNodes[deleteIndex - 1];
+    }
+    
+    // If no siblings, try parent
+    const parent = this.tree.getParentNode ? this.tree.getParentNode(nodeToDelete.id) : null;
+    if (parent && !parent.isCreateItem) {
+      return parent;
+    }
+    
+    return null;
   }
 
   private async handleDeleteFromContextMenu(node: TreeNode): Promise<void> {
@@ -146,6 +187,13 @@ export class DragManager {
 
   private handleMouseDown(event: MouseEvent): void {
     console.log('DragManager handleMouseDown called', event);
+    
+    // Check if context menu is open and hide it if clicking anywhere
+    if (this.contextMenu && this.contextMenu.isVisible()) {
+      this.contextMenu.hide();
+      return; // Don't start new long press if dismissing context menu
+    }
+    
     const treeItem = this.getTreeItemFromEvent(event);
     if (!treeItem) {
       console.log('No tree item found from event');

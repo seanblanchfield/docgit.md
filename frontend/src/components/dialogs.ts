@@ -42,46 +42,35 @@ export function setupDialogs() {
     discardDialog?.close();
   });
 
-  // Delete file dialog
-  const deleteDialog = document.querySelector('[data-id="delete-dialog"]') as HTMLDialogElement | null;
-  const deleteFilePathEl = document.querySelector('[data-id="delete-file-path"]') as HTMLElement | null;
-  const deleteCancelBtn = document.querySelector('[data-id="delete-cancel"]') as HTMLButtonElement | null;
-  const deleteConfirmBtn = document.querySelector('[data-id="delete-confirm"]') as HTMLButtonElement | null;
-
+  // Delete functionality moved to tree context menu - redirect to tree-based delete
   document.querySelector('[data-id="delete-btn"]')?.addEventListener('click', (e) => {
     e.preventDefault();
     document.querySelector('[data-id="overflow-dropdown"]')?.classList.add('hidden');
     if (!appState.currentFilePath) return;
-    if (deleteDialog && deleteFilePathEl) {
-      deleteFilePathEl.textContent = appState.currentFilePath;
-      deleteDialog.showModal();
-    }
-  });
-
-  deleteCancelBtn?.addEventListener('click', () => {
-    deleteDialog?.close();
-  });
-
-  deleteConfirmBtn?.addEventListener('click', async () => {
-    if (!appState.currentFilePath || !deleteDialog) return;
     
-    try {
-      deleteDialog.close();
-      const response = await apiService.deleteFile(appState.currentFilePath);
+    // Trigger tree-based delete by finding the current file in the tree and showing context menu
+    const currentFileElement = document.querySelector(`[data-id="${CSS.escape(appState.currentFilePath)}"]`);
+    if (currentFileElement) {
+      // Simulate right-click to show context menu, then auto-select delete
+      const rect = currentFileElement.getBoundingClientRect();
+      const event = new MouseEvent('mousedown', {
+        clientX: rect.left + rect.width / 2,
+        clientY: rect.top + rect.height / 2,
+        bubbles: true
+      });
+      currentFileElement.dispatchEvent(event);
       
-      if (response.ok) {
-        notificationService.showSuccess('File Deleted', 'File deleted successfully');
-        setCurrentFile(null, '# Welcome to Markdown Wiki\n\nSelect a file from the sidebar to edit.', null);
-        contentEditor.replaceContent(appState.currentMarkdown);
-        const parentDir = appState.currentFilePath.substring(0, appState.currentFilePath.lastIndexOf('/'));
-        await directoryTree.loadPreservingExpansion(parentDir);
-      } else {
-        const errorData = await response.json();
-        notificationService.show('save-error', 'Delete Failed', errorData.detail || 'Unknown error occurred');
-      }
-    } catch (error) {
-      console.error('Error deleting file:', error);
-      notificationService.show('save-error', 'Delete Error', 'Error deleting file');
+      // After context menu appears, auto-click delete option
+      setTimeout(() => {
+        const contextMenu = document.querySelector('.tree-context-menu');
+        if (contextMenu) {
+          const deleteOption = Array.from(contextMenu.querySelectorAll('.tree-context-menu-item'))
+            .find(opt => opt.textContent?.includes('Delete'));
+          if (deleteOption) {
+            (deleteOption as HTMLElement).click();
+          }
+        }
+      }, 600); // Wait for long-press timer
     }
   });
 
