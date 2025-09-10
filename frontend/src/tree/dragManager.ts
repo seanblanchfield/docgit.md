@@ -110,31 +110,41 @@ export class DragManager {
           const result = await deleteService.deleteItem(node);
           console.log('Delete successful:', result);
           
-          // Clear content view if the deleted file is currently displayed
-          const currentPath = window.location.pathname;
-          if (currentPath.includes(node.id) || currentPath.endsWith(node.id)) {
-            // Navigate away from deleted file to clear content view
-            if (nextItem) {
-              window.history.pushState({}, '', `/file/${nextItem.id}`);
-              if (this.directoryTree.options.onFileSelect) {
-                this.directoryTree.options.onFileSelect(nextItem.id);
-              }
-            } else {
-              // No next item, go to root or clear content
-              window.history.pushState({}, '', '/');
-            }
-          }
-          
           // Refresh the tree to show the item is removed while preserving expansion state
           if (this.directoryTree && this.directoryTree.loadPreservingExpansion) {
             await this.directoryTree.loadPreservingExpansion();
           }
           
-          // Navigate to the next appropriate item in the tree
-          if (nextItem && this.directoryTree) {
+          // Handle content view navigation after tree refresh
+          const currentPath = window.location.pathname;
+          const isCurrentFileDeleted = currentPath.includes(node.id) || currentPath.endsWith(node.id);
+          
+          if (isCurrentFileDeleted) {
+            if (nextItem) {
+              // Navigate to the next appropriate file
+              setTimeout(() => {
+                window.history.pushState({}, '', `/file/${nextItem.id}`);
+                if (this.directoryTree.options.onFileSelect) {
+                  this.directoryTree.options.onFileSelect(nextItem.id);
+                }
+                this.directoryTree.selectPath(nextItem.id);
+              }, 150); // Delay to ensure tree is fully refreshed
+            } else {
+              // No next item, show create new file screen
+              setTimeout(() => {
+                window.history.pushState({}, '', '/');
+                // Clear any existing content and show create new file interface
+                const contentArea = document.querySelector('.content-area, .main-content, #content');
+                if (contentArea) {
+                  contentArea.innerHTML = '<div class="create-file-prompt">No files available. Create a new file to get started.</div>';
+                }
+              }, 150);
+            }
+          } else if (nextItem && this.directoryTree) {
+            // File wasn't currently displayed, just update tree selection
             setTimeout(() => {
               this.directoryTree.selectPath(nextItem.id);
-            }, 100); // Small delay to ensure tree is refreshed
+            }, 150);
           }
           
           // Show success notification
