@@ -26,6 +26,7 @@ This is a Git-based wiki system built with a modern web stack featuring a FastAP
 
 ### Development
 - [Development Workflow](development.md) - Local development setup and workflow
+- [Bug Recording Workflow](bug-workflow.md) - Bug tracking and management within WIP files
 - [Environment Configuration](environment.md) - Environment variables and configuration
 - [Testing](testing.md) - Testing strategies and implementation
 

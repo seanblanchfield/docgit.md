@@ -127,6 +127,47 @@ Contains work-in-progress tasks and features, each in its own markdown file:
 | `TODO_201_editor_modes.md` | TODO | Editor modes (View/WYSIWYG/Raw) |
 | `TODO_202_stretch_goals.md` | TODO | Future enhancement features |
 
+### WIP File Standards
+
+All WIP files should follow this structure:
+
+```markdown
+# TODO_XXX: [Feature Name]
+
+## Objective
+[Clear description of what needs to be accomplished]
+
+## User Stories
+[User-focused requirements]
+
+## Requirements
+[Functional and technical requirements]
+
+## Implementation Plan
+[Step-by-step approach]
+
+## Known Issues & Future Improvements
+[Bug reports and enhancement ideas discovered during development]
+
+### Bugs Discovered During Development
+[Use bug report template from bug-workflow.md]
+
+### Future Enhancements
+[List potential improvements identified during work]
+
+### Technical Debt
+[Note any shortcuts or temporary solutions that need future attention]
+
+## Acceptance Criteria
+[Checkboxes for completion requirements]
+
+**Priority**: High/Medium/Low
+**Estimated Effort**: [Time estimate]
+**Dependencies**: [Other TODOs or external requirements]
+```
+
+For bug reporting within WIP files, see the [Bug Recording Workflow](bug-workflow.md) documentation.
+
 ## Key Implementation Patterns
 
 **Lock Management:**
