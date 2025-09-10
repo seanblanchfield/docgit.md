@@ -733,50 +733,60 @@ async function main() {
         return;
       }
 
+      // Remove trailing slash for directory paths to match tree node IDs
+      const cleanPath = path.endsWith('/') ? path.slice(0, -1) : path;
+      
       // Use the tree's internal API to get node by ID
       const tree = (directoryTree as any).tree;
-      const node = tree.getNodeById(path);
+      const node = tree.getNodeById(cleanPath);
       
       if (node && !node.isDirectory) {
-        // It's a file, select it directly
-        await directoryTree!.selectPath(path);
+        // Path is a file, select it directly
+        await directoryTree!.selectPath(cleanPath);
         return;
       }
       
-      // If it's a directory or doesn't exist as a file, look for the first file in that directory
-      if (node && node.isDirectory) {
-        // It's a directory, find the first file in it
-        const children = node.children || [];
-        const filtered = filterHiddenFiles(children);
-        const sorted = sortNodes(filtered);
-        
-        // Find first file in this directory
-        const firstFile = sorted.find((n: any) => !n.isDirectory);
-        if (firstFile) {
-          const firstFilePath = `${path}/${firstFile.id}`;
-          await directoryTree!.selectPath(firstFilePath);
-          return;
-        }
-        
-        // If no files in directory, look in subdirectories
-        for (const dir of sorted.filter((n: any) => n.isDirectory)) {
-          const subDirPath = `${path}/${dir.id}`;
-          const subNode = tree.getNodeById(subDirPath);
-          if (subNode && subNode.children) {
-            const subFiltered = filterHiddenFiles(subNode.children);
-            const subSorted = sortNodes(subFiltered);
-            const subFirstFile = subSorted.find((n: any) => !n.isDirectory);
-            if (subFirstFile) {
-              const subFirstFilePath = `${subDirPath}/${subFirstFile.id}`;
-              await directoryTree!.selectPath(subFirstFilePath);
+      // For directory URLs, use the two-step approach: expand directory first, then select first file
+      await directoryTree!.selectPath(cleanPath);
+      
+      // Step 2: Wait for expansion, then find and select the first file
+      setTimeout(async () => {
+        try {
+          const tree = (directoryTree as any).tree;
+          const node = tree.getNodeById(cleanPath);
+          
+          if (node && node.isDirectory && node.children) {
+            const filtered = filterHiddenFiles(node.children);
+            const sorted = sortNodes(filtered);
+            
+            // Find first file in this directory (exclude create items)
+            const firstFile = sorted.find((n: any) => !n.isDirectory && !n.isCreateItem && n.id !== '+');
+            if (firstFile) {
+              // The firstFile.id is already the full path
+              await directoryTree!.selectPath(firstFile.id);
               return;
             }
+            
+            // If no files in directory, look in subdirectories
+            for (const dir of sorted.filter((n: any) => n.isDirectory)) {
+              const subDirPath = `${cleanPath}/${dir.id}`;
+              const subNode = tree.getNodeById(subDirPath);
+              if (subNode && subNode.children) {
+                const subFiltered = filterHiddenFiles(subNode.children);
+                const subSorted = sortNodes(subFiltered);
+                const subFirstFile = subSorted.find((n: any) => !n.isDirectory);
+                if (subFirstFile) {
+                  const subFirstFilePath = `${subDirPath}/${subFirstFile.id}`;
+                  await directoryTree!.selectPath(subFirstFilePath);
+                  return;
+                }
+              }
+            }
           }
+        } catch (error) {
+          console.warn('Error in delayed directory navigation:', error);
         }
-      }
-      
-      // If path doesn't exist in tree, try to select it anyway (might trigger loading)
-      await directoryTree!.selectPath(path);
+      }, 300);
       
     } catch (error) {
       console.warn('Error handling initial path navigation:', error);
