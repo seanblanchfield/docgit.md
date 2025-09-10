@@ -85,8 +85,8 @@ export class DragManager {
           await renameService.renameItem(node.id, newName);
           
           // Refresh the tree to show the updated name
-          if (this.tree && this.tree.refreshTree) {
-            await this.tree.refreshTree();
+          if (this.directoryTree && this.directoryTree.load) {
+            await this.directoryTree.load();
           }
         } catch (error) {
           console.error('Rename failed:', error);
@@ -111,14 +111,14 @@ export class DragManager {
           console.log('Delete successful:', result);
           
           // Refresh the tree to show the item is removed
-          if (this.tree && this.tree.refreshTree) {
-            await this.tree.refreshTree();
+          if (this.directoryTree && this.directoryTree.load) {
+            await this.directoryTree.load();
           }
           
           // Navigate to the next appropriate item
           if (nextItem && this.directoryTree) {
             setTimeout(() => {
-              this.directoryTree.selectAndNavigateToNode(nextItem.id);
+              this.directoryTree.selectPath(nextItem.id);
             }, 100); // Small delay to ensure tree is refreshed
           }
           
