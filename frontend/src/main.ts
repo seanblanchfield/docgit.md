@@ -718,30 +718,37 @@ async function main() {
   // Helper function to handle initial path navigation with directory support
   async function handleInitialPathNavigation(path: string) {
     try {
-      // Fetch the directory tree data for this path to determine if it's a directory
-      const directoryData = await fetchDirectoryTreeData(path);
+      // Use the tree's internal API to get node by ID
+      const tree = (directoryTree as any).tree;
+      const node = tree.getNodeById(path);
       
-      if (directoryData && directoryData.length > 0) {
-        // It's a directory with contents, find the first file
-        const filtered = filterHiddenFiles(directoryData);
+      if (node && !node.isDirectory) {
+        // It's a file, select it directly
+        await directoryTree!.selectPath(path);
+        return;
+      }
+      
+      // If it's a directory or doesn't exist as a file, look for the first file in that directory
+      if (node && node.isDirectory) {
+        // It's a directory, find the first file in it
+        const children = node.children || [];
+        const filtered = filterHiddenFiles(children);
         const sorted = sortNodes(filtered);
         
-        // Use the same logic as findDefaultFile but for a specific directory
+        // Find first file in this directory
         const firstFile = sorted.find((n: any) => !n.isDirectory);
-        
         if (firstFile) {
-          // Construct the full path to the first file
-          const firstFilePath = path ? `${path}/${firstFile.id}` : firstFile.id;
+          const firstFilePath = `${path}/${firstFile.id}`;
           await directoryTree!.selectPath(firstFilePath);
           return;
         }
         
         // If no files in directory, look in subdirectories
         for (const dir of sorted.filter((n: any) => n.isDirectory)) {
-          const subDirPath = path ? `${path}/${dir.id}` : dir.id;
-          const subDirData = await fetchDirectoryTreeData(subDirPath);
-          if (subDirData && subDirData.length > 0) {
-            const subFiltered = filterHiddenFiles(subDirData);
+          const subDirPath = `${path}/${dir.id}`;
+          const subNode = tree.getNodeById(subDirPath);
+          if (subNode && subNode.children) {
+            const subFiltered = filterHiddenFiles(subNode.children);
             const subSorted = sortNodes(subFiltered);
             const subFirstFile = subSorted.find((n: any) => !n.isDirectory);
             if (subFirstFile) {
@@ -753,7 +760,7 @@ async function main() {
         }
       }
       
-      // If no directory data found, try to select the path as-is (might be a file)
+      // If path doesn't exist in tree, try to select it anyway (might trigger loading)
       await directoryTree!.selectPath(path);
       
     } catch (error) {
@@ -768,7 +775,24 @@ async function main() {
 
   // After tree loaded, apply deep link if any, otherwise load default
   if (initialPath && initialPath !== '/') {
-    await handleInitialPathNavigation(initialPath);
+    // Check if this is a create URL
+    if (initialPath.endsWith('__create__')) {
+      const parentPath = initialPath.replace('/__create__', '');
+      if (parentPath) {
+        // Select the parent directory and show create dialog
+        await directoryTree.selectPath(parentPath);
+        setTimeout(() => directoryTree?.showCreateDialogForDirectory(parentPath), 100);
+      } else {
+        // Root create
+        await directoryTree.selectPath('01_start.md');
+        setTimeout(() => directoryTree?.showCreateDialogForDirectory(''), 100);
+      }
+    } else {
+      // For directory navigation, wait a bit for tree to fully render then navigate
+      setTimeout(async () => {
+        await handleInitialPathNavigation(initialPath);
+      }, 200);
+    }
   } else {
     await directoryTree.selectPath('01_start.md');
   }
