@@ -84,9 +84,9 @@ export class DragManager {
           const renameService = new RenameService();
           await renameService.renameItem(node.id, newName);
           
-          // Refresh the tree to show the updated name
-          if (this.directoryTree && this.directoryTree.load) {
-            await this.directoryTree.load();
+          // Refresh the tree to show the updated name while preserving expansion state
+          if (this.directoryTree && this.directoryTree.loadPreservingExpansion) {
+            await this.directoryTree.loadPreservingExpansion();
           }
         } catch (error) {
           console.error('Rename failed:', error);
@@ -110,12 +110,27 @@ export class DragManager {
           const result = await deleteService.deleteItem(node);
           console.log('Delete successful:', result);
           
-          // Refresh the tree to show the item is removed
-          if (this.directoryTree && this.directoryTree.load) {
-            await this.directoryTree.load();
+          // Clear content view if the deleted file is currently displayed
+          const currentPath = window.location.pathname;
+          if (currentPath.includes(node.id) || currentPath.endsWith(node.id)) {
+            // Navigate away from deleted file to clear content view
+            if (nextItem) {
+              window.history.pushState({}, '', `/file/${nextItem.id}`);
+              if (this.directoryTree.options.onFileSelect) {
+                this.directoryTree.options.onFileSelect(nextItem.id);
+              }
+            } else {
+              // No next item, go to root or clear content
+              window.history.pushState({}, '', '/');
+            }
           }
           
-          // Navigate to the next appropriate item
+          // Refresh the tree to show the item is removed while preserving expansion state
+          if (this.directoryTree && this.directoryTree.loadPreservingExpansion) {
+            await this.directoryTree.loadPreservingExpansion();
+          }
+          
+          // Navigate to the next appropriate item in the tree
           if (nextItem && this.directoryTree) {
             setTimeout(() => {
               this.directoryTree.selectPath(nextItem.id);
