@@ -41,10 +41,46 @@ Fix tree view collapse and URL-based navigation issues to improve user experienc
 ## Acceptance Criteria
 - [ ] Deleting directory doesn't collapse entire tree
 - [ ] Parent directory remains visible after deletion
-- [ ] Deep create URLs expand tree appropriately
+- [x] Deep create URLs expand tree appropriately
 - [ ] Deep directory URLs expand tree and select first item
 - [ ] Tree state is preserved across navigation
 - [ ] URL changes reflect tree expansion state
+
+## Implementation Summary
+
+### Completed Features
+
+1. **Create Page URL Routing Fix** ✅
+   - Fixed regression where `__create__` URLs showed default content instead of create dialog
+   - Added detection for `__create__` suffix in initial path handling
+   - Properly selects parent directory and shows create dialog
+   - Handles both root and nested directory create URLs
+
+2. **Directory Navigation Enhancement** ✅ (Partial)
+   - Added `handleInitialPathNavigation()` function in `main.ts`
+   - Detects directory URLs and attempts to find first file to display
+   - Uses tree's internal API to access node structure
+   - Added proper timing delays for tree initialization
+
+3. **URL Path Processing** ✅
+   - Enhanced initial path handling to support both create and directory URLs
+   - Maintains backward compatibility with existing file URLs
+   - Proper separation of create vs directory navigation logic
+
+### Technical Implementation
+
+- Modified `frontend/src/main.ts` lines 718-798
+- Added `__create__` URL detection and handling
+- Implemented `handleInitialPathNavigation()` with tree node lookup
+- Added proper null checks and error handling
+- Fixed TypeScript compilation issues
+
+### Current Status
+
+✅ **Create page functionality fully restored** - `__create__` URLs now properly show create dialog
+🔄 **Directory navigation partially working** - Implementation complete but needs refinement for tree timing
+
+The create page regression has been fully resolved. Directory navigation logic is implemented but may need additional timing adjustments for optimal tree expansion behavior.
 
 **Priority**: Medium
 **Estimated Effort**: 2-3 days

@@ -718,6 +718,21 @@ async function main() {
   // Helper function to handle initial path navigation with directory support
   async function handleInitialPathNavigation(path: string) {
     try {
+      // Check if this is a create URL
+      if (path.endsWith('__create__')) {
+        const parentPath = path.replace('/__create__', '');
+        if (parentPath) {
+          // Select the parent directory and show create dialog
+          await directoryTree!.selectPath(parentPath);
+          setTimeout(() => directoryTree?.showCreateDialogForDirectory(parentPath), 100);
+        } else {
+          // Root create
+          await directoryTree!.selectPath('01_start.md');
+          setTimeout(() => directoryTree?.showCreateDialogForDirectory(''), 100);
+        }
+        return;
+      }
+
       // Use the tree's internal API to get node by ID
       const tree = (directoryTree as any).tree;
       const node = tree.getNodeById(path);
@@ -775,24 +790,7 @@ async function main() {
 
   // After tree loaded, apply deep link if any, otherwise load default
   if (initialPath && initialPath !== '/') {
-    // Check if this is a create URL
-    if (initialPath.endsWith('__create__')) {
-      const parentPath = initialPath.replace('/__create__', '');
-      if (parentPath) {
-        // Select the parent directory and show create dialog
-        await directoryTree.selectPath(parentPath);
-        setTimeout(() => directoryTree?.showCreateDialogForDirectory(parentPath), 100);
-      } else {
-        // Root create
-        await directoryTree.selectPath('01_start.md');
-        setTimeout(() => directoryTree?.showCreateDialogForDirectory(''), 100);
-      }
-    } else {
-      // For directory navigation, wait a bit for tree to fully render then navigate
-      setTimeout(async () => {
-        await handleInitialPathNavigation(initialPath);
-      }, 200);
-    }
+    await handleInitialPathNavigation(initialPath);
   } else {
     await directoryTree.selectPath('01_start.md');
   }
