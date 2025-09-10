@@ -1069,7 +1069,6 @@ async function main() {
   const overflowBtn = document.querySelector('[data-id="overflow-btn"]') as HTMLButtonElement | null;
   const overflowDropdown = document.querySelector('[data-id="overflow-dropdown"]') as HTMLElement | null;
   const historyBtn = document.querySelector('[data-id="history-btn"]') as HTMLButtonElement | null;
-  const deleteBtn = document.querySelector('[data-id="delete-btn"]') as HTMLButtonElement | null;
 
   overflowBtn?.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -1105,72 +1104,6 @@ async function main() {
     }
   });
 
-  // Delete file handler
-  const deleteDialog = document.querySelector('[data-id="delete-dialog"]') as HTMLDialogElement | null;
-  const deleteFilePathEl = document.querySelector('[data-id="delete-file-path"]') as HTMLElement | null;
-  const deleteCancelBtn = document.querySelector('[data-id="delete-cancel"]') as HTMLButtonElement | null;
-  const deleteConfirmBtn = document.querySelector('[data-id="delete-confirm"]') as HTMLButtonElement | null;
-
-  deleteBtn?.addEventListener('click', (e) => {
-    e.preventDefault();
-    overflowDropdown?.classList.add('hidden');
-    if (!appState.currentFilePath) return;
-    if (deleteDialog && deleteFilePathEl) {
-      deleteFilePathEl.textContent = appState.currentFilePath;
-      deleteDialog.showModal();
-    }
-  });
-
-  deleteCancelBtn?.addEventListener('click', () => {
-    deleteDialog?.close();
-  });
-
-  deleteConfirmBtn?.addEventListener('click', async () => {
-    if (!appState.currentFilePath || !deleteDialog) return;
-
-    // Store the file path before clearing it
-    const filePathToDelete = appState.currentFilePath;
-    const fileName = humanizeFileName(filePathToDelete);
-    
-    try {
-      deleteDialog.close();
-      const result = await apiService.deleteFile(filePathToDelete);
-      if (result.success) {
-        // Clear current file state
-        setCurrentFile(null, '', null);
-        
-        // Show success message instead of editor content
-        contentEditor.replaceContent(`# File Deleted Successfully\n\nFile **${fileName}** has been deleted successfully.`);
-        
-        // Update directory tree and select parent directory
-        if (directoryTree) {
-            const parentPath = filePathToDelete.includes('/') ? filePathToDelete.substring(0, filePathToDelete.lastIndexOf('/')) : '';
-            
-            // Use loadPreservingExpansion to maintain tree state
-            await directoryTree.loadPreservingExpansion();
-            
-            // Select and expand the parent directory to keep user oriented
-            if (parentPath) {
-              setTimeout(() => {
-                if (directoryTree) {
-                  directoryTree.selectPath(parentPath);
-                }
-              }, 200);
-            }
-        }
-        
-        // Show success notification
-        showNotification('success', 'File Deleted', `${fileName} was deleted successfully.`);
-        
-        history.replaceState(null, '', '/');
-      } else {
-        showNotification('save-error', 'Delete Failed', result.error || 'Unknown error occurred');
-      }
-    } catch (error) {
-      console.error('Error deleting file:', error);
-      showNotification('save-error', 'Delete Error', 'An unexpected error occurred while deleting the file.');
-    }
-  });
 }
 
 if (document.readyState === 'loading') {
