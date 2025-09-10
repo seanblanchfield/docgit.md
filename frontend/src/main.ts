@@ -3,7 +3,7 @@ import { DirectoryTree } from './tree/index';
 import { TreeNode } from './tree/types';
 import { setupHistory } from './components/history';
 import { humanizeFileName, humanizeTime } from './utils/humanize';
-import { fetchDirectoryTreeData } from './tree/data';
+import { fetchDirectoryTreeData, filterHiddenFiles, sortNodes } from './tree/data';
 import { setupDrawer } from './components/drawer';
 import { lockService } from './services/lock';
 import { apiService } from './services/apiService';
@@ -715,12 +715,60 @@ async function main() {
       }, 500);
     }
   });
+  // Helper function to handle initial path navigation with directory support
+  async function handleInitialPathNavigation(path: string) {
+    try {
+      // Fetch the directory tree data for this path to determine if it's a directory
+      const directoryData = await fetchDirectoryTreeData(path);
+      
+      if (directoryData && directoryData.length > 0) {
+        // It's a directory with contents, find the first file
+        const filtered = filterHiddenFiles(directoryData);
+        const sorted = sortNodes(filtered);
+        
+        // Use the same logic as findDefaultFile but for a specific directory
+        const firstFile = sorted.find((n: any) => !n.isDirectory);
+        
+        if (firstFile) {
+          // Construct the full path to the first file
+          const firstFilePath = path ? `${path}/${firstFile.id}` : firstFile.id;
+          await directoryTree!.selectPath(firstFilePath);
+          return;
+        }
+        
+        // If no files in directory, look in subdirectories
+        for (const dir of sorted.filter((n: any) => n.isDirectory)) {
+          const subDirPath = path ? `${path}/${dir.id}` : dir.id;
+          const subDirData = await fetchDirectoryTreeData(subDirPath);
+          if (subDirData && subDirData.length > 0) {
+            const subFiltered = filterHiddenFiles(subDirData);
+            const subSorted = sortNodes(subFiltered);
+            const subFirstFile = subSorted.find((n: any) => !n.isDirectory);
+            if (subFirstFile) {
+              const subFirstFilePath = `${subDirPath}/${subFirstFile.id}`;
+              await directoryTree!.selectPath(subFirstFilePath);
+              return;
+            }
+          }
+        }
+      }
+      
+      // If no directory data found, try to select the path as-is (might be a file)
+      await directoryTree!.selectPath(path);
+      
+    } catch (error) {
+      console.warn('Error handling initial path navigation:', error);
+      // Fallback to default file selection
+      await directoryTree!.selectPath('01_start.md');
+    }
+  }
+
   setDirectoryTree(directoryTree);
   await directoryTree.load();
 
   // After tree loaded, apply deep link if any, otherwise load default
   if (initialPath && initialPath !== '/') {
-    await directoryTree.selectPath(initialPath);
+    await handleInitialPathNavigation(initialPath);
   } else {
     await directoryTree.selectPath('01_start.md');
   }
