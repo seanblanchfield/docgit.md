@@ -2,3 +2,4 @@ fastapi
 uvicorn[standard]
 GitPython
 pydantic-settings
+httpx

@@ -2,111 +2,121 @@
 
 ## Overview
 
-The project uses Docker and Docker Compose for consistent development and production environments. The system consists of three main services: backend (FastAPI), frontend (Vite/nginx), and shared data volumes.
+The project uses Docker and Docker Compose with two modes:
+- **Development Mode**: Hot Module Reloading (HMR) with separate frontend container
+- **Production Mode**: Single container with FastAPI serving both API and static frontend
 
-## Docker Services
+## Architecture Modes
 
-### Backend Service
+### Production Mode (Default)
 
-**Dockerfile:** `docker/backend.Dockerfile`
+**Dockerfile:** `backend/Dockerfile`
+
+Multi-stage build that creates a single container:
 
 ```dockerfile
-FROM python:3.12-slim AS base
+# Stage 1: Build frontend
+FROM node:20-alpine AS frontend-builder
+WORKDIR /frontend
+RUN npm install -g pnpm@8.15.9
+COPY ./frontend/package.json ./frontend/pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+COPY ./frontend ./
+RUN pnpm run build
+
+# Stage 2: Backend with built frontend
+FROM python:3.12-slim AS backend
 WORKDIR /app
-COPY backend/ ./backend
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-CMD ["uvicorn","backend.main:app","--host","0.0.0.0","--port","8000"]
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+COPY ./backend/requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
+COPY ./backend /app
+COPY --from=frontend-builder /frontend/dist /app/static
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 **Features:**
-- Python 3.12 slim base image
-- FastAPI with Uvicorn ASGI server
-- GitPython for repository operations
-- Mounted data volumes for persistence
+- Single optimized container
+- Frontend built during image creation
+- FastAPI serves both API and static files
+- No nginx required
 
-### Frontend Service
+### Development Mode
 
-**Production Dockerfile:** `docker/frontend.Dockerfile`
+**Frontend Dockerfile:** `frontend/Dockerfile`
+
+Separate container for Vite dev server:
 
 ```dockerfile
-# build stage
-FROM node:20-alpine AS build
+FROM node:20-alpine
 WORKDIR /app
-COPY frontend/ .
-RUN npm ci && npm run build
-# runtime
-FROM nginx:1.27-alpine
-COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app/dist /usr/share/nginx/html
+RUN npm install -g pnpm
+COPY frontend/package.json frontend/pnpm-lock.yaml* ./
+RUN pnpm install --frozen-lockfile
+COPY frontend/ ./
+CMD ["pnpm", "run", "start"]
 ```
-
-**Development Dockerfile:** `docker/frontend.dev.Dockerfile`
-- Vite dev server with hot module reloading
-- Source code mounting for live development
-- Port 3000 for development access
 
 **Features:**
-- Multi-stage build for production
-- Nginx reverse proxy configuration
-- Static asset serving
-- API routing to backend
-
-### Nginx Configuration
-
-**File:** `docker/nginx.conf`
-
-```nginx
-server {
-    listen 80;
-    
-    # API routes to backend
-    location /api/ {
-        proxy_pass http://backend:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-    
-    # Frontend static files
-    location / {
-        root /usr/share/nginx/html;
-        try_files $uri $uri/ /index.html;
-    }
-}
-```
+- Vite dev server with HMR
+- FastAPI proxies frontend requests to Vite
+- Source code mounted for live development
+- Port 5173 for Vite dev server
 
 ## Docker Compose Configuration
+
+### Production Configuration
 
 **File:** `compose.yaml`
 
 ```yaml
-version: "3.9"
 services:
   backend:
-    build: { context: ., dockerfile: docker/backend.Dockerfile }
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    ports:
+      - "8080:8000"
     volumes:
-      - repo_data:/data/repo
-      - lock_data:/data/locks
+      - ./data/repo:/data/repo
+      - lock_data:/locks
+      - ./data/logs:/app/logs
     environment:
       - GIT_REPO_PATH=/data/repo
-      - LOCK_STORAGE_PATH=/data/locks
-    ports: [ "8000:8000" ]
-
-  frontend:
-    build: { context: ., dockerfile: docker/frontend.Dockerfile }
-    depends_on: [ backend ]
-    ports: [ "80:80" ]
-
-  # Development override
-  frontend-dev:
-    build: { context: ., dockerfile: docker/frontend.dev.Dockerfile }
-    volumes:
-      - ./frontend:/app
-    ports: [ "3000:3000" ]
 
 volumes:
-  repo_data:    # Git repository storage
-  lock_data:    # File-based lock storage
+  lock_data:
+    driver: local
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: './data/locks'
+```
+
+### Development Override
+
+**File:** `compose.override.yaml` (automatically loaded)
+
+```yaml
+services:
+  backend:
+    environment:
+      - VITE_DEV_SERVER=http://frontend:5173
+    depends_on:
+      - frontend
+
+  frontend:
+    build:
+      context: .
+      dockerfile: ./frontend/Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+
+volumes:
+  frontend_node_modules:
 ```
 
 ## Data Volumes
@@ -126,37 +136,45 @@ volumes:
 ## Development Workflow
 
 ### Starting Services
+
+**Development Mode (default):**
 ```bash
-# Start all services
+# Start with HMR (loads compose.override.yaml automatically)
 docker compose up -d
 
-# Start with rebuild
-docker compose up --build
+# Access at http://localhost:8080
+```
 
-# Development mode with hot reload
-docker compose -f compose.yaml -f compose.dev.yaml up
+**Production Mode:**
+```bash
+# Build and start production container
+docker compose -f compose.yaml build
+docker compose -f compose.yaml up -d
 ```
 
 ### Service Management
 ```bash
-# Restart specific service
-docker compose restart backend
-docker compose restart frontend
+# Development mode
+docker compose restart backend    # Restart backend
+docker compose restart frontend   # Restart Vite dev server
+docker compose logs -f backend    # View backend logs
+docker compose logs -f frontend   # View Vite logs
 
-# View logs
-docker compose logs -f backend
-docker compose logs -f frontend
+# Production mode
+docker compose -f compose.yaml restart backend
+docker compose -f compose.yaml logs -f backend
 
-# Stop all services
+# Stop services
 docker compose down
 ```
 
 ### Frontend Development
 ```bash
-# Run npm commands via Docker
-./run-node.sh install <package-name>
-./run-node.sh run build
-./run-node.sh run dev
+# Frontend changes apply automatically in dev mode (HMR)
+# Just save your file and refresh the browser
+
+# For production, rebuild the image
+docker compose -f compose.yaml build --no-cache
 ```
 
 ## Environment Variables
@@ -197,10 +215,11 @@ docker compose down
 ## Troubleshooting
 
 ### Common Issues
-- **Port conflicts**: Ensure ports 80, 3000, 8000 are available
+- **Port conflicts**: Ensure port 8080 is available (and 5173 for dev mode)
 - **Volume permissions**: Check Docker volume mount permissions
 - **Build failures**: Clear Docker cache with `docker system prune`
 - **Lock conflicts**: Restart backend to clear stale locks
+- **Frontend not loading**: Check if `VITE_DEV_SERVER` env var is set correctly in dev mode
 
 ### Debug Commands
 ```bash

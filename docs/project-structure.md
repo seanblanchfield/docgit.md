@@ -4,22 +4,20 @@
 
 ```
 .
-├── docs/         # Project documentation (NEW)
-├── WIP/          # Work-in-progress tasks (NEW)
-├── docker/
-│   ├── backend.Dockerfile
-│   ├── frontend.Dockerfile
-│   ├── frontend.dev.Dockerfile
-│   └── nginx.conf
-├── compose.yaml
-├── run-node.sh   # Script for running npm commands in Docker
-├── frontend/     # Vite TypeScript app (vanilla, not React)
-├── backend/      # FastAPI service
+├── docs/                  # Project documentation
+├── WIP/                   # Work-in-progress tasks
+├── compose.yaml           # Production Docker Compose config
+├── compose.override.yaml  # Development Docker Compose overrides
+├── run-node.sh            # Script for running npm commands in Docker
+├── frontend/              # Vite TypeScript app (vanilla, not React)
+│   └── Dockerfile         # Frontend dev server (Vite with HMR)
+├── backend/               # FastAPI service
+│   └── Dockerfile         # Production multi-stage build (frontend + backend)
 ├── data/
-│   ├── locks/    # File-based lock storage
-│   └── repo/     # Git repository (mounted volume for persistence)
-├── spec.md       # Project specification
-├── README.md     # Project documentation
+│   ├── locks/             # File-based lock storage
+│   └── repo/              # Git repository (mounted volume for persistence)
+├── spec.md                # Project specification
+├── README.md              # Project documentation
 ├── .gitignore
 └── .dockerignore
 ```
@@ -28,7 +26,8 @@
 
 | File | Purpose | Key Details |
 |------|---------|-------------|
-| `compose.yaml` | Docker Compose configuration | Defines 3 services: backend (FastAPI), frontend (Vite dev server), nginx (reverse proxy). Uses named volumes for repo data and lock storage. |
+| `compose.yaml` | Production Docker Compose config | Defines backend service with multi-stage build. Single container serves both API and frontend. |
+| `compose.override.yaml` | Development overrides | Automatically loaded by Docker Compose. Adds frontend service with Vite dev server for HMR. |
 | `run-node.sh` | Node.js command runner | Shell script for running npm commands inside Docker containers during development. |
 | `spec.md` | Project specification | Complete technical specification including architecture, API endpoints, frontend components, and implementation roadmap. |
 | `README.md` | Project documentation | Main project documentation with setup and usage instructions. |
@@ -84,14 +83,12 @@ The frontend source code in `src/` is organized into the following subdirectorie
 | `createItem.ts` | Create-item logic | Manages the temporary "create file/folder" nodes in the tree. |
 | `types.ts` | Type definitions | Contains all TypeScript interfaces and types for the tree module. |
 
-## Docker Directory (`docker/`)
+## Dockerfiles
 
 | File | Purpose | Key Details |
 |------|---------|-------------|
-| `backend.Dockerfile` | Backend container definition | Python 3.12 slim image with FastAPI, GitPython, and application dependencies. |
-| `frontend.Dockerfile` | Frontend production build | Multi-stage build: Node.js for compilation, nginx for serving static assets. |
-| `frontend.dev.Dockerfile` | Frontend development container | Vite dev server with live reload and source mounting for development. |
-| `nginx.conf` | Nginx reverse proxy config | Routes `/api/*` to backend, serves frontend assets, handles CORS and static files. |
+| `backend/Dockerfile` | Production multi-stage build | Stage 1: Builds frontend with Node.js/pnpm. Stage 2: Python backend with built frontend static files. Single optimized container. |
+| `frontend/Dockerfile` | Development Vite server | Runs Vite dev server with HMR. Used only in development mode via `compose.override.yaml`. |
 
 ## Data Directory (`data/`)
 

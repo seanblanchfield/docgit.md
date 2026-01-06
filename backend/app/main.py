@@ -1,9 +1,10 @@
 from fastapi import FastAPI, Depends, HTTPException, Header, BackgroundTasks, Request, Query
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from typing import List, Optional
 import asyncio
 import logging
+import os
 from datetime import datetime
 from pathlib import Path
 from . import schemas
@@ -869,36 +870,88 @@ async def rename_item(
         raise HTTPException(status_code=500, detail=f"Failed to rename item: {str(e)}")
 
 
-# Mount static files for frontend
-static_dir = Path("/app/static")
-if static_dir.exists():
-    # Mount assets directory for static files (JS, CSS, etc.)
-    assets_dir = static_dir / "assets"
-    if assets_dir.exists():
-        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+# Frontend serving: Development (proxy to Vite) or Production (static files)
+VITE_DEV_SERVER = os.getenv("VITE_DEV_SERVER")
+
+if VITE_DEV_SERVER:
+    # Development mode: Proxy to Vite dev server for HMR
+    import httpx
     
-    # Catch-all route for SPA - must be defined last
+    logger.info(f"Development mode: Proxying frontend requests to {VITE_DEV_SERVER}")
+    
     @app.get("/{full_path:path}")
-    async def serve_spa(full_path: str, request: Request):
+    async def proxy_to_vite(full_path: str, request: Request):
         """
-        Serve the SPA for all non-API routes.
-        This catches all routes not matched by API endpoints and serves index.html,
-        allowing the frontend router to handle navigation.
+        Proxy frontend requests to Vite dev server in development mode.
+        This enables Hot Module Reloading (HMR) for fast development.
         """
-        # Don't interfere with API routes
+        # Don't proxy API routes
         if full_path.startswith("api/"):
             raise HTTPException(status_code=404, detail="Not found")
         
-        # Check if requesting a specific static file (like favicon.ico, vite.svg, etc.)
-        file_path = static_dir / full_path
-        if file_path.is_file() and not file_path.is_dir():
-            return FileResponse(file_path)
+        # Proxy to Vite dev server
+        vite_url = f"{VITE_DEV_SERVER}/{full_path}"
         
-        # Otherwise serve index.html for SPA routing
-        index_path = static_dir / "index.html"
-        if index_path.exists():
-            return FileResponse(index_path)
-        
-        raise HTTPException(status_code=404, detail="Frontend not found")
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                # Forward the request to Vite with explicit Host header
+                # Set Host to localhost:5173 so Vite accepts the request
+                proxy_headers = {k: v for k, v in request.headers.items() if k.lower() not in ['host']}
+                proxy_headers['Host'] = 'localhost:5173'
+                
+                vite_response = await client.get(
+                    vite_url,
+                    headers=proxy_headers,
+                    follow_redirects=True
+                )
+                
+                # Return the response from Vite
+                return Response(
+                    content=vite_response.content,
+                    status_code=vite_response.status_code,
+                    headers=dict(vite_response.headers),
+                    media_type=vite_response.headers.get("content-type")
+                )
+        except httpx.RequestError as e:
+            logger.error(f"Error proxying to Vite dev server: {e}")
+            raise HTTPException(
+                status_code=502,
+                detail=f"Could not connect to Vite dev server at {VITE_DEV_SERVER}. Is it running?"
+            )
 else:
-    logger.warning(f"Static directory not found at {static_dir}. Frontend will not be served.")
+    # Production mode: Serve static files built by Vite
+    static_dir = Path("/app/static")
+    
+    if static_dir.exists():
+        logger.info(f"Production mode: Serving static files from {static_dir}")
+        
+        # Mount assets directory for static files (JS, CSS, etc.)
+        assets_dir = static_dir / "assets"
+        if assets_dir.exists():
+            app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+        
+        # Catch-all route for SPA - must be defined last
+        @app.get("/{full_path:path}")
+        async def serve_spa(full_path: str, request: Request):
+            """
+            Serve the SPA for all non-API routes.
+            This catches all routes not matched by API endpoints and serves index.html,
+            allowing the frontend router to handle navigation.
+            """
+            # Don't interfere with API routes
+            if full_path.startswith("api/"):
+                raise HTTPException(status_code=404, detail="Not found")
+            
+            # Check if requesting a specific static file (like favicon.ico, vite.svg, etc.)
+            file_path = static_dir / full_path
+            if file_path.is_file() and not file_path.is_dir():
+                return FileResponse(file_path)
+            
+            # Otherwise serve index.html for SPA routing
+            index_path = static_dir / "index.html"
+            if index_path.exists():
+                return FileResponse(index_path)
+            
+            raise HTTPException(status_code=404, detail="Frontend not found")
+    else:
+        logger.warning(f"Static directory not found at {static_dir}. Frontend will not be served.")

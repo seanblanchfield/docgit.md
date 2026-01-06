@@ -133,11 +133,10 @@ Key files: `app/main.py` (FastAPI app), `app/git_service.py` (Git operations), `
 
 ### NPM Commands
 - Edits to the frontend should automatically apply thanks to Hot Module Reloading. Do not attempt to restart the frontend container unless you suspect it is not running, or unless you have modified its environment in some way.
-- All npm commands targeting the `frontend/` directory must be executed via the `run-node.sh` script.
-- This script wraps npm commands to run them inside a Docker container with the appropriate environment and volume mounts.
-- **Example:** To install a package: `./run-node.sh install <package-name>`
-- **Example:** To run a script: `./run-node.sh run <script-name>`
-- **Example:** To build the frontend: `./run-node.sh run build`
+- All pnpm commands targeting the `frontend/` directory should be executed in the frontend container.
+- **Example:** To install a package: `docker compose exec frontend pnpm install <package-name>`
+- **Example:** To run a script: `docker compose exec frontend pnpm run <script-name>`
+- **Example:** For one-off commands: `docker compose run --rm frontend pnpm <command>`
 
 ### Technology Stack
 - **Build Tool**: Vite with TypeScript

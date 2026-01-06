@@ -8,18 +8,34 @@
 - Python 3.12+ (for local backend development)
 
 ### Quick Start with Docker
+
+#### Development Mode (with HMR)
 ```bash
 # Clone repository
 git clone <repository-url>
 cd wiki-project
 
-# Start the application
+# Start development environment
+# This automatically loads compose.override.yaml
 docker compose up -d
 
 # Access application
 # Application (Frontend + API): http://localhost:8080
+# Frontend dev server (direct): http://localhost:5173
 # API endpoints: http://localhost:8080/api/*
 # API documentation: http://localhost:8080/api/docs
+```
+
+#### Production Mode
+```bash
+# Build production image (frontend compiled to static files)
+docker compose -f compose.yaml build
+
+# Start production container (no override file)
+docker compose -f compose.yaml up -d
+
+# Access application
+# Application: http://localhost:8080
 ```
 
 ### Local Development (without Docker)
@@ -38,36 +54,52 @@ npm run dev --prefix frontend
 
 ## Frontend Development
 
-### Production Build
-The frontend is built as static files during Docker image build and served by FastAPI:
+### Development Mode with HMR
+
+By default, `docker compose up` loads `compose.override.yaml` which:
+- Starts a Vite dev server container with Hot Module Reloading
+- FastAPI proxies frontend requests to Vite (via `VITE_DEV_SERVER` env var)
+- Frontend changes reflect immediately without rebuilding
 
 ```bash
-# Rebuild container with frontend changes
-docker compose build --no-cache
+# Start development environment
 docker compose up -d
 
-# Or rebuild and restart in one command
-docker compose up --build -d
+# Frontend changes are automatically detected
+# Just save your file and refresh the browser
+
+# View frontend container logs
+docker compose logs -f frontend
+
+# Restart frontend container if needed
+docker compose restart frontend
 ```
 
-### Local Frontend Development (Optional)
-For faster frontend iteration, you can run Vite dev server locally:
+**How it works:**
+1. `compose.override.yaml` adds a `frontend` service running Vite dev server
+2. Backend detects `VITE_DEV_SERVER=http://frontend:5173` environment variable
+3. FastAPI proxies all non-API requests to Vite using httpx
+4. Vite serves files with HMR enabled
+
+### Production Build
+
+For production deployment, frontend is compiled to static files:
 
 ```bash
-# Install dependencies locally
-cd frontend
-pnpm install
+# Build production image (no override file)
+docker compose -f compose.yaml build --no-cache
 
-# Run dev server (with API proxy to Docker backend)
-pnpm run start
-
-# Access at http://localhost:5173
+# Start production container
+docker compose -f compose.yaml up -d
 ```
 
-### Frontend Changes
-- Frontend changes require rebuilding the Docker image
-- The multi-stage Dockerfile builds frontend static files during image creation
-- Built assets are copied to `/app/static` and served by FastAPI
+**Production build process:**
+1. Multi-stage Dockerfile builds frontend using Node.js
+2. `pnpm run build` compiles TypeScript to optimized JavaScript
+3. Built files copied to `/app/static` in backend container
+4. FastAPI serves static files directly (no proxy)
+
+See [Production Build Documentation](./production-build.md) for details.
 
 ### Development Tools
 - **Vite**: Build tool with fast HMR
@@ -107,28 +139,52 @@ pytest backend/tests/test_api.py::test_file_operations
 ## Docker Development Commands
 
 ### Service Management
+
+#### Development Mode
 ```bash
-# Start the application
+# Start with HMR (loads docker-compose.override.yml automatically)
 docker compose up -d
 
-# Start with rebuild (needed after frontend changes)
-docker compose up --build -d
-
-# Restart the backend service
+# Restart services
 docker compose restart backend
+docker compose restart frontend
 
-# Stop the application
+# Stop all services
 docker compose down
 
 # View logs
 docker compose logs -f backend
+docker compose logs -f frontend
+
+# Rebuild frontend container (if Dockerfile changes)
+docker compose build frontend
 ```
 
-### Single Container Architecture
-- The application runs in a **single container** that includes both frontend and backend
-- Frontend is built as static files during Docker image build
-- FastAPI serves both the static frontend and API endpoints
-- Port 8080 serves everything (frontend at `/`, API at `/api/*`)
+#### Production Mode
+```bash
+# Build production image
+docker compose -f compose.yaml build
+
+# Start production container
+docker compose -f compose.yaml up -d
+
+# Stop production container
+docker compose -f compose.yaml down
+```
+
+### Architecture Modes
+
+**Development Mode** (default with `docker compose up`):
+- Backend container + Frontend container (Vite dev server)
+- FastAPI proxies to Vite for HMR
+- Frontend changes apply immediately
+- Port 8080 serves everything (proxied through backend)
+
+**Production Mode** (with `-f compose.yaml` flag):
+- Single backend container with built frontend
+- FastAPI serves static files directly
+- Optimized JavaScript bundles
+- Port 8080 serves everything (static files + API)
 
 ## Testing Strategy
 
@@ -241,6 +297,7 @@ VITE_API_BASE_URL=http://localhost:8000
 
 ### Configuration Files
 - `compose.yaml`: Docker services configuration
+- `compose.override.yaml`: Development overrides (auto-loaded)
 - `frontend/vite.config.ts`: Vite build configuration
 - `backend/app/config.py`: Backend settings
 - `.env.local`: Local environment overrides (not committed)
@@ -250,8 +307,9 @@ VITE_API_BASE_URL=http://localhost:8000
 ### Common Issues
 1. **Port Conflicts**: Ensure port 8080 is available
 2. **Volume Permissions**: Check Docker volume mount permissions
-3. **Frontend Changes Not Showing**: Rebuild the Docker image with `docker compose build --no-cache`
-4. **Git Repository**: Ensure `/data/repo` is properly initialized
+3. **Frontend Changes Not Showing (Dev)**: Check Vite logs with `docker compose logs -f frontend`
+4. **Frontend Changes Not Showing (Prod)**: Rebuild the Docker image with `docker compose build --no-cache`
+5. **Git Repository**: Ensure `/data/repo` is properly initialized
 
 ### Reset Development Environment
 ```bash
