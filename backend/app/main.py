@@ -1,4 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, Header, BackgroundTasks, Request, Query
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from typing import List, Optional
 import asyncio
 import logging
@@ -865,3 +867,38 @@ async def rename_item(
     except Exception as e:
         logger.error(f"Error renaming item '{item_path}': {e}")
         raise HTTPException(status_code=500, detail=f"Failed to rename item: {str(e)}")
+
+
+# Mount static files for frontend
+static_dir = Path("/app/static")
+if static_dir.exists():
+    # Mount assets directory for static files (JS, CSS, etc.)
+    assets_dir = static_dir / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+    
+    # Catch-all route for SPA - must be defined last
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str, request: Request):
+        """
+        Serve the SPA for all non-API routes.
+        This catches all routes not matched by API endpoints and serves index.html,
+        allowing the frontend router to handle navigation.
+        """
+        # Don't interfere with API routes
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Not found")
+        
+        # Check if requesting a specific static file (like favicon.ico, vite.svg, etc.)
+        file_path = static_dir / full_path
+        if file_path.is_file() and not file_path.is_dir():
+            return FileResponse(file_path)
+        
+        # Otherwise serve index.html for SPA routing
+        index_path = static_dir / "index.html"
+        if index_path.exists():
+            return FileResponse(index_path)
+        
+        raise HTTPException(status_code=404, detail="Frontend not found")
+else:
+    logger.warning(f"Static directory not found at {static_dir}. Frontend will not be served.")

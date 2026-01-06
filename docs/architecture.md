@@ -3,39 +3,60 @@
 ## High-Level Architecture Diagram
 
 ```
-┌──────────────┐           HTTP             ┌────────────────┐
-│      UI      │  ───────→ /api/*  ───────→ │  FastAPI app   │──┐
-│ (Vite dev)   │                            └────────────────┘  │
-└──────────────┘                                │GitPython       │
-        ▲                                    repo volume         │
-        │                                         │              │
-   infinite-tree                              commits           │
-   Milkdown editor                                              Git
-        │                                                       │
-Mobile/desktop ▲                                        ┌──────────────┐
-responsive drawer│                                        │ Remote git? │ (optional push)
-                                                         └──────────────┘
-                                                                │
-                                                         ┌──────────────┐
-                                                         │ Lock Storage │
-                                                         │ (file-based) │
-                                                         └──────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                  FastAPI Backend Container               │
+│  ┌────────────────────────────────────────────────────┐  │
+│  │  Static Frontend (Built Vite App)                  │  │
+│  │  - TypeScript Application                          │  │
+│  │  - Infinite-tree (File navigation)                 │  │
+│  │  - Milkdown Editor (WYSIWYG markdown)              │  │
+│  │  - Responsive Drawer (Mobile-optimized)            │  │
+│  └────────────────────────────────────────────────────┘  │
+│                           │                               │
+│                    Served via FastAPI                     │
+│                           │                               │
+│  ┌────────────────────────────────────────────────────┐  │
+│  │  FastAPI Application (API Layer)                   │  │
+│  │  - RESTful API endpoints (/api/*)                  │  │
+│  │  - Static file serving (/, /assets/*)              │  │
+│  │  - GitPython Integration                           │  │
+│  │  - File-based Lock Storage                         │  │
+│  │  - Uvicorn ASGI Server                             │  │
+│  └────────────────────────────────────────────────────┘  │
+│                           │                               │
+│                      GitPython                            │
+│                           │                               │
+└───────────────────────────┼───────────────────────────────┘
+                            │
+                    ┌───────┴────────┐
+                    │                │
+            ┌───────────────┐  ┌──────────────┐
+            │ Git Repository│  │ Lock Storage │
+            │  (repo volume)│  │ (file-based) │
+            └───────────────┘  └──────────────┘
+                    │
+            ┌───────────────┐
+            │ Remote git?   │ (optional push)
+            └───────────────┘
 ```
 
 ## System Components
 
-### Frontend (UI Layer)
-- **Vite Development Server**: Hot module reloading for development
-- **TypeScript Application**: Type-safe frontend code
+### Single Container Architecture
+The application now runs in a **single Docker container** that serves both the frontend and backend:
+
+- **Built Frontend Static Files**: Vite-built production assets served by FastAPI
+- **TypeScript Application**: Type-safe frontend code (compiled to static files)
 - **Infinite-tree**: File navigation component
 - **Milkdown Editor**: WYSIWYG markdown editing
 - **Responsive Drawer**: Mobile-optimized navigation
 
 ### Backend (API Layer)
-- **FastAPI Application**: RESTful API server
+- **FastAPI Application**: RESTful API server + static file serving
 - **GitPython Integration**: Git repository operations
 - **File-based Lock Storage**: Concurrent editing protection
 - **Uvicorn ASGI Server**: High-performance async server
+- **Static File Serving**: Serves frontend SPA and assets
 
 ### Data Layer
 - **Git Repository**: Version-controlled file storage

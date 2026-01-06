@@ -13,12 +13,13 @@
 git clone <repository-url>
 cd wiki-project
 
-# Start all services
+# Start the application
 docker compose up -d
 
 # Access application
-# Frontend: http://localhost:3000 (development) or http://localhost (production)
-# Backend API: http://localhost:8000
+# Application (Frontend + API): http://localhost:8080
+# API endpoints: http://localhost:8080/api/*
+# API documentation: http://localhost:8080/api/docs
 ```
 
 ### Local Development (without Docker)
@@ -37,23 +38,36 @@ npm run dev --prefix frontend
 
 ## Frontend Development
 
-### Using Docker for npm Commands
-All npm commands targeting the `frontend/` directory must be executed via the `run-node.sh` script:
+### Production Build
+The frontend is built as static files during Docker image build and served by FastAPI:
 
 ```bash
-# Install packages
-./run-node.sh install <package-name>
+# Rebuild container with frontend changes
+docker compose build --no-cache
+docker compose up -d
 
-# Run scripts
-./run-node.sh run build
-./run-node.sh run dev
-./run-node.sh run lint
+# Or rebuild and restart in one command
+docker compose up --build -d
 ```
 
-### Hot Module Reloading
-- Frontend changes automatically apply thanks to Vite's HMR
-- No need to restart the frontend container unless environment changes
-- Backend changes require container restart: `docker compose restart backend`
+### Local Frontend Development (Optional)
+For faster frontend iteration, you can run Vite dev server locally:
+
+```bash
+# Install dependencies locally
+cd frontend
+pnpm install
+
+# Run dev server (with API proxy to Docker backend)
+pnpm run start
+
+# Access at http://localhost:5173
+```
+
+### Frontend Changes
+- Frontend changes require rebuilding the Docker image
+- The multi-stage Dockerfile builds frontend static files during image creation
+- Built assets are copied to `/app/static` and served by FastAPI
 
 ### Development Tools
 - **Vite**: Build tool with fast HMR
@@ -94,27 +108,27 @@ pytest backend/tests/test_api.py::test_file_operations
 
 ### Service Management
 ```bash
-# Start all services
+# Start the application
 docker compose up -d
 
-# Start with rebuild
-docker compose up --build
+# Start with rebuild (needed after frontend changes)
+docker compose up --build -d
 
-# Restart specific service
+# Restart the backend service
 docker compose restart backend
-docker compose restart frontend
 
-# Stop all services
+# Stop the application
 docker compose down
 
 # View logs
 docker compose logs -f backend
-docker compose logs -f frontend
 ```
 
-### Development vs Production
-- **Development**: Uses `frontend.dev.Dockerfile` with Vite dev server
-- **Production**: Uses `frontend.Dockerfile` with nginx static serving
+### Single Container Architecture
+- The application runs in a **single container** that includes both frontend and backend
+- Frontend is built as static files during Docker image build
+- FastAPI serves both the static frontend and API endpoints
+- Port 8080 serves everything (frontend at `/`, API at `/api/*`)
 
 ## Testing Strategy
 
@@ -234,9 +248,9 @@ VITE_API_BASE_URL=http://localhost:8000
 ## Troubleshooting
 
 ### Common Issues
-1. **Port Conflicts**: Ensure ports 80, 3000, 8000 are available
+1. **Port Conflicts**: Ensure port 8080 is available
 2. **Volume Permissions**: Check Docker volume mount permissions
-3. **Node Modules**: Clear and reinstall if issues persist
+3. **Frontend Changes Not Showing**: Rebuild the Docker image with `docker compose build --no-cache`
 4. **Git Repository**: Ensure `/data/repo` is properly initialized
 
 ### Reset Development Environment
