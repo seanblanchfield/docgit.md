@@ -7,6 +7,10 @@ export default defineConfig({
     strictPort: true,
     cors: true,
     // Allow connections from any origin in development
-    origin: '*'
+    origin: '*',
+    // Configure HMR to connect directly to Vite dev server
+    hmr: {
+      clientPort: 5173
+    }
   }
 });

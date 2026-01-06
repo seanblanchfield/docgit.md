@@ -1,12 +1,11 @@
 services:
   backend:
     build:
-      context: . # Context is the root 'wiki' directory
-      dockerfile: ./docker/backend.Dockerfile
+      context: . # Context is the root directory
+      dockerfile: ./backend/Dockerfile
     ports:
-      - "8000:8000" # Expose backend port for direct access if needed during dev
+      - "8080:8000" # Map host port 8080 to backend port 8000 (serves both API and frontend)
     volumes:
-      - ./backend:/app # Mount backend code for live reload during dev
       - ./data/repo:/data/repo # Mount git repo data
       - lock_data:/locks # Mount lock files storage
       - ./data/logs:/app/logs # Mount logs directory for frontend.log access
@@ -14,38 +13,6 @@ services:
       - GIT_REPO_PATH=/data/repo
       # - GIT_AUTHOR_NAME="Wiki User" # Can be set here or in spec
       # - GIT_AUTHOR_EMAIL="wiki@example.com" # Can be set here or in spec
-      # - FRONTEND_URL=http://localhost # For CORS, if backend needs it
-
-  # New frontend service for development
-  frontend:
-    build:
-      context: .
-      dockerfile: ./docker/frontend.dev.Dockerfile # Use the new dev Dockerfile
-    ports:
-      - "5173:5173" # Expose Vite's port
-    volumes:
-      - ./frontend:/app # Mount frontend source for live reload
-      # Mount node_modules as a named volume to avoid overwriting container's node_modules
-      # by the host mount if host node_modules doesn't exist or is incompatible.
-      - frontend_node_modules:/app/node_modules
-    # Ensure backend is up before frontend tries to connect (if it does on startup)
-    # depends_on:
-    #   - backend # Usually not strictly needed for Vite dev server itself
-
-  nginx:
-    # Nginx service no longer builds the frontend.
-    # It will just run Nginx and proxy to the frontend (Vite dev server) and backend.
-    image: nginx:1.27-alpine # Use a pre-built Nginx image
-    ports:
-      - "8080:80" # Map host port 8080 to Nginx container port 80
-    volumes:
-      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro # Mount our custom Nginx config
-      # If frontend code changes require a rebuild, this volume mount won't auto-update
-      # For dev, one might mount frontend source and run `npm run dev` in the frontend Dockerfile
-      # But spec implies a build, so this setup is for serving built assets.
-    depends_on:
-      - backend
-      - frontend # Nginx now depends on the frontend service
 
 volumes:
   repo_data: # Define a named volume for git data (though spec uses bind mount)
@@ -60,4 +27,3 @@ volumes:
       type: 'none'
       o: 'bind'
       device: './data/locks' # Lock files storage
-  frontend_node_modules: # Named volume for frontend node_modules

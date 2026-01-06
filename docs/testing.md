@@ -247,14 +247,14 @@ jobs:
 # compose.test.yaml
 services:
   backend-test:
-    build: { context: ., dockerfile: docker/backend.Dockerfile }
+    build: { context: ., dockerfile: ./backend/Dockerfile }
     environment:
       - GIT_REPO_PATH=/tmp/test-repo
       - LOCK_STORAGE_PATH=/tmp/test-locks
     command: pytest tests/ -v
     
   frontend-test:
-    build: { context: ., dockerfile: docker/frontend.dev.Dockerfile }
+    build: { context: ., dockerfile: ./frontend/Dockerfile }
     command: npm run test
 ```
 
