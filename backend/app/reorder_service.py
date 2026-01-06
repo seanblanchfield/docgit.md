@@ -20,8 +20,8 @@ class ReorderService:
         target_parent_path: str, 
         position: int,
         is_directory: bool = False,
-        author_name: Optional[str] = None,
-        author_email: Optional[str] = None
+        author_name: str = None,
+        author_email: str = None
     ) -> Dict[str, any]:
         """
         Reorder a file or directory by moving it to a new position.

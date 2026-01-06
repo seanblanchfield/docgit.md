@@ -19,14 +19,12 @@ class GitService:
         self.repo: Optional[Repo] = None
         self._initialize_repo()
     
-    def get_actor(self, author_name: Optional[str] = None, author_email: Optional[str] = None) -> Actor:
+    def get_actor(self, author_name: str, author_email: str) -> Actor:
         """
-        Get Git Actor with optional override from request headers.
-        Falls back to default values from environment if not provided.
+        Create Git Actor from provided author information.
+        Author name and email should already be resolved (not None).
         """
-        name = author_name if author_name else self.default_author_name
-        email = author_email if author_email else self.default_author_email
-        return Actor(name, email)
+        return Actor(author_name, author_email)
 
     def _initialize_repo(self):
         """
@@ -93,7 +91,7 @@ class GitService:
 
     # Placeholder for other methods - to be implemented iteratively
     def commit_files(self, file_paths_relative_to_repo: List[str], message: str, 
-                     author_name: Optional[str] = None, author_email: Optional[str] = None) -> Optional[str]:
+                     author_name: str, author_email: str) -> Optional[str]:
         """
         Adds specified files and commits them.
         File paths should be relative to the repository root.
@@ -102,8 +100,8 @@ class GitService:
         Args:
             file_paths_relative_to_repo: List of file paths relative to repo root
             message: Commit message
-            author_name: Optional author name (from X-User-Name header), falls back to default
-            author_email: Optional author email (from X-User-Email header), falls back to default
+            author_name: Author name (from X-User-Name header or environment default)
+            author_email: Author email (from X-User-Email header or environment default)
         """
         if not self.repo:
             raise RuntimeError("Repository is not initialized.")
@@ -161,7 +159,7 @@ class GitService:
             return None # Or re-raise depending on desired error handling
 
     def save_file_content(self, file_path_relative_to_repo: str, content: str, message: str,
-                          author_name: Optional[str] = None, author_email: Optional[str] = None) -> Optional[str]:
+                          author_name: str, author_email: str) -> Optional[str]:
         """
         Writes content to a file and commits the change.
         File path should be relative to the repository root.
@@ -171,8 +169,8 @@ class GitService:
             file_path_relative_to_repo: Path to file relative to repo root
             content: File content to write
             message: Commit message
-            author_name: Optional author name (from X-User-Name header), falls back to default
-            author_email: Optional author email (from X-User-Email header), falls back to default
+            author_name: Author name (from X-User-Name header or environment default)
+            author_email: Author email (from X-User-Email header or environment default)
         """
         if not self.repo:
             raise RuntimeError("Repository is not initialized.")
@@ -202,13 +200,13 @@ class GitService:
 
 
     def delete_item(self, item_path_relative_to_repo: str, message: str,
-                    author_name: Optional[str] = None, author_email: Optional[str] = None) -> Optional[str]:
+                    author_name: str, author_email: str) -> Optional[str]:
         """
         Deletes a file or directory from the repository and commits the change.
         - item_path_relative_to_repo: Path to the item (file or directory) relative to the repo root.
         - message: Commit message.
-        - author_name: Optional author name (from X-User-Name header), falls back to default
-        - author_email: Optional author email (from X-User-Email header), falls back to default
+        - author_name: Author name (from X-User-Name header or environment default)
+        - author_email: Author email (from X-User-Email header or environment default)
         Returns commit SHA if successful, None otherwise.
         """
         if not self.repo:
@@ -259,14 +257,14 @@ class GitService:
 
 
     def move_item(self, source_path_relative_to_repo: str, destination_path_relative_to_repo: str, message: str,
-                  author_name: Optional[str] = None, author_email: Optional[str] = None) -> Optional[str]:
+                  author_name: str, author_email: str) -> Optional[str]:
         """
         Moves or renames a file or directory within the repository and commits the change.
         - source_path_relative_to_repo: Current path of the item relative to the repo root.
         - destination_path_relative_to_repo: New path for the item relative to the repo root.
         - message: Commit message.
-        - author_name: Optional author name (from X-User-Name header), falls back to default
-        - author_email: Optional author email (from X-User-Email header), falls back to default
+        - author_name: Author name (from X-User-Name header or environment default)
+        - author_email: Author email (from X-User-Email header or environment default)
         Returns commit SHA if successful, None otherwise.
         """
         if not self.repo:
@@ -318,14 +316,14 @@ class GitService:
 
 
     def rename_item(self, item_path_relative_to_repo: str, new_name: str, message: str,
-                    author_name: Optional[str] = None, author_email: Optional[str] = None) -> Optional[str]:
+                    author_name: str, author_email: str) -> Optional[str]:
         """
         Renames a file or directory within the repository and commits the change.
         - item_path_relative_to_repo: Current path of the item relative to the repo root.
         - new_name: New name for the item (just the name, not the full path).
         - message: Commit message.
-        - author_name: Optional author name (from X-User-Name header), falls back to default
-        - author_email: Optional author email (from X-User-Email header), falls back to default
+        - author_name: Author name (from X-User-Name header or environment default)
+        - author_email: Author email (from X-User-Email header or environment default)
         Returns commit SHA if successful, None otherwise.
         """
         if not self.repo:
