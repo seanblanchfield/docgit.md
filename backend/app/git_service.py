@@ -14,11 +14,19 @@ from .schemas import TreeNode # Added for directory tree structure
 class GitService:
     def __init__(self, repo_path_str: str, author_name: str, author_email: str):
         self.repo_path = Path(repo_path_str).resolve()
-        self.author_name = author_name  # Store for potential future use
-        self.author_email = author_email  # Store for potential future use
-        self.author = Actor(author_name, author_email) # Use passed-in values
+        self.default_author_name = author_name  # Default from environment
+        self.default_author_email = author_email  # Default from environment
         self.repo: Optional[Repo] = None
         self._initialize_repo()
+    
+    def get_actor(self, author_name: Optional[str] = None, author_email: Optional[str] = None) -> Actor:
+        """
+        Get Git Actor with optional override from request headers.
+        Falls back to default values from environment if not provided.
+        """
+        name = author_name if author_name else self.default_author_name
+        email = author_email if author_email else self.default_author_email
+        return Actor(name, email)
 
     def _initialize_repo(self):
         """
@@ -67,7 +75,8 @@ class GitService:
                     # If we can't diff against HEAD, assume we need to commit
                     has_staged_changes = True
                 if has_staged_changes or created_marker:
-                    self.repo.index.commit("Initial repository setup", author=self.author, committer=self.author)
+                    actor = self.get_actor()
+                    self.repo.index.commit("Initial repository setup", author=actor, committer=actor)
                     print(f"Created initial commit in repository at {self.repo_path}.")
                 if created_marker:
                     # We can choose to remove the marker file after the initial commit
@@ -83,11 +92,18 @@ class GitService:
             raise # Re-raise
 
     # Placeholder for other methods - to be implemented iteratively
-    def commit_files(self, file_paths_relative_to_repo: List[str], message: str) -> Optional[str]:
+    def commit_files(self, file_paths_relative_to_repo: List[str], message: str, 
+                     author_name: Optional[str] = None, author_email: Optional[str] = None) -> Optional[str]:
         """
         Adds specified files and commits them.
         File paths should be relative to the repository root.
         Returns commit SHA if successful, None otherwise.
+        
+        Args:
+            file_paths_relative_to_repo: List of file paths relative to repo root
+            message: Commit message
+            author_name: Optional author name (from X-User-Name header), falls back to default
+            author_email: Optional author email (from X-User-Email header), falls back to default
         """
         if not self.repo:
             raise RuntimeError("Repository is not initialized.")
@@ -107,7 +123,8 @@ class GitService:
         try:
             self.repo.index.add(full_file_paths)
             if self.repo.index.diff(self.repo.head.commit if self.repo.head.is_valid() else None): # Diff against HEAD or empty tree
-                commit = self.repo.index.commit(message, author=self.author, committer=self.author)
+                actor = self.get_actor(author_name, author_email)
+                commit = self.repo.index.commit(message, author=actor, committer=actor)
                 print(f"Committed {len(full_file_paths)} file(s): {commit.hexsha}")
                 return commit.hexsha
             else:
@@ -143,12 +160,19 @@ class GitService:
             print(f"Error reading file {absolute_file_path}: {e}")
             return None # Or re-raise depending on desired error handling
 
-    def save_file_content(self, file_path_relative_to_repo: str, content: str, message: str) -> Optional[str]:
+    def save_file_content(self, file_path_relative_to_repo: str, content: str, message: str,
+                          author_name: Optional[str] = None, author_email: Optional[str] = None) -> Optional[str]:
         """
-        Saves content to a file in the repository and commits the change.
+        Writes content to a file and commits the change.
         File path should be relative to the repository root.
-        Creates parent directories if they don't exist.
         Returns commit SHA if successful, None otherwise.
+        
+        Args:
+            file_path_relative_to_repo: Path to file relative to repo root
+            content: File content to write
+            message: Commit message
+            author_name: Optional author name (from X-User-Name header), falls back to default
+            author_email: Optional author email (from X-User-Email header), falls back to default
         """
         if not self.repo:
             raise RuntimeError("Repository is not initialized.")
@@ -164,7 +188,12 @@ class GitService:
             
             # Commit the change
             # commit_files expects a list of paths relative to repo
-            commit_sha = self.commit_files(file_paths_relative_to_repo=[file_path_relative_to_repo], message=message)
+            commit_sha = self.commit_files(
+                file_paths_relative_to_repo=[file_path_relative_to_repo], 
+                message=message,
+                author_name=author_name,
+                author_email=author_email
+            )
             return commit_sha
         except Exception as e:
             print(f"Error saving file {absolute_file_path}: {e}")
@@ -172,11 +201,14 @@ class GitService:
             return None
 
 
-    def delete_item(self, item_path_relative_to_repo: str, message: str) -> Optional[str]:
+    def delete_item(self, item_path_relative_to_repo: str, message: str,
+                    author_name: Optional[str] = None, author_email: Optional[str] = None) -> Optional[str]:
         """
         Deletes a file or directory from the repository and commits the change.
         - item_path_relative_to_repo: Path to the item (file or directory) relative to the repo root.
         - message: Commit message.
+        - author_name: Optional author name (from X-User-Name header), falls back to default
+        - author_email: Optional author email (from X-User-Email header), falls back to default
         Returns commit SHA if successful, None otherwise.
         """
         if not self.repo:
@@ -204,7 +236,8 @@ class GitService:
             # Check if there are changes to commit
             head_commit = self.repo.head.commit if self.repo.head.is_valid() else None
             if self.repo.index.diff(head_commit): # Diff against HEAD or empty tree
-                commit = self.repo.index.commit(message, author=self.author, committer=self.author)
+                actor = self.get_actor(author_name, author_email)
+                commit = self.repo.index.commit(message, author=actor, committer=actor)
                 print(f"Committed deletion of {item_path_relative_to_repo}: {commit.hexsha}")
                 return commit.hexsha
             else:
@@ -225,12 +258,15 @@ class GitService:
             return None
 
 
-    def move_item(self, source_path_relative_to_repo: str, destination_path_relative_to_repo: str, message: str) -> Optional[str]:
+    def move_item(self, source_path_relative_to_repo: str, destination_path_relative_to_repo: str, message: str,
+                  author_name: Optional[str] = None, author_email: Optional[str] = None) -> Optional[str]:
         """
         Moves or renames a file or directory within the repository and commits the change.
         - source_path_relative_to_repo: Current path of the item relative to the repo root.
         - destination_path_relative_to_repo: New path for the item relative to the repo root.
         - message: Commit message.
+        - author_name: Optional author name (from X-User-Name header), falls back to default
+        - author_email: Optional author email (from X-User-Email header), falls back to default
         Returns commit SHA if successful, None otherwise.
         """
         if not self.repo:
@@ -260,7 +296,8 @@ class GitService:
             # Check if there are changes to commit (git mv stages the move)
             head_commit = self.repo.head.commit if self.repo.head.is_valid() else None
             if self.repo.index.diff(head_commit):
-                commit = self.repo.index.commit(message, author=self.author, committer=self.author)
+                actor = self.get_actor(author_name, author_email)
+                commit = self.repo.index.commit(message, author=actor, committer=actor)
                 print(f"Committed move of {source_path_relative_to_repo} to {destination_path_relative_to_repo}: {commit.hexsha}")
                 return commit.hexsha
             else:
@@ -280,12 +317,15 @@ class GitService:
             return None
 
 
-    def rename_item(self, item_path_relative_to_repo: str, new_name: str, message: str) -> Optional[str]:
+    def rename_item(self, item_path_relative_to_repo: str, new_name: str, message: str,
+                    author_name: Optional[str] = None, author_email: Optional[str] = None) -> Optional[str]:
         """
         Renames a file or directory within the repository and commits the change.
         - item_path_relative_to_repo: Current path of the item relative to the repo root.
         - new_name: New name for the item (just the name, not the full path).
         - message: Commit message.
+        - author_name: Optional author name (from X-User-Name header), falls back to default
+        - author_email: Optional author email (from X-User-Email header), falls back to default
         Returns commit SHA if successful, None otherwise.
         """
         if not self.repo:
@@ -299,7 +339,7 @@ class GitService:
         new_path_relative_to_repo = str(parent_dir / new_name) if str(parent_dir) != '.' else new_name
         
         # Use the existing move_item method to perform the rename
-        return self.move_item(item_path_relative_to_repo, new_path_relative_to_repo, message)
+        return self.move_item(item_path_relative_to_repo, new_path_relative_to_repo, message, author_name, author_email)
 
 
     def get_file_diff(self, file_path_relative_to_repo: str, commit_sha1: str, commit_sha2: str) -> Optional[str]:

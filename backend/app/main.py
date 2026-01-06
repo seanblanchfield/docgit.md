@@ -58,6 +58,23 @@ reorder_service = ReorderService(git_service, lock_service)
 
 app = FastAPI(openapi_url="/api/openapi.json", docs_url="/api/docs", redoc_url="/api/redoc")
 
+# Dependency to extract Git author information from request headers
+def get_git_author_info(
+    x_user_name: Optional[str] = Header(None, alias="X-User-Name"),
+    x_user_email: Optional[str] = Header(None, alias="X-User-Email")
+) -> dict:
+    """
+    Extract Git author information from request headers.
+    Falls back to environment defaults if headers are not present.
+    
+    Returns:
+        dict with 'author_name' and 'author_email' keys
+    """
+    return {
+        "author_name": x_user_name,
+        "author_email": x_user_email
+    }
+
 # Background task for cleaning up expired locks
 async def cleanup_expired_locks_task():
     """Background task that runs every 60 seconds to clean up expired locks."""
@@ -218,6 +235,7 @@ async def save_file_contents(
     file_path: str, # Path parameter
     request_body: schemas.SaveFileRequest,
     gs: GitService = Depends(get_git_service),
+    git_author: dict = Depends(get_git_author_info),
     x_lock_id: Optional[str] = Header(None, alias="X-Lock-ID")
 ):
     """
@@ -243,7 +261,9 @@ async def save_file_contents(
         commit_sha = gs.save_file_content(
             file_path_relative_to_repo=file_path,
             content=request_body.content,
-            message=request_body.message
+            message=request_body.message,
+            author_name=git_author["author_name"],
+            author_email=git_author["author_email"]
         )
         if commit_sha is None:
             raise HTTPException(status_code=500, detail="Failed to save file or commit changes. Commit SHA was not returned.")
@@ -259,7 +279,8 @@ async def save_file_contents(
 async def delete_repository_item(
     file_path: str, # Path parameter
     commit_message: Optional[str] = None, # Query parameter for commit message
-    gs: GitService = Depends(get_git_service)
+    gs: GitService = Depends(get_git_service),
+    git_author: dict = Depends(get_git_author_info)
 ):
     """
     Delete a file or folder from the repository and commit the change.
@@ -271,7 +292,9 @@ async def delete_repository_item(
     try:
         commit_sha = gs.delete_item(
             item_path_relative_to_repo=file_path,
-            message=message
+            message=message,
+            author_name=git_author["author_name"],
+            author_email=git_author["author_email"]
         )
         
         if commit_sha is None:
@@ -314,7 +337,8 @@ async def delete_repository_item(
 @app.post("/api/files/move", response_model=schemas.MoveItemResponse)
 async def move_repository_item(
     request_body: schemas.MoveItemRequest,
-    gs: GitService = Depends(get_git_service)
+    gs: GitService = Depends(get_git_service),
+    git_author: dict = Depends(get_git_author_info)
 ):
     """
     Move or rename a file or folder in the repository and commit the change.
@@ -324,7 +348,9 @@ async def move_repository_item(
         commit_sha = gs.move_item(
             source_path_relative_to_repo=request_body.source_path,
             destination_path_relative_to_repo=request_body.destination_path,
-            message=request_body.message
+            message=request_body.message,
+            author_name=git_author["author_name"],
+            author_email=git_author["author_email"]
         )
         
         if commit_sha is None:
@@ -785,7 +811,8 @@ async def move_directory(
 @app.post("/api/reorder", response_model=schemas.ReorderResponse)
 async def reorder_item(
     request_body: schemas.ReorderRequest,
-    rs: ReorderService = Depends(get_reorder_service)
+    rs: ReorderService = Depends(get_reorder_service),
+    git_author: dict = Depends(get_git_author_info)
 ):
     """
     Reorder a file or directory by moving it to a new position within the tree structure.
@@ -797,7 +824,9 @@ async def reorder_item(
             source_path=request_body.source_path,
             target_parent_path=request_body.target_parent_path,
             position=request_body.position,
-            is_directory=request_body.is_directory
+            is_directory=request_body.is_directory,
+            author_name=git_author["author_name"],
+            author_email=git_author["author_email"]
         )
         
         return schemas.ReorderResponse(
@@ -819,7 +848,8 @@ async def reorder_item(
 async def rename_item(
     item_path: str,
     request_body: schemas.RenameRequest,
-    gs: GitService = Depends(get_git_service)
+    gs: GitService = Depends(get_git_service),
+    git_author: dict = Depends(get_git_author_info)
 ):
     """
     Rename a file or directory within the repository.
@@ -844,7 +874,13 @@ async def rename_item(
         commit_message = request_body.message or f"Rename {item_path} to {new_name}"
         
         # Perform the rename using git service
-        commit_sha = gs.rename_item(item_path, new_name, commit_message)
+        commit_sha = gs.rename_item(
+            item_path, 
+            new_name, 
+            commit_message,
+            author_name=git_author["author_name"],
+            author_email=git_author["author_email"]
+        )
         
         if commit_sha is None:
             raise HTTPException(status_code=500, detail="Failed to rename item")

@@ -19,7 +19,9 @@ class ReorderService:
         source_path: str, 
         target_parent_path: str, 
         position: int,
-        is_directory: bool = False
+        is_directory: bool = False,
+        author_name: Optional[str] = None,
+        author_email: Optional[str] = None
     ) -> Dict[str, any]:
         """
         Reorder a file or directory by moving it to a new position.
@@ -106,7 +108,7 @@ class ReorderService:
             files_to_commit = [source_path, new_path] + normalized_files
             # Remove duplicates and filter out non-existent files
             files_to_commit = list(set([f for f in files_to_commit if f]))
-            self.git_service.commit_files(files_to_commit, commit_message)
+            self.git_service.commit_files(files_to_commit, commit_message, author_name, author_email)
             
             return {
                 "success": True,
