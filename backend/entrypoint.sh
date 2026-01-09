@@ -27,14 +27,23 @@ else
         git init "${REPO_PATH}"
         git -C "${REPO_PATH}" config user.name "DocGit System"
         git -C "${REPO_PATH}" config user.email "system@docgit.local"
-        echo "INFO: Git repository initialized successfully"
+        
+        # Create initial commit to ensure HEAD exists
+        touch "${REPO_PATH}/.initial_commit_marker"
+        git -C "${REPO_PATH}" add .initial_commit_marker
+        git -C "${REPO_PATH}" commit -m "Initial repository setup"
+        echo "INFO: Git repository initialized successfully with initial commit"
     else
         echo "WARNING: Directory ${REPO_PATH} is not a git repository but contains files"
         echo "WARNING: Initializing as git repository - existing files will be tracked"
         git init "${REPO_PATH}"
         git -C "${REPO_PATH}" config user.name "DocGit System"
         git -C "${REPO_PATH}" config user.email "system@docgit.local"
-        echo "WARNING: Git repository initialized - run 'git add .' and 'git commit' to track existing files"
+        
+        # Create initial commit with existing files
+        git -C "${REPO_PATH}" add .
+        git -C "${REPO_PATH}" commit -m "Initial repository setup with existing files"
+        echo "WARNING: Git repository initialized - existing files have been committed"
     fi
 fi
 
