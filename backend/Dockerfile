@@ -40,8 +40,15 @@ COPY ./backend /app
 # Copy built frontend static files from frontend-builder stage
 COPY --from=frontend-builder /frontend/dist /app/static
 
+# Copy and set up entrypoint script
+COPY ./backend/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 # Expose the port the app runs on
 EXPOSE 8000
+
+# Set entrypoint for pre-flight checks
+ENTRYPOINT ["/bin/bash", "/app/entrypoint.sh"]
 
 # Command to run the application
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
