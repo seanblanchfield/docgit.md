@@ -433,7 +433,7 @@ body {
 .save-error-notification,
 .success-notification {
   position: fixed;
-  top: 20px;
+  top: calc(20px + var(--navbar-height, 56px));
   right: 20px;
   z-index: 10000;
   max-width: 350px;
@@ -779,7 +779,7 @@ dialog::backdrop { background: rgba(0,0,0,0.4); }
 /* Floating mode control */
 .mode-control {
   position: fixed;
-  top: 104px; /* below status bar (68px + 8px padding + 28px buffer) */
+  top: calc(104px + var(--navbar-height, 56px)); /* below status bar + navbar */
   right: 24px;
   display: flex;
   flex-direction: column;
@@ -1084,7 +1084,7 @@ dialog::backdrop { background: rgba(0,0,0,0.4); }
 .save-success-notification,
 .save-error-notification {
   position: fixed;
-  top: 20px;
+  top: calc(20px + var(--navbar-height, 56px));
   right: 20px;
   background: white;
   border: 1px solid var(--border-color);

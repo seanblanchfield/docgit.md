@@ -18,7 +18,7 @@ export function setupEventHandlers(treeInstance: any, el: HTMLElement, onFileSel
     event.stopImmediatePropagation();
 
     // IMPORTANT: Still need to ensure focus happens even if we stop propagation
-    el.focus();
+    el.focus({ preventScroll: true });
   }, true);
 
   el.addEventListener('click', (event) => {
@@ -141,7 +141,7 @@ export function setupEventHandlers(treeInstance: any, el: HTMLElement, onFileSel
 
   // Ensure tree gets focus when clicked
   el.addEventListener('click', () => {
-    el.focus();
+    el.focus({ preventScroll: true });
   });
 
   el.addEventListener('keydown', (ev) => {
