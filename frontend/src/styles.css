@@ -576,6 +576,31 @@ body {
   flex-shrink: 0;
 }
 
+/* Responsive toolbar - wrap to two rows on smaller screens */
+@media (max-width: 800px) {
+  .editor-toolbar {
+    flex-wrap: wrap;
+    min-height: auto;
+    gap: 8px;
+  }
+  
+  .toolbar-left {
+    flex-basis: 100%;
+    flex: 1 1 100%;
+    order: 1;
+    margin-bottom: 0;
+  }
+  
+  .toolbar-center {
+    order: 2;
+    flex: 1;
+  }
+  
+  .toolbar-right {
+    order: 3;
+  }
+}
+
 /* Generic button styling inside toolbar */
 .editor-toolbar button {
   font-family: inherit;
@@ -601,9 +626,6 @@ body {
 .commit-text {
   font-size: 13px;
   color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   min-width: 0;
   flex: 1;
 }
