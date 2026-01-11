@@ -13,6 +13,12 @@ services:
       - GIT_REPO_PATH=/data/repo
       # - GIT_AUTHOR_NAME="Wiki User" # Can be set here or in spec
       # - GIT_AUTHOR_EMAIL="wiki@example.com" # Can be set here or in spec
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 volumes:
   repo_data: # Define a named volume for git data (though spec uses bind mount)
