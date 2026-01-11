@@ -20,38 +20,39 @@
   </div>
   <div class="drawer-resizer" aria-hidden="true"></div>
 </div>
-    <div id="content">
-      <div id="editor-status-bar" class="editor-status-bar" role="toolbar">
-        <div class="flex-spacer"></div>
-        <div class="status-right">
-          <div class="status-meta" data-id="commit-meta">
-            <span class="commit-text" data-id="commit-text"></span>
-            <div class="overflow-menu" data-id="overflow-menu">
-              <button class="overflow-menu-btn" data-id="overflow-btn" aria-label="File actions">
-                <span class="hamburger-dots">
-                  <span class="dot"></span>
-                  <span class="dot"></span>
-                  <span class="dot"></span>
-                </span>
-              </button>
-              <div class="overflow-menu-dropdown hidden" data-id="overflow-dropdown">
-                <button class="overflow-menu-item" data-id="history-btn">View History</button>
-              </div>
+    <div id="content-wrapper">
+      <div id="editor-toolbar" class="editor-toolbar" role="toolbar">
+        <div class="toolbar-left">
+          <span class="commit-text" data-id="commit-text"></span>
+          <div class="overflow-menu" data-id="overflow-menu">
+            <button class="overflow-menu-btn" data-id="overflow-btn" aria-label="File actions">
+              <span class="hamburger-dots">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+              </span>
+            </button>
+            <div class="overflow-menu-dropdown hidden" data-id="overflow-dropdown">
+              <button class="overflow-menu-item" data-id="history-btn">View History</button>
             </div>
           </div>
-          <div class="status-actions">
-            <span class="draft-text hidden" data-id="draft-text">Draft</span>
-            <button class="save-btn hidden" data-id="save-btn" aria-label="Save changes">Save</button>
-            <button class="discard-btn hidden" data-id="discard-btn" aria-label="Discard changes">Discard</button>
+        </div>
+        <div class="toolbar-center">
+          <span class="draft-text hidden" data-id="draft-text">Draft</span>
+          <button class="save-btn hidden" data-id="save-btn" aria-label="Save changes">Save</button>
+          <button class="discard-btn hidden" data-id="discard-btn" aria-label="Discard changes">Discard</button>
+        </div>
+        <div class="toolbar-right">
+          <div class="mode-control" data-id="mode-control">
+            <button class="mode-btn selected" data-mode="read" aria-label="Read mode">👁</button>
+            <button class="mode-btn" data-mode="wysiwyg" aria-label="WYSIWYG mode">✏️</button>
+            <button class="mode-btn" data-mode="raw" aria-label="Raw markdown mode">md</button>
           </div>
         </div>
-        <div class="mode-control" data-id="mode-control">
-          <button class="mode-btn selected" data-mode="read" aria-label="Read mode">👁</button>
-          <button class="mode-btn" data-mode="wysiwyg" aria-label="WYSIWYG mode">✏️</button>
-          <button class="mode-btn" data-mode="raw" aria-label="Raw markdown mode">md</button>
-        </div>
       </div>
-      <div id="editor-root"></div>
+      <div id="content">
+        <div id="editor-root"></div>
+      </div>
     </div>
     
     <!-- History Drawer -->

@@ -331,13 +331,17 @@ body {
   background: #a8a8a8;
 }
 
-#content {
+#content-wrapper {
   flex: 1 1 75%;
   min-width: 0;
   height: 100%;
-  overflow: auto;
   display: flex;
   flex-direction: column;
+}
+
+#content {
+  flex: 1;
+  overflow: auto;
   padding: 20px;
 }
 
@@ -532,23 +536,46 @@ body {
   cursor: pointer;
 }
 
-/* Editor status bar */
-.editor-status-bar {
+/* Editor toolbar - sticky at top */
+.editor-toolbar {
+  position: sticky;
+  top: var(--body-top-padding, 0px);
+  z-index: 100;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: space-between;
   gap: 16px;
-  min-height: 82px;
-  height: 82px;
-  padding: 12px 4px;
+  min-height: 60px;
+  padding: 12px 20px;
   border-bottom: 1px solid var(--border-color);
   box-shadow: 0 1px 2px rgba(0,0,0,.05);
   background: #fff;
   box-sizing: border-box;
 }
-.editor-status-bar .flex-spacer { flex: 1; }
 
-/* Generic button styling inside status bar */
-.editor-status-bar button {
+.toolbar-left,
+.toolbar-center,
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.toolbar-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.toolbar-center {
+  flex-shrink: 0;
+}
+
+.toolbar-right {
+  flex-shrink: 0;
+}
+
+/* Generic button styling inside toolbar */
+.editor-toolbar button {
   font-family: inherit;
   font-size: 14px;
   display: inline-flex;
@@ -564,32 +591,42 @@ body {
   cursor: pointer;
   transition: background .15s ease;
 }
-.editor-status-bar button:hover { background: #f3f4f6; }
-.editor-status-bar button:active { background: #e5e7eb; }
-.editor-status-bar button:focus { outline: 2px solid var(--primary-color); outline-offset: 1px; }
+.editor-toolbar button:hover { background: #f3f4f6; }
+.editor-toolbar button:active { background: #e5e7eb; }
+.editor-toolbar button:focus { outline: 2px solid var(--primary-color); outline-offset: 1px; }
 
-/* Status bar right section layout */
-.status-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
+/* Toolbar text elements */
+.commit-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.status-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 12px;
+.draft-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.status-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 32px;
-  justify-content: flex-end;
+.save-btn {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #fff;
 }
+.save-btn:hover:not(:disabled) { background: var(--bg-hover); color: #374151; border-color: #d1d5db; }
+
+.discard-btn {
+  background: #fff;
+  border: 1px solid #dc2626;
+  color: #dc2626;
+}
+.discard-btn:hover { background: #fef2f2; }
+
+.save-btn:disabled { opacity: .5; cursor: default; }
 
 /* Overflow Menu Styles */
 .overflow-menu {
@@ -776,32 +813,30 @@ dialog.confirm-dialog {
 
 dialog::backdrop { background: rgba(0,0,0,0.4); }
 
-/* Floating mode control */
+/* Mode control - now inline in toolbar */
 .mode-control {
-  position: fixed;
-  top: calc(104px + var(--body-top-padding, 0px)); /* below status bar + body padding */
-  right: 24px;
   display: flex;
-  flex-direction: column;
   gap: 8px;
-  background: #ffffffcc;
-  backdrop-filter: blur(2px);
   padding: 4px;
+  background: #f9fafb;
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  z-index: 2000;
 }
 .mode-btn {
-  width: 25px;
-  height: 25px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  background: #fff;
-  border: 1px solid var(--border-color);
+  font-size: 14px;
+  background: transparent;
+  border: none;
   border-radius: 6px;
   cursor: pointer;
+  transition: background .15s ease;
+}
+.mode-btn:hover {
+  background: #e5e7eb;
 }
 .mode-btn.selected {
   background: #e0e7ff;

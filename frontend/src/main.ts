@@ -127,15 +127,15 @@ async function main() {
   // Show status message overlay instead of editable content
   function showStatusMessage(title: string, message: string) {
     // Hide all editor elements
-    const statusActions = document.querySelector('.status-actions') as HTMLElement | null;
-    const modeControl = document.querySelector('.mode-control') as HTMLElement | null;
-    const statusMeta = document.querySelector('.status-meta') as HTMLElement | null;
+    const toolbarCenter = document.querySelector('.toolbar-center') as HTMLElement | null;
+    const toolbarRight = document.querySelector('.toolbar-right') as HTMLElement | null;
+    const toolbarLeft = document.querySelector('.toolbar-left') as HTMLElement | null;
     const milkdownContainer = document.querySelector('.milkdown') as HTMLElement | null;
     const rawTextarea = document.querySelector('#raw-textarea') as HTMLTextAreaElement | null;
     
-    if (statusActions) statusActions.style.display = 'none';
-    if (modeControl) modeControl.style.display = 'none';
-    if (statusMeta) statusMeta.style.display = 'none';
+    if (toolbarCenter) toolbarCenter.style.display = 'none';
+    if (toolbarRight) toolbarRight.style.display = 'none';
+    if (toolbarLeft) toolbarLeft.style.display = 'none';
     if (milkdownContainer) milkdownContainer.style.display = 'none';
     if (rawTextarea) rawTextarea.style.display = 'none';
     
@@ -166,15 +166,15 @@ async function main() {
     }
     
     // Show all editor elements again
-    const statusActions = document.querySelector('.status-actions') as HTMLElement | null;
-    const modeControl = document.querySelector('.mode-control') as HTMLElement | null;
-    const statusMeta = document.querySelector('.status-meta') as HTMLElement | null;
+    const toolbarCenter = document.querySelector('.toolbar-center') as HTMLElement | null;
+    const toolbarRight = document.querySelector('.toolbar-right') as HTMLElement | null;
+    const toolbarLeft = document.querySelector('.toolbar-left') as HTMLElement | null;
     const milkdownContainer = document.querySelector('.milkdown') as HTMLElement | null;
     const rawTextarea = document.querySelector('#raw-textarea') as HTMLTextAreaElement | null;
     
-    if (statusActions) statusActions.style.display = '';
-    if (modeControl) modeControl.style.display = '';
-    if (statusMeta) statusMeta.style.display = '';
+    if (toolbarCenter) toolbarCenter.style.display = '';
+    if (toolbarRight) toolbarRight.style.display = '';
+    if (toolbarLeft) toolbarLeft.style.display = '';
     if (milkdownContainer) milkdownContainer.style.display = '';
     if (rawTextarea && appState.currentMode === 'raw') rawTextarea.style.display = '';
   }
@@ -484,9 +484,9 @@ async function main() {
     showNotification('success', 'Changes Discarded', `Your local changes to ${humanizeFileName(appState.currentFilePath)} have been discarded.`);
   }
 
-  const editorStatusBar = document.getElementById('editor-status-bar');
-  if (editorStatusBar) {
-    editorStatusBar.addEventListener('click', (e) => {
+  const editorToolbar = document.getElementById('editor-toolbar');
+  if (editorToolbar) {
+    editorToolbar.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
       const button = target.closest('button');
       if (!button) return;
@@ -819,13 +819,13 @@ async function main() {
       }
     });
 
-    // Restore status bar
-    const statusActions = document.querySelector('.status-actions') as HTMLElement | null;
-    const modeControl = document.querySelector('.mode-control') as HTMLElement | null;
-    const statusMeta = document.querySelector('.status-meta') as HTMLElement | null;
-    if (statusActions) statusActions.style.display = '';
-    if (modeControl) modeControl.style.display = '';
-    if (statusMeta) statusMeta.style.display = '';
+    // Restore toolbar
+    const toolbarCenter = document.querySelector('.toolbar-center') as HTMLElement | null;
+    const toolbarRight = document.querySelector('.toolbar-right') as HTMLElement | null;
+    const toolbarLeft = document.querySelector('.toolbar-left') as HTMLElement | null;
+    if (toolbarCenter) toolbarCenter.style.display = '';
+    if (toolbarRight) toolbarRight.style.display = '';
+    if (toolbarLeft) toolbarLeft.style.display = '';
 
     appState.dialog.visible = false;
   }
@@ -852,13 +852,13 @@ async function main() {
     const pathSegment = parentPath ? `${parentPath}/` : '';
     history.replaceState(null, '', `/${pathSegment}__create__`);
     
-    // Hide status bar actions and show create-specific buttons
-    const statusActions = document.querySelector('.status-actions') as HTMLElement | null;
-    const modeControl = document.querySelector('.mode-control') as HTMLElement | null;
-    const statusMeta = document.querySelector('.status-meta') as HTMLElement | null;
-    if (statusActions) statusActions.style.display = 'none';
-    if (modeControl) modeControl.style.display = 'none';
-    if (statusMeta) statusMeta.style.display = 'none';
+    // Hide toolbar sections and show create-specific buttons
+    const toolbarCenter = document.querySelector('.toolbar-center') as HTMLElement | null;
+    const toolbarRight = document.querySelector('.toolbar-right') as HTMLElement | null;
+    const toolbarLeft = document.querySelector('.toolbar-left') as HTMLElement | null;
+    if (toolbarCenter) toolbarCenter.style.display = 'none';
+    if (toolbarRight) toolbarRight.style.display = 'none';
+    if (toolbarLeft) toolbarLeft.style.display = 'none';
     
     // Hide the existing editor content
     if (!editorRoot) return;
