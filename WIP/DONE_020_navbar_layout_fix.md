@@ -38,26 +38,41 @@ feature/navbar-layout-fix
 - [x] Removed temporary navbar injection
 
 ## Files Modified
-- `frontend/src/styles.css` - Changed layout from 100vh to 100% to respect body padding
+- `frontend/src/styles.css` - Layout and positioning fixes
   - Added `--navbar-height: 56px` CSS variable
-  - Changed `body` to use `box-sizing: border-box`
-  - Changed `#main-container` from `height: 100vh` to `height: 100%`
-  - Changed `#tree-drawer` from `height: 100vh` to `height: 100%`
-  - Changed `#content` from `height: 100vh` to `height: 100%`
-  - Changed `.raw-markdown-editor` from `height: 100vh` to `height: 100%`
-  - Updated mobile drawer to use `top: var(--navbar-height, 56px)` and `calc(100vh - var(--navbar-height, 56px))`
-  - Updated history drawer to use `top: var(--navbar-height, 56px)` and `calc(100vh - var(--navbar-height, 56px))`
-- `frontend/public/apps.json` - Created for navbar manifest (temporary testing file)
-- `frontend/index.html` - Temporarily added navbar.js script (removed after testing)
+  - Added `box-sizing: border-box` to body
+  - Changed `#main-container`, `#tree-drawer`, `#content`, `.raw-markdown-editor` from `height: 100vh` to `height: 100%`
+  - Updated mobile drawer: `top: var(--navbar-height, 56px)` and `height: calc(100vh - var(--navbar-height, 56px))`
+  - Updated history drawer: `top: var(--navbar-height, 56px)` and `height: calc(100vh - var(--navbar-height, 56px))`
+  - Updated `.mode-control`: `top: calc(104px + var(--navbar-height, 56px))`
+  - Updated notifications: `top: calc(20px + var(--navbar-height, 56px))`
+- `frontend/src/tree/eventHandlers.ts` - Prevent auto-scroll on tree interaction
+  - Added `{ preventScroll: true }` to `el.focus()` calls (2 locations)
+- `frontend/index.html` - Temporarily added navbar.js for testing (to be removed)
+- `frontend/public/apps.json` - Created for navbar testing (temporary file)
 
 ## Solution
-The core issue was that the layout used `height: 100vh` on multiple elements, which caused them to ignore the body's padding-top applied by the navbar's LAYOUT_STRATEGIES.A approach.
 
-**Key Changes:**
+### Issue 1: Initial Layout Overlay
+The layout used `height: 100vh` on multiple elements, which caused them to ignore the body's padding-top applied by the navbar's LAYOUT_STRATEGIES.A approach.
+
+**Fix:**
 1. Changed main layout containers from `100vh` to `100%` so they respect body padding
 2. Added `box-sizing: border-box` to body so padding is included in height calculation
 3. For fixed-position elements (mobile drawer, history drawer), used `calc(100vh - var(--navbar-height, 56px))` and positioned them below the navbar with `top: var(--navbar-height, 56px)`
 4. Added CSS variable `--navbar-height: 56px` for consistency
+
+### Issue 2: Mode Control Overlap
+The `.mode-control` element used `position: fixed` with `top: 104px` which didn't account for the navbar height.
+
+**Fix:**
+Changed to `top: calc(104px + var(--navbar-height, 56px))` to position below navbar
+
+### Issue 3: Content Shift on Tree Interaction
+When clicking tree items (even just expanding directories), the page would scroll up and content would shift under the navbar. Root cause: `el.focus()` calls in tree event handlers were triggering browser auto-scroll behavior.
+
+**Fix:**
+Added `{ preventScroll: true }` option to all `el.focus()` calls in tree event handlers to prevent auto-scroll when tree receives focus
 
 ## Testing Results
 ✅ Navbar displays correctly at top of page
