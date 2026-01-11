@@ -12,7 +12,6 @@
   --tree-indent: 16px;
   --lock-color: #dc2626;
   --disabled-color: #9ca3af;
-  --body-top-padding: 0px;
 }
 
 body {
@@ -217,10 +216,10 @@ body {
 }
 @media (max-width: 700px) {
   #tree-drawer[data-id="tree"] {
-    position: fixed;
+    position: absolute;
     left: 0;
-    top: var(--body-top-padding, 0px);
-    height: calc(100vh - var(--body-top-padding, 0px));
+    top: 0;
+    height: 100%;
     width: calc(100vw - 16px) !important;
     max-width: none;
     min-width: 0;
@@ -436,8 +435,8 @@ body {
 .save-success-notification,
 .save-error-notification,
 .success-notification {
-  position: fixed;
-  top: calc(20px + var(--body-top-padding, 0px));
+  position: absolute;
+  top: 20px;
   right: 20px;
   z-index: 10000;
   max-width: 350px;
@@ -539,7 +538,7 @@ body {
 /* Editor toolbar - sticky at top */
 .editor-toolbar {
   position: sticky;
-  top: var(--body-top-padding, 0px);
+  top: 0;
   z-index: 100;
   display: flex;
   align-items: center;
@@ -910,11 +909,11 @@ dialog::backdrop { background: rgba(0,0,0,0.4); }
 
 /* History Drawer Styles */
 .history-drawer {
-  position: fixed;
-  top: var(--body-top-padding, 0px);
+  position: absolute;
+  top: 0;
   right: 0;
   width: 350px;
-  height: calc(100vh - var(--body-top-padding, 0px));
+  height: 100%;
   background: #fff;
   border-left: 1px solid var(--border-color);
   box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
@@ -1163,8 +1162,8 @@ dialog::backdrop { background: rgba(0,0,0,0.4); }
 .lock-lost-notification,
 .save-success-notification,
 .save-error-notification {
-  position: fixed;
-  top: calc(20px + var(--body-top-padding, 0px));
+  position: absolute;
+  top: 20px;
   right: 20px;
   background: white;
   border: 1px solid var(--border-color);
