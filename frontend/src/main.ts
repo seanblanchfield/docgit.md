@@ -356,23 +356,19 @@ async function main() {
   }
 
   async function updateCommitMeta(filePath: string) {
-    const metaElement = document.querySelector('[data-id="commit-meta"]');
     const commitTextElement = document.querySelector('[data-id="commit-text"]');
-    if (!metaElement || !commitTextElement) return;
+    if (!commitTextElement) return;
 
     try {
       const lastCommit = await apiService.fetchLatestCommit(filePath);
       if (lastCommit) {
         commitTextElement.textContent = `Last updated ${humanizeTime(lastCommit.date)} by ${lastCommit.author_name}`;
-        metaElement.classList.remove('hidden');
       } else {
         commitTextElement.textContent = 'No history available for this file.';
-        metaElement.classList.remove('hidden');
       }
     } catch (error) {
       console.warn('Could not fetch commit history:', error);
       commitTextElement.textContent = 'Could not load file history.';
-      metaElement.classList.remove('hidden');
     }
   }
 
