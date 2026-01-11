@@ -39,17 +39,17 @@ feature/navbar-layout-fix
 
 ## Files Modified
 - `frontend/src/styles.css` - Layout and positioning fixes
-  - Added `--navbar-height: 56px` CSS variable
+  - Added `--body-top-padding: 0px` CSS variable (renamed from --navbar-height, defaults to 0px)
   - Added `box-sizing: border-box` to body
   - Changed `#main-container`, `#tree-drawer`, `#content`, `.raw-markdown-editor` from `height: 100vh` to `height: 100%`
-  - Updated mobile drawer: `top: var(--navbar-height, 56px)` and `height: calc(100vh - var(--navbar-height, 56px))`
-  - Updated history drawer: `top: var(--navbar-height, 56px)` and `height: calc(100vh - var(--navbar-height, 56px))`
-  - Updated `.mode-control`: `top: calc(104px + var(--navbar-height, 56px))`
-  - Updated notifications: `top: calc(20px + var(--navbar-height, 56px))`
+  - Updated mobile drawer: `top: var(--body-top-padding, 0px)` and `height: calc(100vh - var(--body-top-padding, 0px))`
+  - Updated history drawer: `top: var(--body-top-padding, 0px)` and `height: calc(100vh - var(--body-top-padding, 0px))`
+  - Updated `.mode-control`: `top: calc(104px + var(--body-top-padding, 0px))`
+  - Updated notifications: `top: calc(20px + var(--body-top-padding, 0px))`
 - `frontend/src/tree/eventHandlers.ts` - Prevent auto-scroll on tree interaction
   - Added `{ preventScroll: true }` to `el.focus()` calls (2 locations)
-- `frontend/index.html` - Temporarily added navbar.js for testing (to be removed)
-- `frontend/public/apps.json` - Created for navbar testing (temporary file)
+- `frontend/index.html` - Temporarily added navbar.js for testing (removed before merge)
+- `frontend/public/apps.json` - Created for navbar testing (temporary file, not committed)
 
 ## Solution
 
@@ -59,14 +59,15 @@ The layout used `height: 100vh` on multiple elements, which caused them to ignor
 **Fix:**
 1. Changed main layout containers from `100vh` to `100%` so they respect body padding
 2. Added `box-sizing: border-box` to body so padding is included in height calculation
-3. For fixed-position elements (mobile drawer, history drawer), used `calc(100vh - var(--navbar-height, 56px))` and positioned them below the navbar with `top: var(--navbar-height, 56px)`
-4. Added CSS variable `--navbar-height: 56px` for consistency
+3. For fixed-position elements (mobile drawer, history drawer), used `calc(100vh - var(--body-top-padding, 0px))` and positioned them below body padding with `top: var(--body-top-padding, 0px)`
+4. Added CSS variable `--body-top-padding: 0px` (generic name, defaults to 0px for standalone use)
+5. External navbar script sets `--body-top-padding` to `56px` when injecting navbar
 
 ### Issue 2: Mode Control Overlap
-The `.mode-control` element used `position: fixed` with `top: 104px` which didn't account for the navbar height.
+The `.mode-control` element used `position: fixed` with `top: 104px` which didn't account for body top padding.
 
 **Fix:**
-Changed to `top: calc(104px + var(--navbar-height, 56px))` to position below navbar
+Changed to `top: calc(104px + var(--body-top-padding, 0px))` to position below body padding
 
 ### Issue 3: Content Shift on Tree Interaction
 When clicking tree items (even just expanding directories), the page would scroll up and content would shift under the navbar. Root cause: `el.focus()` calls in tree event handlers were triggering browser auto-scroll behavior.
@@ -82,3 +83,18 @@ Added `{ preventScroll: true }` option to all `el.focus()` calls in tree event h
 ✅ History drawer positioned correctly below navbar
 ✅ Site works correctly without navbar (when not injected)
 ✅ Layout responsive and functional
+✅ No content shift when clicking tree items
+
+## External Project Integration
+The external navbar script needs to set the CSS variable when injecting:
+```javascript
+document.documentElement.style.setProperty('--body-top-padding', `${NAVBAR_HEIGHT}px`);
+```
+
+## Future Work
+Layout architecture review identified that the current structure has semantic issues:
+- `.mode-control` is a child of `#editor-status-bar` but uses `position: fixed`
+- Status bar can scroll out of view
+- Fixed elements triggered by scrollable UI
+
+Proposed improvement: Restructure to use sticky toolbar architecture (TODO_021)
