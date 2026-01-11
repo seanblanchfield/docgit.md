@@ -564,6 +564,8 @@ body {
 .toolbar-left {
   flex: 1;
   min-width: 0;
+  display: flex;
+  align-items: center;
 }
 
 .toolbar-center {
@@ -602,6 +604,8 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
 }
 
 .draft-text {
@@ -841,6 +845,25 @@ dialog::backdrop { background: rgba(0,0,0,0.4); }
 .mode-btn.selected {
   background: #e0e7ff;
   color: var(--primary-color);
+}
+
+/* History button */
+.history-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background .15s ease;
+  margin-left: 8px;
+}
+.history-btn:hover {
+  background: #f3f4f6;
 }
 
 .draft-text {

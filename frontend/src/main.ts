@@ -1065,28 +1065,13 @@ async function main() {
   // Initialize history functionality
   setupHistory();
 
-  // Overflow menu event listeners
-  const overflowBtn = document.querySelector('[data-id="overflow-btn"]') as HTMLButtonElement | null;
-  const overflowDropdown = document.querySelector('[data-id="overflow-dropdown"]') as HTMLElement | null;
+  // History button event listener
   const historyBtn = document.querySelector('[data-id="history-btn"]') as HTMLButtonElement | null;
-
-  overflowBtn?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    overflowDropdown?.classList.toggle('hidden');
-  });
-
-  document.addEventListener('click', (e) => {
-    if (overflowDropdown && !overflowDropdown.contains(e.target as Node) && !overflowBtn?.contains(e.target as Node)) {
-      overflowDropdown.classList.add('hidden');
-    }
-  });
-
   const historyDrawer = document.querySelector('[data-id="history-drawer"]') as HTMLElement | null;
   const historyCloseBtn = document.querySelector('[data-id="history-close"]') as HTMLButtonElement | null;
 
   historyBtn?.addEventListener('click', (e) => {
     e.preventDefault();
-    overflowDropdown?.classList.add('hidden');
     historyDrawer?.classList.remove('hidden');
   });
 
