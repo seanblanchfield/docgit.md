@@ -12,6 +12,7 @@
   --tree-indent: 16px;
   --lock-color: #dc2626;
   --disabled-color: #9ca3af;
+  --body-top-padding: 0px;
 }
 
 body {
@@ -21,12 +22,13 @@ body {
   color: var(--text-primary);
   line-height: 1.5;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 #main-container {
   display: flex;
-  height: 100vh;
-  width: 100vw;
+  height: 100%;
+  width: 100%;
   min-width: 0;
   min-height: 0;
   background-color: #fff;
@@ -38,7 +40,7 @@ body {
   flex: 0 0 25%;
   min-width: 180px;
   max-width: 50vw;
-  height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--border-color);
@@ -58,8 +60,8 @@ body {
 
 @media (max-width: 700px) {
   #content {
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
     display: block;
     min-width: 0;
     overflow: auto;
@@ -95,8 +97,8 @@ body {
   outline: none;
   resize: none;
   width: 100%;
-  height: 100vh;
-  min-height: 100vh;
+  height: 100%;
+  min-height: 100%;
   overflow-y: auto;
   background: #fff;
 }
@@ -217,8 +219,8 @@ body {
   #tree-drawer[data-id="tree"] {
     position: fixed;
     left: 0;
-    top: 0;
-    height: 100vh;
+    top: var(--body-top-padding, 0px);
+    height: calc(100vh - var(--body-top-padding, 0px));
     width: calc(100vw - 16px) !important;
     max-width: none;
     min-width: 0;
@@ -332,7 +334,7 @@ body {
 #content {
   flex: 1 1 75%;
   min-width: 0;
-  height: 100vh;
+  height: 100%;
   overflow: auto;
   display: flex;
   flex-direction: column;
@@ -431,7 +433,7 @@ body {
 .save-error-notification,
 .success-notification {
   position: fixed;
-  top: 20px;
+  top: calc(20px + var(--body-top-padding, 0px));
   right: 20px;
   z-index: 10000;
   max-width: 350px;
@@ -777,7 +779,7 @@ dialog::backdrop { background: rgba(0,0,0,0.4); }
 /* Floating mode control */
 .mode-control {
   position: fixed;
-  top: 104px; /* below status bar (68px + 8px padding + 28px buffer) */
+  top: calc(104px + var(--body-top-padding, 0px)); /* below status bar + body padding */
   right: 24px;
   display: flex;
   flex-direction: column;
@@ -829,10 +831,10 @@ dialog::backdrop { background: rgba(0,0,0,0.4); }
 /* History Drawer Styles */
 .history-drawer {
   position: fixed;
-  top: 0;
+  top: var(--body-top-padding, 0px);
   right: 0;
   width: 350px;
-  height: 100vh;
+  height: calc(100vh - var(--body-top-padding, 0px));
   background: #fff;
   border-left: 1px solid var(--border-color);
   box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
@@ -1082,7 +1084,7 @@ dialog::backdrop { background: rgba(0,0,0,0.4); }
 .save-success-notification,
 .save-error-notification {
   position: fixed;
-  top: 20px;
+  top: calc(20px + var(--body-top-padding, 0px));
   right: 20px;
   background: white;
   border: 1px solid var(--border-color);
