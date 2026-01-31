@@ -372,11 +372,6 @@ async function main() {
     }
   }
 
-  function autoResize(textarea: HTMLTextAreaElement) {
-    textarea.style.height = 'auto';
-    textarea.style.height = `${textarea.scrollHeight}px`;
-  }
-
   async function updateMode(mode: Mode) {
     // If transitioning from read mode to an edit mode, acquire lock first
     if (appState.currentMode === 'read' && (mode === 'wysiwyg' || mode === 'raw') && appState.currentFilePath) {
@@ -424,7 +419,6 @@ async function main() {
     } else if (mode === 'raw') {
       appState.currentMarkdown = contentEditor.getMarkdown() || appState.currentMarkdown;
       rawTextarea.value = appState.currentMarkdown;
-      autoResize(rawTextarea);
       (rawTextarea as HTMLElement).style.display = 'block';
       contentEditor.setEditable(false);
       
