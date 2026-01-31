@@ -43,6 +43,29 @@ The application will be available at `http://localhost:8080` with the FastAPI ba
 - Docker & Docker Compose
 - Volume-based data persistence
 
+## Authentication & User Management
+
+This project is designed to operate **behind an authentication proxy** in production, while allowing unauthenticated access for local development convenience.
+
+**Architecture:**
+- Backend reads user identity from `X-User-Name` and `X-User-Email` headers set by upstream proxy
+- Git commits are automatically attributed to the authenticated user based on these headers
+- No built-in authentication - delegates to upstream proxy (e.g., [oauth2-proxy](https://github.com/oauth2-proxy/oauth2-proxy))
+- Falls back to environment defaults (`GIT_AUTHOR_NAME`/`GIT_AUTHOR_EMAIL`) when headers are absent
+
+**Local Development:**
+- No authentication required - direct access to all features
+- Commits use default author from environment variables
+- Ideal for testing and single-user scenarios
+
+**Production Deployment:**
+- Deploy behind authentication proxy (oauth2-proxy, Authelia, etc.)
+- Proxy handles OAuth/OIDC authentication and sets `X-User-*` headers
+- Each user's commits are properly attributed in Git history
+- Access control managed at proxy level
+
+This design provides flexibility for development while enabling proper multi-user authentication in production without adding authentication complexity to the application itself.
+
 ## Documentation
 
 Comprehensive documentation is available in the [`docs/`](docs/) directory:
